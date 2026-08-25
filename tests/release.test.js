@@ -17,7 +17,7 @@ test("manifest uses minimized install-time permissions", () => {
   assert.ok(!manifest.permissions.includes("activeTab"));
   assert.ok(manifest.host_permissions.includes("https://api.deepseek.com/*"));
   assert.equal(Object.hasOwn(manifest, "optional_host_permissions"), false);
-  assert.equal(manifest.version, "1.1.5");
+  assert.equal(manifest.version, "1.2.0");
 });
 
 test("release copy documents current scope without em dashes", () => {
@@ -183,6 +183,59 @@ test("release copy documents current scope without em dashes", () => {
   assert.match(chineseReadme, /发布版本只支持 DeepSeek V4 Flash/);
 });
 
+test("product UI contains no emoji or emoji-like pictographs", () => {
+  const productUi = [
+    read("sidepanel.html"),
+    read("sidepanel.js"),
+    read("content.js"),
+    read("options.html"),
+    read("options.js"),
+  ].join("\n");
+
+  assert.doesNotMatch(
+    productUi,
+    /\p{Extended_Pictographic}|[✓✕⧉▶]/u,
+  );
+  assert.doesNotMatch(productUi, /&#(?:9655|9888);/);
+});
+
+test("selection actions use two equal edge-to-edge hover areas", () => {
+  const css = read("sidepanel.css");
+
+  assert.match(
+    css,
+    /\.explain-tooltip\s*\{[^}]*padding:\s*0;[^}]*overflow:\s*hidden;/,
+  );
+  assert.match(
+    css,
+    /\.explain-btn,\s*\.selection-note-btn\s*\{[^}]*flex:\s*1 1 50%;[^}]*border-radius:\s*0;/,
+  );
+  assert.match(
+    css,
+    /\.explain-tooltip\s*\{[^}]*animation:\s*selectionToolbarIn/,
+  );
+  assert.match(
+    css,
+    /@keyframes selectionToolbarIn\s*\{[\s\S]*transform:\s*translate\(-50%, 4px\);[\s\S]*transform:\s*translate\(-50%, 0\);/,
+  );
+});
+
+test("note delete is an accessible SVG action at the end of the action row", () => {
+  const js = read("sidepanel.js");
+  const css = read("sidepanel.css");
+
+  assert.match(
+    js,
+    /<div class="note-actions">[\s\S]*class="[^"]*note-play[^"]*"[\s\S]*class="note-delete"[\s\S]*aria-label="Delete note"[\s\S]*<svg viewBox="0 0 24 24" aria-hidden="true">/,
+  );
+  assert.doesNotMatch(js, /class="note-delete"[^>]*>Delete<\/button>/);
+  assert.match(
+    css,
+    /\.note-delete\s*\{[^}]*place-items:\s*center;[^}]*margin-left:\s*auto;/,
+  );
+  assert.match(css, /\.note-delete:focus-visible\s*\{[^}]*outline:/);
+});
+
 test("notes filters preserve selected contrast and expose pressed state", () => {
   const html = read("sidepanel.html");
   const css = read("sidepanel.css");
@@ -226,6 +279,27 @@ test("runtime has no source-file credential dependency or retired model", () => 
   assert.doesNotMatch(runtime, /importScripts\(["']config\.js/);
   assert.doesNotMatch(runtime, /\bdeepseek-chat\b/);
   assert.match(runtime, /deepseek-v4-flash/);
+});
+
+test("background reconciles side-panel state after navigation commits", () => {
+  const background = read("background.js");
+
+  assert.match(
+    background,
+    /function getNavigationUrl\(changeInfo, tab\)[\s\S]*changeInfo\.status !== "loading"[\s\S]*changeInfo\.status !== "complete"[\s\S]*tab\.pendingUrl \|\| tab\.url/,
+  );
+  assert.match(
+    background,
+    /chrome\.tabs\.onUpdated\.addListener\(\(tabId, changeInfo, tab\)[\s\S]*getNavigationUrl\(changeInfo, tab\)[\s\S]*updatePanelForTab\(tabId, url, tab\.windowId\)/,
+  );
+  assert.match(
+    background,
+    /function closePanelForTab\(tabId, windowId\)[\s\S]*chrome\.sidePanel\.close\(\{ tabId \}\)[\s\S]*chrome\.sidePanel\.close\(\{ windowId \}\)/,
+  );
+  assert.match(
+    background,
+    /await closePanelForTab\(tabId, windowId\);[\s\S]*setOptions\(\{ tabId, enabled: false \}\)/,
+  );
 });
 
 test("retired Remix and reader files are absent", () => {

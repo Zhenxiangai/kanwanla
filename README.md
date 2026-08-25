@@ -13,6 +13,14 @@ Turn every YouTube video into a resource for deep learning. YouTube Digest bring
 
 YouTube Digest is a bring-your-own-key project installed locally from GitHub. It is not available through the Chrome Web Store, does not include API credits, and does not run a developer-operated server.
 
+## New in v1.2.0
+
+- Search transcript words or phrases and move through every match.
+- Use one Original, Chinese, or bilingual setting across Transcript, Overview, and Notes. New videos stay in Original by default.
+- Translate visible Overview and Notes content progressively in small cached batches.
+- Explain selected transcript text or save it directly as a timestamped note.
+- Keep your transcript position across navigation, with the panel closing automatically outside YouTube video pages.
+
 ## Install with your coding agent
 
 You do not need to understand the code or use the command line. Send this message to your coding agent:
