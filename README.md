@@ -13,6 +13,8 @@ Turn every YouTube video into a resource for deep learning. YouTube Digest bring
 
 YouTube Digest is a bring-your-own-key project installed locally from GitHub. It is not available through the Chrome Web Store, does not include API credits, and does not run a developer-operated server.
 
+![YouTube Digest demo](YouTube%20Digest%20demo.png)
+
 ## New in v1.2.0
 
 - Search transcript words or phrases and move through every match.

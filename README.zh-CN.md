@@ -13,6 +13,10 @@
 
 YouTube Digest 是一个需要自行提供 API Key 的开源项目，通过 GitHub 安装。目前没有上架 Chrome 应用商店，不赠送 API 额度，也没有开发者运营的服务器。
 
+点击查看演示和教学视频（小白友好）：[https://www.bilibili.com/video/BV1dnuq6dEak/](https://www.bilibili.com/video/BV1dnuq6dEak/)
+
+![YouTube Digest 双语演示](YouTube%20Digest%20demo%20bilingual.png)
+
 ## v1.2.0 更新
 
 - 搜索字幕中的单词或短语，并依次查看所有匹配位置。
