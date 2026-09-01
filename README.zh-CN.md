@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases"><strong>国内下载最新版</strong></a>
+  <a href="https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases"><strong>国内下载最新版</strong></a>
   ·
   <a href="#3-分钟完成安装"><strong>安装教程</strong></a>
   ·
@@ -35,33 +35,33 @@
 
 ## 和参考项目相比，“看完啦”增加了什么
 
-“看完啦”基于 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二次开发，B 站部分参考并改编自 [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest)。下面只写公开 README 和当前代码能核对的区别。
+“看完啦”基于 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二次开发。下面只对比这个原始项目与“看完啦”当前已经实现的功能。
 
-| 你关心的功能 | 原始 YouTube 项目 | B 站参考项目 | 看完啦 |
-| --- | --- | --- | --- |
-| 支持的视频网站 | YouTube | B 站 | 一个扩展同时支持 YouTube 和 B 站。 |
-| YouTube 没有原生字幕 | 不生成字幕 | 不适用 | 可由用户主动开启 Supadata AI 转写后备；默认仍优先原生字幕。 |
-| AI 服务和模型 | 固定 DeepSeek V4 Flash | 填写自己的模型服务 | 默认使用硅基流动 DeepSeek V4 Flash，也可读取账号可用模型或手动更换。 |
-| 中文和语言选择 | 原文、中文、双语内容视图 | 原文、译文、双语，自动判断翻译方向 | 新安装中文优先；界面语言、AI 输出语言和字幕显示方式可以分别选择。 |
-| 遇到看不懂的一句话 | 选中文字后让 AI 解释 | 划词解释，并有整视频问答 | 选中文字后，不只解释，还能输入自己的具体疑问，让 AI 针对回答。 |
-| 记笔记和带走内容 | 保存带时间戳笔记 | 可编辑、搜索并导出学习稿 | YouTube 与 B 站都可点击或按 `N` 保存；立即显示真实保存内容，并可复制给 Agent、下载 Markdown 或 JSON。 |
-| 等待 AI 概览时 | 生成章节与重点 | 分块显示进度，可停止和补失败块 | 统一显示正在准备、等待模型、生成、整理等真实阶段和已用时间。 |
-| 安装后的更新 | 从 GitHub 手动下载 | Chrome / Edge 商店自动更新 | 侧栏顶端直接检查；国内优先 GitCode，失败自动回退 GitHub。解压安装版仍需手动覆盖并重新加载。 |
+| 你关心的功能 | 原始 YouTube 项目 | 看完啦 |
+| --- | --- | --- |
+| 支持的视频网站 | YouTube | 一个扩展同时支持 YouTube 和 B 站。 |
+| YouTube 没有原生字幕 | 不生成字幕 | 可由用户主动开启 Supadata AI 转写后备；默认仍优先原生字幕。 |
+| AI 服务和模型 | 固定 DeepSeek V4 Flash | 默认使用硅基流动 DeepSeek V4 Flash，也可读取账号可用模型或手动更换。 |
+| 中文和语言选择 | 原文、中文、双语内容视图 | 新安装中文优先；界面语言、AI 输出语言和字幕显示方式可以分别选择。 |
+| 遇到看不懂的一句话 | 选中文字后让 AI 解释 | 选中文字后，不只解释，还能输入自己的具体疑问，让 AI 针对回答。 |
+| 记笔记和带走内容 | 保存带时间戳笔记 | YouTube 与 B 站都可点击或按 `N` 保存；立即显示真实保存内容，并可复制给 Agent、下载 Markdown 或 JSON。 |
+| 等待 AI 概览时 | 生成章节与重点 | 统一显示正在准备、等待模型、生成、整理等真实阶段和已用时间。 |
+| 安装后的更新 | 从 GitHub 手动下载 | 侧栏顶端直接检查；国内优先 GitCode，失败自动回退 GitHub。解压安装版仍需手动覆盖并重新加载。 |
 
 简单说，“看完啦”最主要的增量不是把两个项目简单拼在一起，而是把双平台、可选模型、针对性提问、可靠笔记、Agent 学习记录和国内更新入口整理成同一套更容易上手的流程。
 
-> 这不是优劣排名。B 站参考项目目前还提供整视频问答、可编辑笔记和浏览器商店自动更新等能力；“看完啦”当前更侧重双平台统一、中文小白体验和把学习结果交给 Agent。对比依据为 2026-09-01 的公开说明，后续可能变化。
+> 这不是优劣排名，只是帮助第一次使用的人快速看懂本项目在原始 YouTube 项目基础上增加了什么。对比依据为 2026-09-01 的公开说明，后续可能变化。
 
 ## 版本更新：每次升级能得到什么
 
-### 最新版 v2.2.1：国内更新优先走 GitCode
+### 最新版 v2.2.2：仓库说明更清楚，国内地址统一
 
 | 这次更新 | 对你的好处 |
 | --- | --- |
-| 更新检查直接使用现有 GitCode 镜像 | 国内用户不必先等待 GitHub，检查和下载路径更稳定。 |
-| 修复仓库改名后的更新校验 | 不再因为跳转到新仓库地址而显示“重试更新”。 |
-| GitHub 仅作为自动后备 | GitCode 暂时不可用时仍能继续检查，不影响其他功能。 |
-| 解压安装版给出明确升级路径 | 打开可信发行页后，覆盖原目录并在扩展页重新加载即可。 |
+| 首页功能对比只保留主上游项目 | 小白可以直接看懂本项目相对 `zarazhangrui/youtube-digest` 增加了什么。 |
+| 国内仓库统一使用 `kanwanla` | 项目名、下载链接和更新检查不再混用旧拼写。 |
+| GitCode 自动同步 GitHub 最新代码 | 国内与 GitHub 用户下载到同一份已验证版本。 |
+| GitHub 继续作为自动后备 | GitCode 暂时不可用时仍能继续检查，不影响视频功能。 |
 
 以前几个版本也解决了很实际的问题：v2.1.3 增加国内下载，v2.1.2 把检查更新放到侧栏顶端，v2.1.1 修复笔记并加入划线提问、真实进度和 Agent 导出。
 
@@ -134,7 +134,7 @@
 
 目前使用的是“手动安装版”。第一次操作多几步，后面就可以一直使用。
 
-1. 国内用户先打开 [GitCode 发行版](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases)；如果无法访问，再打开 [GitHub 最新版](https://github.com/Zhenxiangai/kanwanla/releases/latest)。
+1. 国内用户先打开 [GitCode 发行版](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases)；如果无法访问，再打开 [GitHub 最新版](https://github.com/Zhenxiangai/kanwanla/releases/latest)。
 2. 在发行版页面下载名称类似 `kanwanla-v版本号.zip` 的文件。
 3. 找到下载好的 ZIP，双击或右键解压。请把解压后的文件夹放在一个长期不移动的位置。
 4. 打开浏览器扩展页面：
@@ -155,7 +155,7 @@
 
 官方项目：
 - GitHub：https://github.com/Zhenxiangai/kanwanla
-- 国内镜像：https://gitcode.com/gcw_XQNnjJtX/kanwanle
+- 国内镜像：https://gitcode.com/gcw_XQNnjJtX/kanwanla
 - 最新版：https://github.com/Zhenxiangai/kanwanla/releases/latest
 
 请按下面的顺序执行：
@@ -310,8 +310,6 @@ npm run package
 <summary><strong>开源来源与授权</strong></summary>
 
 “看完啦”由 [Zhenxiangai/kanwanla](https://github.com/Zhenxiangai/kanwanla) 独立维护，基于 Zara Zhang 的 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二次开发，并依据 MIT License 使用和发布。
-
-B 站字幕接入与按钮注入方案参考并改编自 [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest)，同样依据 MIT License 使用。
 
 原项目及改编代码的版权声明保留在 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和对应源文件中。欢迎阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 后参与改进。
 

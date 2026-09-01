@@ -8,12 +8,12 @@ test("bundled release notes stay in sync with the manifest", () => {
   assert.equal(updates.CURRENT_RELEASE.version, manifest.version);
 });
 
-test("the existing GitCode mirror is the primary update source", () => {
-  assert.equal(updates.GITCODE_REPOSITORY, "gcw_XQNnjJtX/kanwanle");
+test("the canonical GitCode mirror is the primary update source", () => {
+  assert.equal(updates.GITCODE_REPOSITORY, "gcw_XQNnjJtX/kanwanla");
   assert.equal(updates.RELEASE_SOURCES[0].id, "gitcode");
   assert.equal(
     updates.RELEASE_SOURCES[0].apiUrl,
-    "https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanle/releases/latest",
+    "https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanla/releases/latest",
   );
   assert.equal(updates.RELEASE_SOURCES[1].id, "github");
 });
@@ -77,7 +77,7 @@ test("GitCode release metadata produces a validated domestic release URL", () =>
     version: "2.1.0",
     title: "看完啦 2.1.0",
     notes: ["新增国内镜像更新", "GitHub 自动兜底"],
-    url: "https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases/v2.1.0",
+    url: "https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases/v2.1.0",
     publishedAt: "2026-09-02T08:00:00.000Z",
   });
 });

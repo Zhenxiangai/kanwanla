@@ -13,35 +13,35 @@ KanWanLa is a local, bring-your-own-key Chromium extension for Chrome and Edge. 
 > [!IMPORTANT]
 > KanWanLa is a derivative work based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License. This independently maintained fork preserves the upstream copyright notice and adds Bilibili support, SiliconFlow model selection, Chrome and Edge compatibility, and reliability improvements.
 
-For faster access from mainland China, releases are mirrored on [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanle). [GitHub](https://github.com/Zhenxiangai/kanwanla) remains the primary source repository, issue tracker, and fallback download host.
+For faster access from mainland China, releases are mirrored on [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanla). [GitHub](https://github.com/Zhenxiangai/kanwanla) remains the primary source repository, issue tracker, and fallback download host.
 
 ![KanWanLa demo](kanwanla-demo.png)
 
-## What changed in v2.2.1
+## What changed in v2.2.2
 
 | Change | Why it matters to users |
 | --- | --- |
-| Update checks use the established GitCode mirror first | Mainland-China users do not need to wait for GitHub before checking or downloading. |
-| Repository-rename validation is fixed | A redirected GitHub release no longer leaves the button at “Retry update.” |
+| The homepage comparison now shows only the main upstream project | New users can see exactly what this fork adds to `zarazhangrui/youtube-digest`. |
+| The domestic repository now uses the `kanwanla` path | The product name, download links, and update checks no longer mix old spellings. |
+| GitCode mirrors the current GitHub code | Mainland-China and GitHub users receive the same verified build. |
 | GitHub remains an automatic fallback | A temporary GitCode failure does not block update checks or video features. |
-| Unpacked installs show the safe manual path | Open the trusted release, replace the extension folder, and reload it in the browser. |
 
 See the Chinese-first [version history](CHANGELOG.md) for earlier user-facing improvements.
 
-## How this fork differs from the reference projects
+## How this fork differs from the upstream project
 
-KanWanLa is derived from [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), while its Bilibili integration also adapts ideas from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest).
+KanWanLa is derived from [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest). This table compares only that upstream project with the features currently implemented in KanWanLa.
 
-| Area | Original YouTube project | Bilibili reference project | KanWanLa |
-| --- | --- | --- | --- |
-| Platforms | YouTube | Bilibili | YouTube and Bilibili in one extension. |
-| Missing YouTube captions | Native captions only | Not applicable | Optional user-enabled Supadata AI transcription fallback. |
-| AI models | Fixed DeepSeek V4 Flash | User-provided model service | SiliconFlow DeepSeek V4 Flash by default, with model discovery and manual selection. |
-| Questions | Explain selected text | Selection explanations plus whole-video Q&A | Add a specific question to selected text for a targeted answer. |
-| Notes and exports | Timestamped notes | Editable/searchable notes and study exports | Shared click/`N` capture on both sites, real save receipts, and Agent/Markdown/JSON learning records. |
-| Updates | Manual GitHub download | Chrome and Edge store updates | Visible in-panel checks with GitCode-first and GitHub fallback downloads. |
+| Area | Original YouTube project | KanWanLa |
+| --- | --- | --- |
+| Platforms | YouTube | YouTube and Bilibili in one extension. |
+| Missing YouTube captions | Native captions only | Optional user-enabled Supadata AI transcription fallback. |
+| AI models | Fixed DeepSeek V4 Flash | SiliconFlow DeepSeek V4 Flash by default, with model discovery and manual selection. |
+| Questions | Explain selected text | Add a specific question to selected text for a targeted answer. |
+| Notes and exports | Timestamped notes | Shared click/`N` capture on both sites, real save receipts, and Agent/Markdown/JSON learning records. |
+| Updates | Manual GitHub download | Visible in-panel checks with GitCode-first and GitHub fallback downloads. |
 
-This is not a ranking. The Bilibili reference currently includes capabilities such as whole-video Q&A, editable notes, and store distribution that KanWanLa does not claim to replace. This comparison reflects the public project documentation checked on 2026-09-01.
+This is not a ranking. It is a short guide to what this fork adds for users of the original YouTube project. The comparison reflects public project documentation checked on 2026-09-01.
 
 ## Interface and feature showcase
 
@@ -169,7 +169,7 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 
 ## Install
 
-1. Download the latest ZIP from [GitCode Releases](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases). If GitCode is temporarily unavailable, use the [GitHub fallback release](https://github.com/Zhenxiangai/kanwanla/releases/latest). Extract it to a permanent folder.
+1. Download the latest ZIP from [GitCode Releases](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases). If GitCode is temporarily unavailable, use the [GitHub fallback release](https://github.com/Zhenxiangai/kanwanla/releases/latest). Extract it to a permanent folder.
 2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
 3. Enable **Developer mode** and click **Load unpacked**.
 4. Select the folder containing `manifest.json`.
@@ -179,7 +179,7 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 ## Updates
 
 - **Check updates** is always visible at the top of the panel content. Clicking it performs an immediate network check instead of waiting for the 24-hour automatic-check cache. If a release is found, the control changes to **New vX** and the same click continues into the update flow. Dismissing detailed release notes does not hide this control.
-- **Unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens a validated [GitCode release](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases), with GitHub used only if GitCode is unavailable. Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
+- **Unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens a validated [GitCode release](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases), with GitHub used only if GitCode is unavailable. Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
 - **A future store install:** the browser remains responsible for installing updates. The control only asks the browser to check its corresponding store and apply a downloaded update. KanWanLa is not currently listed in Chrome Web Store or Edge Add-ons.
 
 The automatic release check runs at most once every 24 hours. It reads public metadata from GitCode first and falls back to GitHub if necessary. It never sends API keys, video URLs, transcripts, notes, or account data. A failed check does not block any video feature.
@@ -255,8 +255,6 @@ The package command validates the release allowlist, JavaScript syntax, tests, l
 
 ## Attribution
 
-KanWanLa is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. It is independently maintained at [Zhenxiangai/kanwanla](https://github.com/Zhenxiangai/kanwanla) and mirrored to [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanle); issues about this version should be reported here rather than to the upstream project.
-
-The Bilibili WBI signer, subtitle API flow, and hydration-safe page injection strategy are adapted from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest), also used under the MIT License.
+KanWanLa is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. It is independently maintained at [Zhenxiangai/kanwanla](https://github.com/Zhenxiangai/kanwanla) and mirrored to [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanla); issues about this version should be reported here rather than to the upstream project.
 
 The original and adapted copyright notices are preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and the relevant source files. This project remains licensed under the [MIT License](LICENSE).

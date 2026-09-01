@@ -62,6 +62,4 @@ In the private report, describe the affected version, reproduction steps, expect
 
 ## Third-party code
 
-看完啦 is a derivative work of [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License.
-
-The Bilibili WBI signer, subtitle API adapter, and parts of the Bilibili page-injection strategy are adapted from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest) under the MIT License. Copyright notices are preserved in [LICENSE](LICENSE) and the adapted source files.
+看完啦 is a derivative work of [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License. All required third-party copyright notices remain preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and the adapted source files.

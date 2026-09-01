@@ -50,7 +50,7 @@ Timestamped notes are assembled and saved locally from the available caption cue
 
 ### GitCode and GitHub release checks
 
-When the side panel opens, 看完啦 may request public release metadata from `https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanle/releases/latest`. If that request fails or returns invalid metadata, it falls back to `https://api.github.com/repos/Zhenxiangai/kanwanla/releases/latest`. A successful result is cached for 24 hours; a failed check is not retried for at least one hour. The response is reduced to the public version number, release title, short release notes, publication time, and a validated GitCode or GitHub release URL.
+When the side panel opens, 看完啦 may request public release metadata from `https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanla/releases/latest`. If that request fails or returns invalid metadata, it falls back to `https://api.github.com/repos/Zhenxiangai/kanwanla/releases/latest`. A successful result is cached for 24 hours; a failed check is not retried for at least one hour. The response is reduced to the public version number, release title, short release notes, publication time, and a validated GitCode or GitHub release URL.
 
 These requests do not contain Supadata or SiliconFlow API keys, video URLs, video identifiers, subtitles, notes, Bilibili cookies, or browser-account identifiers. GitCode or GitHub receives only the ordinary network metadata associated with an HTTPS request, such as the user's IP address and browser networking information, under that host's own privacy policy. Update-check failure does not block video features.
 

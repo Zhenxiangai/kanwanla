@@ -13,7 +13,7 @@ test("manifest identifies 看完啦 and grants only its runtime hosts", () => {
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.minimum_chrome_version, "116");
   assert.equal(manifest.name, "看完啦");
-  assert.equal(manifest.version, "2.2.1");
+  assert.equal(manifest.version, "2.2.2");
   assert.equal(packageJson.name, "kanwanla");
   assert.equal(packageJson.version, manifest.version);
   assert.equal(manifest.options_ui.page, "options.html");
@@ -75,11 +75,13 @@ test("published copy explains all transcript paths and upstream attribution", ()
   assert.match(published, /no local server/i);
   assert.match(english, /zarazhangrui\/youtube-digest/);
   assert.match(chinese, /zarazhangrui\/youtube-digest/);
+  assert.doesNotMatch(published, /biuworks|bilibili-digest/i);
   assert.match(chinese, /Zhenxiangai\/kanwanla/);
   assert.match(chinese, /版本更新：每次升级能得到什么/);
   assert.match(chinese, /和参考项目相比，“看完啦”增加了什么/);
   assert.match(chinese, /一个扩展同时支持 YouTube 和 B 站/);
   assert.match(chinese, /这不是优劣排名/);
+  assert.match(chinese, /\| 你关心的功能 \| 原始 YouTube 项目 \| 看完啦 \|/);
   assert.match(changelog, /^## v2\.2\.0 — 名字统一，升级不丢数据$/m);
   assert.match(changelog, /对你的价值/);
   assert.match(notice, /https:\/\/github\.com\/zarazhangrui\/youtube-digest/);
