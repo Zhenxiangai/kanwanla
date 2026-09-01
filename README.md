@@ -14,9 +14,9 @@ Video Digest is a local, bring-your-own-key Chromium extension for Chrome and Ed
 ## What this fork adds
 
 - Bilibili video and multipart-video support using Bilibili's official web APIs.
-- SiliconFlow as the AI provider, with account model discovery and manual model-ID selection.
+- SiliconFlow as the AI provider, defaulting to DeepSeek V4 Flash while retaining account model discovery and manual model-ID selection.
 - Tested Chrome and Edge support for both supported video platforms.
-- Bounded SSE streaming, response-size protection, and retryable timeout handling for long overviews.
+- Faster long Bilibili overviews through cue grouping, bounded input, a smaller reasoning budget, and retryable timeout handling.
 - Platform-aware transcript caching, Chinese-caption passthrough, and independent multipart-video data.
 
 ## Supported sites
@@ -34,14 +34,14 @@ YouTube keeps its historical cache and note identifiers. Every Bilibili part use
 - Display Chinese source captions directly without redundant translation requests.
 - Generate chapters and key quotes only when Overview is opened.
 - Explain selected transcript text and save timestamped notes.
-- Load the text-chat models available to a SiliconFlow account, or enter a model ID manually.
+- Use DeepSeek V4 Flash by default, load another model available to a SiliconFlow account, or enter a model ID manually.
 - Cache transcripts, translations, analysis, reading position, and notes in browser-local extension storage.
 - Run entirely in the extension, without Whisper, a companion app, or a developer backend.
 
 ## Requirements
 
 - Chrome or Edge 116 or later.
-- A SiliconFlow API key and selected chat model for AI features.
+- A SiliconFlow API key for AI features. DeepSeek V4 Flash is the default model and can be changed.
 - A Supadata API key for YouTube transcript retrieval.
 - For Bilibili tracks visible only to signed-in users, a normal Bilibili login in the same browser profile.
 
@@ -53,7 +53,7 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
 3. Enable **Developer mode** and click **Load unpacked**.
 4. Select the folder containing `manifest.json`.
-5. Open Video Digest Settings, enter your own API keys, load a SiliconFlow model, and save.
+5. Open Video Digest Settings, enter your own API keys, and save. Keep the default DeepSeek V4 Flash model or load another SiliconFlow model.
 6. Refresh any YouTube or Bilibili tabs that were already open.
 
 After updating the files, click **Reload** on the Video Digest extension card and refresh the video page.
@@ -78,15 +78,17 @@ Track preference is human Chinese, AI Chinese, then English. If no subtitle trac
 
 ## SiliconFlow
 
+If you do not have an account, use the [SiliconFlow signup link](https://cloud.siliconflow.cn/i/w3LDYnbF). Existing users can manage API keys from the link in extension Settings.
+
 The AI endpoint is fixed to `https://api.siliconflow.cn/v1`. Settings loads text-chat model suggestions from:
 
 ```text
 GET /v1/models?type=text&sub_type=chat
 ```
 
-The selected model is used for overviews, explanations, non-Chinese-to-Chinese translation, and optional note cleanup. Chinese source captions bypass translation.
+The default model ID is `deepseek-ai/DeepSeek-V4-Flash`. A valid model selected or entered by the user is retained instead of being replaced by the default. The selected model is used for overviews, explanations, non-Chinese-to-Chinese translation, and optional note cleanup. Chinese source captions bypass translation.
 
-Overview generation uses SiliconFlow SSE streaming. Reasoning and final content have separate size limits, and the side panel has a bounded watchdog so interrupted requests become retryable errors instead of remaining stuck.
+Overview generation uses SiliconFlow SSE streaming. For long Bilibili transcripts with many short cues, the extension first groups adjacent cues; if the result is still too large, it retains evenly spaced timestamped sections across the whole video while explicitly preserving the beginning and end. Bilibili overviews also use smaller reasoning and output budgets to reduce latency. Existing YouTube analysis budgets are unchanged. The side panel has a bounded watchdog so interrupted requests become retryable errors instead of remaining stuck.
 
 Model availability, pricing, rate limits, and context limits vary. Review the current SiliconFlow console before selecting a model.
 

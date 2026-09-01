@@ -13,7 +13,7 @@ test("manifest grants only the hosts and permissions needed by YouTube and Bilib
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.minimum_chrome_version, "116");
   assert.equal(manifest.name, "Video Digest");
-  assert.equal(manifest.version, "1.5.0");
+  assert.equal(manifest.version, "1.6.0");
   assert.equal(packageJson.name, "video-digest");
   assert.equal(packageJson.version, manifest.version);
   assert.equal(manifest.options_ui.page, "options.html");
@@ -59,6 +59,11 @@ test("published copy explains all transcript paths and upstream attribution", ()
   assert.match(published, /B 站/);
   assert.match(published, /Supadata/);
   assert.match(published, /SiliconFlow/);
+  assert.match(published, /deepseek-ai\/DeepSeek-V4-Flash/);
+  assert.match(
+    published,
+    /https:\/\/cloud\.siliconflow\.cn\/i\/w3LDYnbF/,
+  );
   assert.match(published, /api\.bilibili\.com/);
   assert.match(published, /hdslb\.com/);
   assert.match(published, /no local server/i);

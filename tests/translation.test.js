@@ -393,6 +393,7 @@ test("Overview exits loading and shows a retryable error when its runtime messag
     currentVideoDescription: "Test description",
     currentVideoDuration: 60,
     currentVideoId: "test-video",
+    currentVideoRef: { platform: "bilibili" },
     currentAnalysis: null,
     isAnalysisLoading: false,
     ANALYSIS_MESSAGE_TIMEOUT_MS: 195_000,
@@ -797,12 +798,94 @@ test("Overview enables SiliconFlow SSE and assembles streamed JSON content", asy
   );
   assert.match(
     analysisFunction,
-    /requestAiCompletion\(\{[\s\S]*?maxTokens:\s*4096/,
+    /requestAiCompletion\(\{[\s\S]*?maxTokens:\s*isBilibili\s*\?\s*2048\s*:\s*4096/,
   );
   assert.match(
     analysisFunction,
-    /requestAiCompletion\(\{[\s\S]*?thinkingBudget:\s*1024/,
+    /requestAiCompletion\(\{[\s\S]*?thinkingBudget:\s*isBilibili\s*\?\s*256\s*:\s*1024/,
   );
+});
+
+test("Bilibili overview request stays within the fast-path budget", async () => {
+  const requests = [];
+  const helpers = loadBackgroundHelpers({
+    fetchImpl: async (url, options = {}) => {
+      if (String(url).startsWith("chrome-extension://")) {
+        return {
+          ok: true,
+          text: async () => read("prompts/analysis.md"),
+        };
+      }
+
+      requests.push(JSON.parse(options.body));
+      const analysis = JSON.stringify({
+        chapters: [],
+        keyQuotes: [],
+        keyMoments: [],
+      });
+      return streamingResponse([
+        encode(
+          "data: " +
+            JSON.stringify({ choices: [{ delta: { content: analysis } }] }) +
+            "\n\n",
+        ),
+        encode("data: [DONE]\n\n"),
+      ]);
+    },
+  });
+
+  const transcript = Array.from({ length: 1200 }, (_value, index) => {
+    const seconds = Math.round((index * 7198) / 1199);
+    const timestamp =
+      Math.floor(seconds / 60) +
+      ":" +
+      String(seconds % 60).padStart(2, "0");
+    return (
+      "[" +
+      timestamp +
+      "] 这是一个用于复现长视频概览延迟的中文字幕片段，内容保持完整。"
+    );
+  }).join("\n");
+
+  const result = await helpers.handleAnalyzeTranscript(
+    transcript,
+    "B 站长视频测试",
+    "测试频道",
+    "",
+    7200,
+    "bilibili",
+  );
+
+  assert.equal(result.success, true);
+  assert.equal(requests.length, 1);
+  const request = requests[0];
+  const promptChars = request.messages.reduce(
+    (total, message) => total + message.content.length,
+    0,
+  );
+  assert.ok(
+    promptChars <= 40_000,
+    "Bilibili overview prompt should be compact enough for a fast request; got " +
+      promptChars +
+      " characters",
+  );
+  assert.match(
+    request.messages.map((message) => message.content).join("\n"),
+    /\[119:58\]/,
+  );
+  assert.ok(request.max_tokens <= 2048);
+  assert.ok((request.thinking_budget || 0) <= 256);
+});
+
+test("Bilibili overview hard-caps unusually large individual cues", () => {
+  const helpers = loadBackgroundHelpers();
+  const compacted = helpers.compactBilibiliAnalysisTranscript(
+    "[0:00] " + "开".repeat(40_000) + "\n[99:59] " + "尾".repeat(40_000),
+  );
+
+  assert.ok(compacted.length <= 32_000);
+  assert.match(compacted, /^\[0:00\]/);
+  assert.match(compacted, /\[99:59\]/);
 });
 
 test("Overview ignores a large reasoning stream while bounding final content", async () => {

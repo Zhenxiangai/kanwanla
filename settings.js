@@ -10,7 +10,7 @@ var YTD_SETTINGS = (() => {
     provider: "siliconflow",
     aiApiKey: "",
     aiBaseUrl: "https://api.siliconflow.cn/v1",
-    aiModel: "",
+    aiModel: "deepseek-ai/DeepSeek-V4-Flash",
     supadataApiKey: "",
   });
 
@@ -35,6 +35,7 @@ var YTD_SETTINGS = (() => {
 
   function normalize(input = {}) {
     const keepAiSettings = isCurrentProvider(input);
+    const selectedModel = keepAiSettings ? normalizeModel(input.aiModel) : "";
     return {
       provider: DEFAULTS.provider,
       aiApiKey:
@@ -42,7 +43,9 @@ var YTD_SETTINGS = (() => {
           ? input.aiApiKey.trim()
           : "",
       aiBaseUrl: DEFAULTS.aiBaseUrl,
-      aiModel: keepAiSettings ? normalizeModel(input.aiModel) : "",
+      // New installs and empty/invalid legacy values use the fast default.
+      // A valid user-selected model always wins.
+      aiModel: selectedModel || DEFAULTS.aiModel,
       supadataApiKey:
         typeof input.supadataApiKey === "string"
           ? input.supadataApiKey.trim()

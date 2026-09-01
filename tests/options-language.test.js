@@ -156,7 +156,20 @@ test("customization prompt switches languages and preserves technical values", (
   assert.match(html, /placeholder="粘贴 Supadata API 密钥"/);
   assert.match(html, /placeholder="粘贴硅基流动 API 密钥"/);
   assert.match(html, /https:\/\/dash\.supadata\.ai\/auth\/sign-up/);
+  assert.match(html, /https:\/\/cloud\.siliconflow\.cn\/i\/w3LDYnbF/);
   assert.match(html, /https:\/\/cloud\.siliconflow\.cn\/account\/ak/);
+  assert.match(
+    html,
+    /value="deepseek-ai\/DeepSeek-V4-Flash"/,
+  );
+  assert.match(
+    options.translate("zh-CN", "aiModelHelp"),
+    /默认使用 DeepSeek V4 Flash.*选择其他可用模型/,
+  );
+  assert.match(
+    options.translate("en", "aiModelHelp"),
+    /DeepSeek V4 Flash is selected by default.*choose another available model/,
+  );
   assert.ok(html.includes(`>${chinesePrompt}</textarea>`));
   assert.match(chinesePrompt, /^请把当前本地 Video Digest 工作区改为使用/);
   assert.notEqual(chinesePrompt, englishPrompt);

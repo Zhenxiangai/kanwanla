@@ -3,7 +3,17 @@ const assert = require("node:assert/strict");
 
 const settings = require("../settings.js");
 
-test("SiliconFlow defaults pin the China API endpoint and require a model choice", () => {
+test("SiliconFlow defaults pin the China API endpoint and DeepSeek V4 Flash", () => {
+  assert.equal(
+    settings.DEFAULTS.aiModel,
+    "deepseek-ai/DeepSeek-V4-Flash",
+  );
+  assert.equal(settings.normalize({}).aiModel, settings.DEFAULTS.aiModel);
+  assert.equal(
+    settings.normalize({ provider: "siliconflow", aiModel: "" }).aiModel,
+    settings.DEFAULTS.aiModel,
+  );
+
   const normalized = settings.normalize({
     provider: "siliconflow",
     aiApiKey: "  example-key  ",
@@ -40,7 +50,7 @@ test("legacy provider migration clears only the AI key and is idempotent", () =>
   assert.equal(first.migrated, true);
   assert.equal(first.settings.provider, "siliconflow");
   assert.equal(first.settings.aiBaseUrl, settings.DEFAULTS.aiBaseUrl);
-  assert.equal(first.settings.aiModel, "");
+  assert.equal(first.settings.aiModel, settings.DEFAULTS.aiModel);
   assert.equal(first.settings.aiApiKey, "");
   assert.equal(first.settings.supadataApiKey, "supadata-secret");
 

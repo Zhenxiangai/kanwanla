@@ -102,11 +102,18 @@
               >用于生成概览、解释内容、翻译字幕、润色笔记，以及读取当前账号可用的模型列表。</span
             >
             <a
+              href="https://cloud.siliconflow.cn/i/w3LDYnbF"
+              target="_blank"
+              rel="noreferrer noopener"
+              data-i18n="siliconflowSignupLink"
+              >注册硅基流动账号</a
+            ><span data-i18n="siliconflowLinkSeparator">，已有账号可</span
+            ><a
               href="https://cloud.siliconflow.cn/account/ak"
               target="_blank"
-              rel="noreferrer"
+              rel="noreferrer noopener"
               data-i18n="siliconflowLink"
-              >创建硅基流动 API 密钥</a
+              >管理 API 密钥</a
             ><span data-i18n="siliconflowHelpSuffix">。</span>
           </p>
 
@@ -119,17 +126,20 @@
               list="aiModelOptions"
               autocomplete="off"
               spellcheck="false"
-              placeholder="加载或填写模型 ID"
+              value="deepseek-ai/DeepSeek-V4-Flash"
+              placeholder="DeepSeek V4 Flash（默认，可更换）"
               data-i18n-placeholder="aiModelPlaceholder"
               aria-describedby="aiModelHelp"
             />
-            <datalist id="aiModelOptions"></datalist>
+            <datalist id="aiModelOptions">
+              <option value="deepseek-ai/DeepSeek-V4-Flash"></option>
+            </datalist>
             <button id="loadModelsBtn" type="button" data-i18n="loadModels">
               加载模型
             </button>
           </div>
           <p id="aiModelHelp" class="help" data-i18n="aiModelHelp">
-            先填写密钥，再从硅基流动读取当前可用的文本对话模型。也可以手动填写准确的模型 ID。
+            默认使用 DeepSeek V4 Flash。填写密钥后仍可加载并选择其他可用模型，也可以手动填写准确的模型 ID。
           </p>
           <span id="modelStatus" role="status" aria-live="polite"></span>
 

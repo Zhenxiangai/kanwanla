@@ -25,13 +25,15 @@ const YTD_OPTIONS = (() => {
       siliconflowApiKeyPlaceholder: "Paste your SiliconFlow key",
       siliconflowHelp:
         "Used for overviews, explanations, translation, note polishing, and loading the models available to your account. ",
-      siliconflowLink: "Create a SiliconFlow API key",
+      siliconflowSignupLink: "Create a SiliconFlow account",
+      siliconflowLinkSeparator: "; existing users can ",
+      siliconflowLink: "manage API keys",
       siliconflowHelpSuffix: ".",
       aiModelLabel: "AI model",
-      aiModelPlaceholder: "Load or enter a model ID",
+      aiModelPlaceholder: "DeepSeek V4 Flash (default; changeable)",
       loadModels: "Load models",
       aiModelHelp:
-        "Enter your key, then load the current text chat models from SiliconFlow. You can also enter an exact model ID manually.",
+        "DeepSeek V4 Flash is selected by default. After entering your key, you can still load and choose another available model or enter an exact model ID manually.",
       privacyNote:
         "When you use AI features, SiliconFlow and your selected model receive the transcript and relevant video context. Review SiliconFlow's terms and model pricing before saving.",
       saveSettings: "Save settings",
@@ -63,7 +65,7 @@ const YTD_OPTIONS = (() => {
       footer:
         'Read <a href="PRIVACY.md" target="_blank">PRIVACY.md</a> in the repository for the complete data-flow description.',
       migrationWarning:
-        "Previous AI provider settings were removed safely. Your Supadata key was kept, but the old AI key was cleared. Enter a SiliconFlow API key and choose a model to continue.",
+        "Previous AI provider settings were removed safely. Your Supadata key was kept, the old AI key was cleared, and DeepSeek V4 Flash is now the default. Enter a SiliconFlow API key; you may change the model at any time.",
       saving: "Saving…",
       addSupadataKey: "Add a Supadata API key.",
       addSiliconFlowKey: "Add a SiliconFlow API key.",
@@ -112,13 +114,15 @@ const YTD_OPTIONS = (() => {
       siliconflowApiKeyPlaceholder: "粘贴硅基流动 API 密钥",
       siliconflowHelp:
         "用于生成概览、解释内容、翻译字幕、润色笔记，以及读取当前账号可用的模型列表。",
-      siliconflowLink: "创建硅基流动 API 密钥",
+      siliconflowSignupLink: "注册硅基流动账号",
+      siliconflowLinkSeparator: "，已有账号可",
+      siliconflowLink: "管理 API 密钥",
       siliconflowHelpSuffix: "。",
       aiModelLabel: "AI 模型",
-      aiModelPlaceholder: "加载或填写模型 ID",
+      aiModelPlaceholder: "DeepSeek V4 Flash（默认，可更换）",
       loadModels: "加载模型",
       aiModelHelp:
-        "先填写密钥，再从硅基流动读取当前可用的文本对话模型。也可以手动填写准确的模型 ID。",
+        "默认使用 DeepSeek V4 Flash。填写密钥后仍可加载并选择其他可用模型，也可以手动填写准确的模型 ID。",
       privacyNote:
         "使用 AI 功能时，硅基流动及你选择的模型会收到字幕和相关视频上下文。保存前请查看硅基流动的服务条款和模型价格。",
       saveSettings: "保存设置",
@@ -149,7 +153,7 @@ const YTD_OPTIONS = (() => {
       footer:
         '完整数据流说明请参阅仓库中的 <a href="PRIVACY.md" target="_blank">PRIVACY.md</a>。',
       migrationWarning:
-        "已安全移除之前的 AI 服务设置。Supadata 密钥已保留，旧 AI 密钥已清除。请输入硅基流动 API 密钥并选择模型以继续使用。",
+        "已安全移除之前的 AI 服务设置。Supadata 密钥已保留，旧 AI 密钥已清除，并已默认选择 DeepSeek V4 Flash。请输入硅基流动 API 密钥；模型可随时更换。",
       saving: "正在保存…",
       addSupadataKey: "请添加 Supadata API 密钥。",
       addSiliconFlowKey: "请添加硅基流动 API 密钥。",

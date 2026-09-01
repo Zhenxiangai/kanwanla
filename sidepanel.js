@@ -1594,6 +1594,7 @@ async function triggerAnalysis() {
         channelName: currentChannelName,
         videoDescription: currentVideoDescription,
         videoDuration: currentVideoDuration,
+        platform: currentVideoRef?.platform,
       },
       ANALYSIS_MESSAGE_TIMEOUT_MS,
       "概览请求等待超过 195 秒，请重试。",

@@ -29,6 +29,10 @@ const AI_PROVIDER_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 // models emit reasoning_content in separate JSON events. Keep the final
 // content at 2 MiB, but allow a bounded amount of discarded reasoning data.
 const AI_PROVIDER_MAX_STREAM_BYTES = 16 * 1024 * 1024;
+const BILIBILI_ANALYSIS_COMPACT_THRESHOLD_CHARS = 18_000;
+const BILIBILI_ANALYSIS_MAX_TRANSCRIPT_CHARS = 32_000;
+const BILIBILI_ANALYSIS_GROUP_WINDOW_SECONDS = 18;
+const BILIBILI_ANALYSIS_GROUP_MAX_TEXT_CHARS = 220;
 const debugLog = (...args) => {
   if (DEBUG) console.log(...args);
 };
@@ -572,6 +576,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       message.channelName,
       message.videoDescription,
       message.videoDuration,
+      message.platform,
     )
       .then(sendResponse)
       .catch((err) => sendResponse({ error: err.message }));
@@ -1205,6 +1210,128 @@ function parseLooseJson(text) {
 // AI ANALYSIS
 // ============================================================
 
+function selectEvenlySpacedTranscriptLines(lines, maxChars) {
+  if (!Array.isArray(lines) || lines.length === 0) return "";
+  const renderBoundaryLines = () => {
+    if (lines.length === 1) return lines[0].slice(0, maxChars);
+    const availableChars = Math.max(0, maxChars - 1);
+    const firstLineChars = Math.floor(availableChars / 2);
+    const lastLineChars = availableChars - firstLineChars;
+    return (
+      lines[0].slice(0, firstLineChars) +
+      "\n" +
+      lines[lines.length - 1].slice(0, lastLineChars)
+    );
+  };
+  const render = (count) => {
+    if (count >= lines.length) return lines.join("\n");
+    const indexes = new Set([0, lines.length - 1]);
+    for (let index = 1; index < count - 1; index += 1) {
+      indexes.add(
+        Math.round((index * (lines.length - 1)) / (count - 1)),
+      );
+    }
+    return [...indexes]
+      .sort((left, right) => left - right)
+      .map((index) => lines[index])
+      .join("\n");
+  };
+
+  let low = 2;
+  let high = lines.length;
+  let best = render(2);
+  if (best.length > maxChars) best = renderBoundaryLines();
+  while (low <= high) {
+    const count = Math.floor((low + high) / 2);
+    const candidate = render(count);
+    if (candidate.length <= maxChars) {
+      best = candidate;
+      low = count + 1;
+    } else {
+      high = count - 1;
+    }
+  }
+  return best;
+}
+
+function compactBilibiliAnalysisTranscript(transcriptText) {
+  const source = String(transcriptText || "").trim();
+  if (source.length <= BILIBILI_ANALYSIS_COMPACT_THRESHOLD_CHARS) {
+    return source;
+  }
+
+  const rawLines = source.split(/\r?\n/).filter((line) => line.trim());
+  const entries = rawLines
+    .map((line) => {
+      const match = line.match(/^\[(\d+):(\d{2})\]\s*(.+)$/);
+      if (!match) return null;
+      return {
+        timestamp: Number(match[1]) + ":" + match[2],
+        seconds: Number(match[1]) * 60 + Number(match[2]),
+        text: match[3].trim(),
+      };
+    })
+    .filter((entry) => entry?.text);
+
+  if (entries.length < Math.ceil(rawLines.length * 0.8)) {
+    return selectEvenlySpacedTranscriptLines(
+      rawLines,
+      BILIBILI_ANALYSIS_MAX_TRANSCRIPT_CHARS,
+    );
+  }
+
+  const groupedLines = [];
+  let current = null;
+  const flushCurrent = () => {
+    if (!current) return;
+    groupedLines.push("[" + current.timestamp + "] " + current.text);
+    current = null;
+  };
+
+  entries.forEach((entry, index) => {
+    // Keep the final cue as its own line so duration coverage remains explicit.
+    if (index === entries.length - 1 && current) {
+      flushCurrent();
+      groupedLines.push("[" + entry.timestamp + "] " + entry.text);
+      return;
+    }
+
+    if (!current) {
+      current = {
+        timestamp: entry.timestamp,
+        startSeconds: entry.seconds,
+        text: entry.text,
+      };
+      return;
+    }
+
+    const combinedText = current.text + " " + entry.text;
+    const exceedsTimeWindow =
+      entry.seconds - current.startSeconds >=
+      BILIBILI_ANALYSIS_GROUP_WINDOW_SECONDS;
+    if (
+      exceedsTimeWindow ||
+      combinedText.length > BILIBILI_ANALYSIS_GROUP_MAX_TEXT_CHARS
+    ) {
+      flushCurrent();
+      current = {
+        timestamp: entry.timestamp,
+        startSeconds: entry.seconds,
+        text: entry.text,
+      };
+      return;
+    }
+
+    current.text = combinedText;
+  });
+  flushCurrent();
+
+  return selectEvenlySpacedTranscriptLines(
+    groupedLines,
+    BILIBILI_ANALYSIS_MAX_TRANSCRIPT_CHARS,
+  );
+}
+
 /**
  * Sends the transcript to the configured SiliconFlow model for analysis.
  *
@@ -1222,6 +1349,7 @@ async function handleAnalyzeTranscript(
   channelName,
   videoDescription,
   videoDuration,
+  platform = "youtube",
 ) {
   try {
     const settings = await getSettings();
@@ -1233,6 +1361,14 @@ async function handleAnalyzeTranscript(
           "尚未配置硅基流动 API 密钥，请打开 Video Digest 设置。",
       };
     }
+
+    const isBilibili = platform === "bilibili";
+    const analysisTranscript = isBilibili
+      ? compactBilibiliAnalysisTranscript(transcriptText)
+      : transcriptText;
+    const analysisDescription = String(
+      videoDescription || "No description available",
+    ).slice(0, isBilibili ? 2000 : 12_000);
 
     // Convert duration to MM:SS format for context
     // The transcript text is already prefixed with [M:SS] markers. Its LAST
@@ -1270,8 +1406,11 @@ async function handleAnalyzeTranscript(
       maxTimestampSeconds,
       videoTitle: videoTitle || "Unknown",
       channelName: channelName || "Unknown",
-      videoDescription: videoDescription || "No description available",
-      transcriptText,
+      videoDescription: analysisDescription,
+      transcriptText: analysisTranscript,
+      chapterGuidance: isBilibili
+        ? "Use 5-12 concise chapters and never exceed 12 chapters."
+        : "Use concise natural chapters and avoid unnecessary micro-chapters.",
     };
     const systemPrompt = await loadPromptSection(
       "analysis.md",
@@ -1287,8 +1426,8 @@ async function handleAnalyzeTranscript(
     debugLog("[YouTube Digest] Requesting video analysis", settings.aiModel);
     const { text: responseText } = await requestAiCompletion({
       stream: true,
-      thinkingBudget: 1024,
-      maxTokens: 4096,
+      thinkingBudget: isBilibili ? 256 : 1024,
+      maxTokens: isBilibili ? 2048 : 4096,
       responseFormat: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -2066,6 +2205,8 @@ globalThis.__YTD_TRANSLATION_TESTING__ = {
   callAiTranslation,
   validateTranscriptBatchRequest,
   normalizeTranslatedSegmentBatch,
+  handleAnalyzeTranscript,
+  compactBilibiliAnalysisTranscript,
   handleFetchTranscript,
   handleFetchBilibiliTranscript,
   handleSaveNote,

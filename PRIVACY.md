@@ -41,6 +41,8 @@ For AI features, Video Digest sends relevant subtitle text and video context dir
 - note context; and
 - content selected for Chinese translation.
 
+For a long Bilibili overview, adjacent short caption cues are grouped before transmission. If the grouped transcript still exceeds the input limit, the extension sends evenly spaced timestamped sections across the video and preserves the beginning and end instead of sending every cue.
+
 When the user clicks **Load models**, Settings sends the SiliconFlow API key to `GET /v1/models?type=text&sub_type=chat`. That request does not contain a video URL, subtitle, or note.
 
 The Video Digest developer does not proxy or receive Supadata, Bilibili, or SiliconFlow requests.
