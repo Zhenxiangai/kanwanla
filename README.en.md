@@ -23,6 +23,7 @@ KanWanLe is a local, bring-your-own-key Chromium extension for Chrome and Edge. 
 - Faster long Bilibili overviews through cue grouping, bounded input, a smaller reasoning budget, and retryable timeout handling.
 - Platform-aware transcript caching, Chinese-caption passthrough, and independent multipart-video data.
 - Chinese-first release alerts with version numbers, concise notes, browser-store update requests, and a validated GitHub fallback for unpacked installs.
+- An always-visible **Check updates** control in the panel header that bypasses the automatic-check cache and continues directly into the update flow when a release is found.
 - A Chinese-first interface with browser-following or fixed-English options, plus an independent AI output-language setting.
 - Reliable notes from the video button, `N` shortcut, and side panel, with the actual saved excerpt shown immediately.
 - Optional questions for selected-text explanations and honest Overview stage, elapsed-time, and streaming-activity progress.
@@ -72,8 +73,9 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 
 ## Updates
 
-- **Chrome Web Store or Edge Add-ons:** the browser remains responsible for automatic installation. When KanWanLe sees a newer public GitHub release, it shows the version and release notes; clicking **Update now** requests the browser's store update check and applies a downloaded update.
-- **GitHub unpacked install:** extensions cannot safely overwrite their own source directory. The same button opens the validated [latest release](https://github.com/Zhenxiangai/kanwanle/releases/latest). Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
+- **Check updates** is always visible at the top of the panel content. Clicking it performs an immediate network check instead of waiting for the 24-hour automatic-check cache. If a release is found, the control changes to **New vX** and the same click continues into the update flow. Dismissing detailed release notes does not hide this control.
+- **GitHub unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens the validated [latest release](https://github.com/Zhenxiangai/kanwanle/releases/latest). Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
+- **A future store install:** the browser remains responsible for installing updates. The control only asks the browser to check its corresponding store and apply a downloaded update. KanWanLe is not currently listed in Chrome Web Store or Edge Add-ons.
 
 The automatic release check runs at most once every 24 hours. It reads only public version and release-note metadata from GitHub and never sends API keys, video URLs, transcripts, notes, or account data. A failed check does not block any video feature.
 

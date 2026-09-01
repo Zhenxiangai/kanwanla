@@ -16,6 +16,7 @@ function loadSidepanelHelpers({
   sendMessage = () => Promise.resolve({}),
   setTimeoutImpl = () => 0,
   clearTimeoutImpl = () => {},
+  documentLike = null,
 } = {}) {
   const listeners = { addListener() {} };
   const sessionStorage = {};
@@ -32,7 +33,7 @@ function loadSidepanelHelpers({
     IntersectionObserver: class {},
     CSS: { escape: (value) => value },
     window: { getSelection: () => null, close() {} },
-    document: {
+    document: documentLike || {
       addEventListener() {},
       querySelectorAll: () => [],
       querySelector: () => null,
@@ -75,6 +76,7 @@ function loadSidepanelHelpers({
     },
     YTD_SETTINGS: {},
     YTD_PLATFORMS: platforms,
+    KANWANLE_I18N: i18n,
     BILI_API: biliApi,
   };
   sandbox.globalThis = sandbox;
@@ -252,6 +254,57 @@ test("the update banner renders version notes as text and can be hidden", () => 
 
   helpers.renderUpdateBanner({ showUpdate: false }, doc);
   assert.equal(elements.updateBanner.hidden, true);
+});
+
+test("one header click forces a fresh check and opens an available unpacked update", async () => {
+  const messages = [];
+  const attributes = {};
+  const elements = {
+    headerUpdateBtn: {
+      dataset: {},
+      disabled: false,
+      setAttribute: (name, value) => {
+        attributes[name] = value;
+      },
+    },
+    updatePrimaryBtn: { disabled: false },
+    updateStatus: {},
+  };
+  const documentLike = {
+    addEventListener() {},
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    getElementById: (id) => elements[id] || null,
+    createElement: () => ({ textContent: "" }),
+  };
+  const helpers = loadSidepanelHelpers({
+    documentLike,
+    sendMessage: async (message) => {
+      messages.push(message);
+      if (message.action === "checkForUpdates") {
+        return {
+          showUpdate: false,
+          updateAvailable: true,
+          currentVersion: "2.1.1",
+          latestVersion: "2.1.2",
+        };
+      }
+      if (message.action === "installUpdate") {
+        return { success: true, mode: "manual", opened: true };
+      }
+      return {};
+    },
+  });
+
+  await helpers.handleHeaderUpdateClick();
+
+  assert.deepEqual(
+    messages.map((message) => message.action),
+    ["checkForUpdates", "installUpdate"],
+  );
+  assert.equal(elements.headerUpdateBtn.dataset.state, "available");
+  assert.equal(elements.headerUpdateBtn.textContent, "新版本 v2.1.2");
+  assert.equal(attributes["aria-label"], "新版本 v2.1.2");
 });
 
 function createFakeTimers() {

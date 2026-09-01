@@ -135,7 +135,15 @@ body {
   gap: 8px;
 }
 
-.settings-btn {
+.header-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.settings-btn,
+.header-update-btn {
   flex-shrink: 0;
   padding: 5px 10px;
   border: 1px solid var(--border);
@@ -146,10 +154,40 @@ body {
   font: 600 11px/1.4 var(--font-body);
 }
 
-.settings-btn:hover {
+.settings-btn:hover,
+.header-update-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-dim);
+}
+
+.header-update-btn[data-state="available"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(200, 103, 79, 0.2);
+}
+
+.header-update-btn[data-state="available"]:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+  color: #fff;
+}
+
+.header-update-btn[data-state="latest"] {
+  border-color: rgba(124, 139, 111, 0.35);
+  background: var(--sage-dim);
+  color: var(--sage);
+}
+
+.header-update-btn[data-state="error"] {
+  border-color: rgba(200, 103, 79, 0.35);
+  color: var(--accent);
+}
+
+.header-update-btn:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 /* ============================================================

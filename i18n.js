@@ -10,6 +10,13 @@
   const COPY = {
     en: {
       settings: "Settings",
+      checkUpdate: "Check updates",
+      checkingUpdate: "Checking…",
+      newVersion: ({ version }) => `New v${version}`,
+      latestVersion: "Up to date",
+      updatedVersion: ({ version }) => `Updated v${version}`,
+      openingUpdate: "Opening…",
+      updateCheckFailed: "Retry update",
       transcript: "Transcript",
       overview: "Overview",
       notes: "Notes",
@@ -78,6 +85,13 @@
     },
     "zh-CN": {
       settings: "设置",
+      checkUpdate: "检查更新",
+      checkingUpdate: "检查中…",
+      newVersion: ({ version }) => `新版本 v${version}`,
+      latestVersion: "已是最新",
+      updatedVersion: ({ version }) => `已更新 v${version}`,
+      openingUpdate: "正在打开…",
+      updateCheckFailed: "重试更新",
       transcript: "字幕",
       overview: "概览",
       notes: "笔记",

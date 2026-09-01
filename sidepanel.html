@@ -18,16 +18,29 @@
           <div class="video-channel" id="videoChannel"></div>
         </div>
         <div class="header-actions">
-          <button
-            class="settings-btn"
-            id="settingsBtn"
-            type="button"
-            title="打开看完了设置"
-            aria-label="打开看完了设置"
-            data-ui-i18n="settings"
-          >
-            设置
-          </button>
+          <div class="header-action-row">
+            <button
+              class="header-update-btn"
+              id="headerUpdateBtn"
+              type="button"
+              data-state="idle"
+              title="检查更新"
+              aria-label="检查更新"
+              data-ui-i18n="checkUpdate"
+            >
+              检查更新
+            </button>
+            <button
+              class="settings-btn"
+              id="settingsBtn"
+              type="button"
+              title="打开看完了设置"
+              aria-label="打开看完了设置"
+              data-ui-i18n="settings"
+            >
+              设置
+            </button>
+          </div>
           <div
             class="transcript-mode-control global-language-control"
             id="transcriptModeControl"

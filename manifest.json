@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "看完了",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "minimum_chrome_version": "116",
   "description": "将 YouTube 和 B 站视频转化为带字幕、翻译、AI 概览和笔记的学习资料。",
   "permissions": [

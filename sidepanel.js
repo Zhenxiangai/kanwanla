@@ -104,10 +104,53 @@ function replaceUpdateNotes(list, notes, doc = document) {
   }
 }
 
+function renderHeaderUpdateButton(
+  status,
+  doc = document,
+  transientState = "",
+) {
+  const button = doc.getElementById("headerUpdateBtn");
+  if (!button) return;
+
+  const normalizedStatus = status && typeof status === "object" ? status : null;
+  const latestVersion = String(
+    normalizedStatus?.latestVersion || normalizedStatus?.currentVersion || "",
+  );
+  const states = {
+    checking: ["checking", "checkingUpdate", true],
+    opening: ["checking", "openingUpdate", true],
+    latest: ["latest", "latestVersion", false],
+    error: ["error", "updateCheckFailed", false],
+  };
+  const override = states[transientState];
+
+  let state = "idle";
+  let label = uiText("checkUpdate");
+  let disabled = false;
+  if (override) {
+    [state, label, disabled] = [override[0], uiText(override[1]), override[2]];
+  } else if (normalizedStatus?.updateAvailable) {
+    state = "available";
+    label = uiText("newVersion", { version: latestVersion });
+  } else if (normalizedStatus?.justUpdated) {
+    state = "latest";
+    label = uiText("updatedVersion", {
+      version: String(normalizedStatus.currentVersion || latestVersion),
+    });
+  }
+
+  button.dataset.state = state;
+  button.disabled = disabled;
+  button.textContent = label;
+  button.title = label;
+  button.setAttribute("aria-label", label);
+}
+
 function renderUpdateBanner(status, doc = document) {
+  currentUpdateStatus = status && typeof status === "object" ? status : null;
+  renderHeaderUpdateButton(currentUpdateStatus, doc);
   const banner = doc.getElementById("updateBanner");
   if (!banner) return;
-  currentUpdateStatus = status && typeof status === "object" ? status : null;
   if (!currentUpdateStatus?.showUpdate) {
     banner.hidden = true;
     return;
@@ -167,7 +210,7 @@ async function loadUpdateStatus() {
 async function handleUpdatePrimaryClick() {
   const primary = document.getElementById("updatePrimaryBtn");
   const statusText = document.getElementById("updateStatus");
-  if (!primary || !currentUpdateStatus) return;
+  if (!primary || !currentUpdateStatus) return null;
 
   primary.disabled = true;
   if (currentUpdateStatus.justUpdated) {
@@ -176,7 +219,7 @@ async function handleUpdatePrimaryClick() {
       .sendMessage({ action: "acknowledgeUpdate" })
       .catch(() => null);
     renderUpdateBanner({ showUpdate: false });
-    return;
+    return { acknowledged: true };
   }
 
   primary.textContent = "正在检查…";
@@ -196,12 +239,12 @@ async function handleUpdatePrimaryClick() {
           ? "已打开 GitHub 最新版。解压覆盖原文件后，在扩展管理页点击“重新加载”。"
           : "请打开 GitHub 最新发行版并按安装说明更新。";
       }
-      return;
+      return result;
     }
     if (result?.reloading) {
       primary.textContent = "正在更新…";
       if (statusText) statusText.textContent = "浏览器正在应用新版本。";
-      return;
+      return result;
     }
     if (result?.waiting) {
       primary.disabled = false;
@@ -209,13 +252,54 @@ async function handleUpdatePrimaryClick() {
       if (statusText) {
         statusText.textContent = "浏览器正在下载更新，完成后会自动应用。";
       }
-      return;
+      return result;
     }
     throw new Error("当前已经是最新版。");
   } catch (error) {
     primary.disabled = false;
     primary.textContent = "重试更新";
     if (statusText) statusText.textContent = error.message;
+    return { error: error.message };
+  }
+}
+
+async function handleHeaderUpdateClick() {
+  const button = document.getElementById("headerUpdateBtn");
+  if (!button || button.disabled) return;
+
+  if (!currentUpdateStatus?.updateAvailable) {
+    renderHeaderUpdateButton(currentUpdateStatus, document, "checking");
+    try {
+      const status = await sendRuntimeMessageWithTimeout(
+        { action: "checkForUpdates" },
+        20_000,
+        "更新检查超时，请稍后重试。",
+      );
+      if (status?.error) throw new Error(status.error);
+      renderUpdateBanner(status);
+      if (!status?.updateAvailable) {
+        if (status?.checkError) throw new Error(status.checkError);
+        renderHeaderUpdateButton(status, document, "latest");
+        globalThis.setTimeout(
+          () => renderHeaderUpdateButton(currentUpdateStatus),
+          2400,
+        );
+        return;
+      }
+    } catch (_error) {
+      renderHeaderUpdateButton(currentUpdateStatus, document, "error");
+      return;
+    }
+  }
+
+  renderHeaderUpdateButton(currentUpdateStatus, document, "opening");
+  const result = await handleUpdatePrimaryClick();
+  if (result?.error) {
+    renderHeaderUpdateButton(currentUpdateStatus, document, "error");
+  } else if (result?.reloading || result?.waiting) {
+    renderHeaderUpdateButton(currentUpdateStatus, document, "checking");
+  } else {
+    renderHeaderUpdateButton(currentUpdateStatus);
   }
 }
 
@@ -226,7 +310,7 @@ async function handleUpdateDismissClick() {
     : "dismissUpdate";
   const message = { action, version: currentUpdateStatus.latestVersion };
   await chrome.runtime.sendMessage(message).catch(() => null);
-  renderUpdateBanner({ showUpdate: false });
+  renderUpdateBanner({ ...currentUpdateStatus, showUpdate: false });
 }
 
 // --- Transcript search state ---
@@ -597,6 +681,9 @@ function setupEventListeners() {
   document.getElementById("settingsBtn")?.addEventListener("click", () => {
     chrome.runtime.sendMessage({ action: "openOptions" });
   });
+  document
+    .getElementById("headerUpdateBtn")
+    ?.addEventListener("click", handleHeaderUpdateClick);
   document
     .getElementById("updatePrimaryBtn")
     ?.addEventListener("click", handleUpdatePrimaryClick);
@@ -3633,6 +3720,8 @@ function setTranslatingSpinner(show) {
 // Pure helpers are exposed for the repository's Node tests. The extension does
 // not read this object at runtime.
 globalThis.__YTD_TRANSCRIPT_TESTING__ = {
+  handleHeaderUpdateClick,
+  renderHeaderUpdateButton,
   renderUpdateBanner,
   sendTranslationMessage,
   groupTranscriptEntries,
