@@ -15,6 +15,60 @@ KanWanLe is a local, bring-your-own-key Chromium extension for Chrome and Edge. 
 
 ![KanWanLe demo](YouTube%20Digest%20demo.png)
 
+## Interface and feature showcase
+
+These screenshots come from real use on YouTube. Read transcripts, generate an AI overview, capture highlights, ask about selected text, and keep notes without leaving the video page.
+
+<table>
+  <tr>
+    <td width="33%" align="center" valign="top">
+      <strong>Timestamped transcript and translation</strong><br><br>
+      <img src="docs/images/youtube-transcript-zh.png" alt="YouTube timestamped transcript with Chinese translation" width="280"><br>
+      <sub>Seekable cues, original/Chinese/bilingual views, search, and playback following.</sub>
+    </td>
+    <td width="33%" align="center" valign="top">
+      <strong>AI overview with honest progress</strong><br><br>
+      <img src="docs/images/youtube-overview-progress.png" alt="YouTube AI overview with live generation progress" width="280"><br>
+      <sub>See the active stage, elapsed time, and streaming activity while chapters are generated.</sub>
+    </td>
+    <td width="33%" align="center" valign="top">
+      <strong>Notes and Agent export</strong><br><br>
+      <img src="docs/images/youtube-notes-agent-export.png" alt="YouTube notes and Agent export" width="280"><br>
+      <sub>Manage timestamped notes, copy a learning record for an Agent, or export Markdown and JSON.</sub>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <strong>Key highlights</strong><br><br>
+      <img src="docs/images/youtube-key-highlights.png" alt="YouTube AI key highlights" width="300"><br>
+      <sub>Keep seekable timestamps, copy a highlight, or turn it directly into a note.</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <strong>Selection explanation and targeted questions</strong><br><br>
+      <img src="docs/images/youtube-selection-explain.png" alt="YouTube selection explanation with a custom question" width="300"><br>
+      <sub>Add your own question so the AI analyzes selected text in the video's context.</sub>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <strong>Visible note confirmation</strong><br><br>
+      <img src="docs/images/youtube-note-saved.png" alt="YouTube note save confirmation" width="330"><br>
+      <sub>Immediately see the actual saved excerpt and its timestamp link.</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <strong>Selection shortcuts</strong><br><br>
+      <img src="docs/images/youtube-selection-actions.png" alt="YouTube selection shortcuts for explanation and notes" width="330"><br>
+      <sub>Explain or save selected transcript text directly from the inline toolbar.</sub>
+    </td>
+  </tr>
+</table>
+
 ## What this fork adds
 
 - Bilibili video and multipart-video support using Bilibili's official web APIs.

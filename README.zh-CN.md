@@ -15,6 +15,60 @@
 
 ![看完了演示](YouTube%20Digest%20demo.png)
 
+## 界面与功能展示
+
+以下截图来自 YouTube 实际使用界面。无需离开视频页，即可完成字幕阅读、AI 概览、重点摘录、划线提问和笔记沉淀。
+
+<table>
+  <tr>
+    <td width="33%" align="center" valign="top">
+      <strong>时间轴字幕与中文翻译</strong><br><br>
+      <img src="docs/images/youtube-transcript-zh.png" alt="YouTube 时间轴字幕与中文翻译" width="280"><br>
+      <sub>逐句时间戳、原文/中文/双语切换、跟随播放与字幕搜索。</sub>
+    </td>
+    <td width="33%" align="center" valign="top">
+      <strong>AI 概览与真实进度</strong><br><br>
+      <img src="docs/images/youtube-overview-progress.png" alt="YouTube AI 概览与生成进度" width="280"><br>
+      <sub>生成章节和重点时显示处理阶段、已用时间与流式活动。</sub>
+    </td>
+    <td width="33%" align="center" valign="top">
+      <strong>笔记管理与 Agent 导出</strong><br><br>
+      <img src="docs/images/youtube-notes-agent-export.png" alt="YouTube 笔记管理与 Agent 导出" width="280"><br>
+      <sub>集中管理时间戳笔记，并复制给 Agent 或导出 Markdown、JSON。</sub>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <strong>重点摘录</strong><br><br>
+      <img src="docs/images/youtube-key-highlights.png" alt="YouTube AI 重点摘录" width="300"><br>
+      <sub>保留可跳转时间戳，一键复制，或直接沉淀为视频笔记。</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <strong>划线解释与针对性提问</strong><br><br>
+      <img src="docs/images/youtube-selection-explain.png" alt="YouTube 划线解释与自定义问题" width="300"><br>
+      <sub>选中文字后可补充自己的疑问，让 AI 结合视频上下文分析。</sub>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <strong>笔记保存反馈</strong><br><br>
+      <img src="docs/images/youtube-note-saved.png" alt="YouTube 笔记保存反馈" width="330"><br>
+      <sub>保存后立即显示真实摘录和时间链接，不再只有模糊提示。</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <strong>字幕选区快捷操作</strong><br><br>
+      <img src="docs/images/youtube-selection-actions.png" alt="YouTube 字幕选区解释与笔记操作" width="330"><br>
+      <sub>选中字幕时直接出现“解释”和“笔记”，减少操作路径。</sub>
+    </td>
+  </tr>
+</table>
+
 ## 这个版本增加了什么
 
 - 支持 B 站普通视频和多 P 视频，字幕来自 B 站官方网页接口。
