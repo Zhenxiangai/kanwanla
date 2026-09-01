@@ -15,13 +15,16 @@ var KANWANLA_UPDATES = (() => {
   if (!BRAND) throw new Error("看完啦品牌兼容模块未加载。");
 
   const REPOSITORY = "Zhenxiangai/kanwanla";
-  const GITCODE_REPOSITORY = "gcw_XQNnjJtX/kanwanla";
+  // Keep the established GitCode slug as the domestic mirror. The product was
+  // renamed to KanWanLa, but changing this public path would strand existing
+  // Chinese users and previously published releases.
+  const GITCODE_REPOSITORY = "gcw_XQNnjJtX/kanwanle";
   const RELEASE_SOURCES = Object.freeze([
     Object.freeze({
       id: "gitcode",
       apiUrl:
-        "https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanla/releases/latest",
-      releasesUrl: "https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases",
+        "https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanle/releases/latest",
+      releasesUrl: "https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases",
       headers: Object.freeze({ Accept: "application/json" }),
     }),
     Object.freeze({
@@ -47,13 +50,13 @@ var KANWANLA_UPDATES = (() => {
   const MAX_NOTE_CHARS = 180;
 
   const CURRENT_RELEASE = Object.freeze({
-    version: "2.2.0",
-    title: "看完啦 2.2.0",
+    version: "2.2.1",
+    title: "看完啦 2.2.1",
     notes: Object.freeze([
-      "扩展、仓库和安装包统一使用“看完啦 / KanWanLa / kanwanla”。",
-      "升级后会自动沿用旧版设置、笔记、划线问答和学习记录。",
-      "项目首页新增版本价值与参考项目对比，更新前就能看懂区别。",
-      "GitCode 国内下载与 GitHub 备用下载已切换到新仓库地址。",
+      "更新检查优先使用现有 GitCode 镜像，国内网络无需先访问 GitHub。",
+      "修复仓库改名后旧地址跳转导致“重试更新”的问题。",
+      "GitCode 不可用时自动回退 GitHub，不影响字幕和概览功能。",
+      "解压安装版会打开可信发行页，并提示覆盖后重新加载扩展。",
     ]),
   });
 

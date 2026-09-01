@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases"><strong>国内下载最新版</strong></a>
+  <a href="https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases"><strong>国内下载最新版</strong></a>
   ·
   <a href="#3-分钟完成安装"><strong>安装教程</strong></a>
   ·
@@ -54,14 +54,14 @@
 
 ## 版本更新：每次升级能得到什么
 
-### 最新版 v2.2.0：统一叫“看完啦”
+### 最新版 v2.2.1：国内更新优先走 GitCode
 
 | 这次更新 | 对你的好处 |
 | --- | --- |
-| 扩展、仓库和安装包统一为“看完啦 / KanWanLa / kanwanla” | 名称和下载文件终于一致，不容易装错。 |
-| 自动兼容旧版浏览器数据 | 原来保存的设置、笔记、划线问答和学习记录会继续保留。 |
-| 首页开始记录每个版本的用户价值 | 更新前就能看懂新版解决了什么问题。 |
-| 国内下载和 GitHub 备用地址同步换新 | 国内优先从 GitCode 下载，访问失败还有 GitHub。 |
+| 更新检查直接使用现有 GitCode 镜像 | 国内用户不必先等待 GitHub，检查和下载路径更稳定。 |
+| 修复仓库改名后的更新校验 | 不再因为跳转到新仓库地址而显示“重试更新”。 |
+| GitHub 仅作为自动后备 | GitCode 暂时不可用时仍能继续检查，不影响其他功能。 |
+| 解压安装版给出明确升级路径 | 打开可信发行页后，覆盖原目录并在扩展页重新加载即可。 |
 
 以前几个版本也解决了很实际的问题：v2.1.3 增加国内下载，v2.1.2 把检查更新放到侧栏顶端，v2.1.1 修复笔记并加入划线提问、真实进度和 Agent 导出。
 
@@ -134,7 +134,7 @@
 
 目前使用的是“手动安装版”。第一次操作多几步，后面就可以一直使用。
 
-1. 国内用户先打开 [GitCode 发行版](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases)；如果无法访问，再打开 [GitHub 最新版](https://github.com/Zhenxiangai/kanwanla/releases/latest)。
+1. 国内用户先打开 [GitCode 发行版](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases)；如果无法访问，再打开 [GitHub 最新版](https://github.com/Zhenxiangai/kanwanla/releases/latest)。
 2. 在发行版页面下载名称类似 `kanwanla-v版本号.zip` 的文件。
 3. 找到下载好的 ZIP，双击或右键解压。请把解压后的文件夹放在一个长期不移动的位置。
 4. 打开浏览器扩展页面：
@@ -155,7 +155,7 @@
 
 官方项目：
 - GitHub：https://github.com/Zhenxiangai/kanwanla
-- 国内镜像：https://gitcode.com/gcw_XQNnjJtX/kanwanla
+- 国内镜像：https://gitcode.com/gcw_XQNnjJtX/kanwanle
 - 最新版：https://github.com/Zhenxiangai/kanwanla/releases/latest
 
 请按下面的顺序执行：

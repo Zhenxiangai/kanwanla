@@ -13,7 +13,7 @@ test("manifest identifies 看完啦 and grants only its runtime hosts", () => {
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.minimum_chrome_version, "116");
   assert.equal(manifest.name, "看完啦");
-  assert.equal(manifest.version, "2.2.0");
+  assert.equal(manifest.version, "2.2.1");
   assert.equal(packageJson.name, "kanwanla");
   assert.equal(packageJson.version, manifest.version);
   assert.equal(manifest.options_ui.page, "options.html");

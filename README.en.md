@@ -13,18 +13,18 @@ KanWanLa is a local, bring-your-own-key Chromium extension for Chrome and Edge. 
 > [!IMPORTANT]
 > KanWanLa is a derivative work based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License. This independently maintained fork preserves the upstream copyright notice and adds Bilibili support, SiliconFlow model selection, Chrome and Edge compatibility, and reliability improvements.
 
-For faster access from mainland China, releases are mirrored on [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanla). [GitHub](https://github.com/Zhenxiangai/kanwanla) remains the primary source repository, issue tracker, and fallback download host.
+For faster access from mainland China, releases are mirrored on [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanle). [GitHub](https://github.com/Zhenxiangai/kanwanla) remains the primary source repository, issue tracker, and fallback download host.
 
 ![KanWanLa demo](kanwanla-demo.png)
 
-## What changed in v2.2.0
+## What changed in v2.2.1
 
 | Change | Why it matters to users |
 | --- | --- |
-| The extension, repositories, and ZIP files now share the KanWanLa name | Downloads and installed copies are easier to identify. |
-| Pre-v2.2 local data is migrated automatically | Existing settings, notes, annotations, and learning-record revisions remain available. |
-| The project home now explains the value of every release | Users can understand an update before installing it. |
-| GitCode and GitHub links use the new repository name | Mainland-China downloads keep their fast path and GitHub remains the fallback. |
+| Update checks use the established GitCode mirror first | Mainland-China users do not need to wait for GitHub before checking or downloading. |
+| Repository-rename validation is fixed | A redirected GitHub release no longer leaves the button at “Retry update.” |
+| GitHub remains an automatic fallback | A temporary GitCode failure does not block update checks or video features. |
+| Unpacked installs show the safe manual path | Open the trusted release, replace the extension folder, and reload it in the browser. |
 
 See the Chinese-first [version history](CHANGELOG.md) for earlier user-facing improvements.
 
@@ -169,7 +169,7 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 
 ## Install
 
-1. Download the latest ZIP from [GitCode Releases](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases). If GitCode is temporarily unavailable, use the [GitHub fallback release](https://github.com/Zhenxiangai/kanwanla/releases/latest). Extract it to a permanent folder.
+1. Download the latest ZIP from [GitCode Releases](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases). If GitCode is temporarily unavailable, use the [GitHub fallback release](https://github.com/Zhenxiangai/kanwanla/releases/latest). Extract it to a permanent folder.
 2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
 3. Enable **Developer mode** and click **Load unpacked**.
 4. Select the folder containing `manifest.json`.
@@ -179,7 +179,7 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 ## Updates
 
 - **Check updates** is always visible at the top of the panel content. Clicking it performs an immediate network check instead of waiting for the 24-hour automatic-check cache. If a release is found, the control changes to **New vX** and the same click continues into the update flow. Dismissing detailed release notes does not hide this control.
-- **Unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens a validated [GitCode release](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases), with GitHub used only if GitCode is unavailable. Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
+- **Unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens a validated [GitCode release](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases), with GitHub used only if GitCode is unavailable. Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
 - **A future store install:** the browser remains responsible for installing updates. The control only asks the browser to check its corresponding store and apply a downloaded update. KanWanLa is not currently listed in Chrome Web Store or Edge Add-ons.
 
 The automatic release check runs at most once every 24 hours. It reads public metadata from GitCode first and falls back to GitHub if necessary. It never sends API keys, video URLs, transcripts, notes, or account data. A failed check does not block any video feature.
@@ -255,7 +255,7 @@ The package command validates the release allowlist, JavaScript syntax, tests, l
 
 ## Attribution
 
-KanWanLa is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. It is independently maintained at [Zhenxiangai/kanwanla](https://github.com/Zhenxiangai/kanwanla) and mirrored to [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanla); issues about this version should be reported here rather than to the upstream project.
+KanWanLa is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. It is independently maintained at [Zhenxiangai/kanwanla](https://github.com/Zhenxiangai/kanwanla) and mirrored to [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanle); issues about this version should be reported here rather than to the upstream project.
 
 The Bilibili WBI signer, subtitle API flow, and hydration-safe page injection strategy are adapted from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest), also used under the MIT License.
 
