@@ -28,7 +28,12 @@ public_allowlist=(
   "manifest.json"
   "background.js"
   "settings.js"
+  "platforms.js"
+  "transcripts.js"
   "content.js"
+  "bilibili-content.js"
+  "lib/wbi.js"
+  "lib/bili-api.js"
   "sidepanel.html"
   "sidepanel.css"
   "sidepanel.js"
@@ -47,13 +52,19 @@ public_allowlist=(
   "PRIVACY.md"
   "SECURITY.md"
   "LICENSE"
+  "NOTICE"
 )
 
 required_public_files=(
   "manifest.json"
   "background.js"
   "settings.js"
+  "platforms.js"
+  "transcripts.js"
   "content.js"
+  "bilibili-content.js"
+  "lib/wbi.js"
+  "lib/bili-api.js"
   "sidepanel.html"
   "sidepanel.css"
   "sidepanel.js"
@@ -65,6 +76,7 @@ required_public_files=(
   "PRIVACY.md"
   "SECURITY.md"
   "LICENSE"
+  "NOTICE"
 )
 
 for file in "${required_public_files[@]}"; do
@@ -162,11 +174,11 @@ for (const item of manifest.web_accessible_resources || []) {
 for (const file of releaseFiles) {
   if (file.endsWith(".js")) {
     const source = fs.readFileSync(file, "utf8");
-    for (const match of source.matchAll(
-      /\bimportScripts\s*\(\s*["']([^"']+)["']\s*\)/g,
-    )) {
-      if (!/^[a-z]+:/i.test(match[1])) {
-        referenced.add(path.posix.join(path.posix.dirname(file), match[1]));
+    for (const match of source.matchAll(/\bimportScripts\s*\(([^)]*)\)/g)) {
+      for (const argument of match[1].matchAll(/["']([^"']+)["']/g)) {
+        if (!/^[a-z]+:/i.test(argument[1])) {
+          referenced.add(path.posix.join(path.posix.dirname(file), argument[1]));
+        }
       }
     }
     for (const match of source.matchAll(
@@ -227,7 +239,11 @@ for file in "${javascript_files[@]}"; do
 done
 
 if compgen -G "tests/*.test.js" >/dev/null; then
-  node --test tests/*.test.js
+  if [[ "$mode" == "--print-files" ]]; then
+    node --test tests/*.test.js >&2
+  else
+    node --test tests/*.test.js
+  fi
 fi
 
 if ((${#javascript_files[@]} > 0)); then

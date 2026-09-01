@@ -1,17 +1,25 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Digest",
-  "version": "1.2.0",
+  "name": "Video Digest",
+  "version": "1.5.0",
   "minimum_chrome_version": "116",
-  "description": "Turn YouTube videos into learning resources with transcripts, bilingual translation, AI overviews, and notes.",
-  "permissions": ["sidePanel", "storage", "tabs", "scripting"],
+  "description": "将 YouTube 和 B 站视频转化为带字幕、翻译、AI 概览和笔记的学习资料。",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "tabs",
+    "scripting"
+  ],
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://api.supadata.ai/*",
-    "https://api.deepseek.com/*"
+    "https://api.siliconflow.cn/*",
+    "https://www.bilibili.com/*",
+    "https://api.bilibili.com/*",
+    "https://*.hdslb.com/*"
   ],
   "action": {
-    "default_title": "Open YouTube Digest",
+    "default_title": "打开 Video Digest",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -32,6 +40,14 @@
     {
       "matches": ["https://www.youtube.com/*"],
       "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.bilibili.com/video/*",
+        "https://www.bilibili.com/list/*"
+      ],
+      "js": ["bilibili-content.js"],
       "run_at": "document_idle"
     }
   ],

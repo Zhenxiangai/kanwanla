@@ -30,8 +30,8 @@ function createLocalStorage() {
 }
 
 test("Settings copy covers English and Simplified Chinese", () => {
-  assert.equal(options.translate("en", "pageTitle"), "YouTube Digest Settings");
-  assert.equal(options.translate("zh-CN", "pageTitle"), "YouTube Digest 设置");
+  assert.equal(options.translate("en", "pageTitle"), "Video Digest Settings");
+  assert.equal(options.translate("zh-CN", "pageTitle"), "Video Digest 设置");
   assert.equal(options.translate("en", "saveSettings"), "Save settings");
   assert.equal(options.translate("zh-CN", "saveSettings"), "保存设置");
   assert.equal(
@@ -90,22 +90,23 @@ test("non-extension preview safely persists language in localStorage", async () 
 
   const reopenedSession = options.createStorageAdapter(null, localStorage);
   assert.equal(await options.readPreferredLanguage(reopenedSession), "zh-CN");
-  assert.equal(options.normalizeLanguage("unsupported"), "en");
+  assert.equal(options.normalizeLanguage("unsupported"), "zh-CN");
 });
 
-test("language controls expose a labelled group and one pressed button", () => {
+test("language controls expose a labelled group and default to Chinese", () => {
   const html = read("options.html");
+  assert.match(html, /<html lang="zh-CN">/);
   assert.match(
     html,
-    /class="language-switch"[\s\S]*role="group"[\s\S]*aria-label="Interface language"/,
+    /class="language-switch"[\s\S]*role="group"[\s\S]*aria-label="界面语言"/,
   );
   assert.match(
     html,
-    /data-language="en"[\s\S]*aria-pressed="true"[\s\S]*English/,
+    /data-language="en"[\s\S]*aria-pressed="false"[\s\S]*English/,
   );
   assert.match(
     html,
-    /data-language="zh-CN"[\s\S]*aria-pressed="false"[\s\S]*中文/,
+    /data-language="zh-CN"[\s\S]*aria-pressed="true"[\s\S]*中文/,
   );
 
   const buttons = ["en", "zh-CN"].map((language) => ({
@@ -137,11 +138,11 @@ test("customization guidance is concise and has a visible placeholder reminder",
   );
   assert.equal(
     options.translate("en", "customizationStepFolder"),
-    "Open the extracted YouTube Digest project folder in your coding agent.",
+    "Open the extracted Video Digest project folder in your coding agent.",
   );
   assert.equal(
     options.translate("zh-CN", "customizationStepFolder"),
-    "在编程 Agent 中打开 YouTube Digest 解压后的项目文件夹。",
+    "在编程 Agent 中打开 Video Digest 解压后的项目文件夹。",
   );
   assert.doesNotMatch(html, /~\/Documents\/youtube-digest/);
   assert.doesNotMatch(html, /%USERPROFILE%\\Documents\\youtube-digest/);
@@ -152,20 +153,20 @@ test("customization prompt switches languages and preserves technical values", (
   const englishPrompt = options.translate("en", "customizationPrompt");
   const chinesePrompt = options.translate("zh-CN", "customizationPrompt");
 
-  assert.match(html, /placeholder="Paste your Supadata key"/);
-  assert.match(html, /placeholder="Paste your DeepSeek key"/);
+  assert.match(html, /placeholder="粘贴 Supadata API 密钥"/);
+  assert.match(html, /placeholder="粘贴硅基流动 API 密钥"/);
   assert.match(html, /https:\/\/dash\.supadata\.ai\/auth\/sign-up/);
-  assert.match(html, /https:\/\/platform\.deepseek\.com\/api_keys/);
-  assert.ok(html.includes(`>${englishPrompt}</textarea>`));
-  assert.match(chinesePrompt, /^请把当前本地 YouTube Digest 工作区改为使用/);
+  assert.match(html, /https:\/\/cloud\.siliconflow\.cn\/account\/ak/);
+  assert.ok(html.includes(`>${chinesePrompt}</textarea>`));
+  assert.match(chinesePrompt, /^请把当前本地 Video Digest 工作区改为使用/);
   assert.notEqual(chinesePrompt, englishPrompt);
   assert.match(
     englishPrompt,
-    /Keep DeepSeek-only request fields and retry behavior isolated to DeepSeek\. Handle provider-specific rules separately so one provider does not affect another\./,
+    /Keep SiliconFlow-only request fields and model discovery isolated to SiliconFlow\. Handle provider-specific rules separately so one provider does not affect another\./,
   );
   assert.match(
     chinesePrompt,
-    /DeepSeek 专用的请求参数和重试逻辑继续只用于 DeepSeek。新服务的专属规则请单独处理，避免相互影响。/,
+    /硅基流动专用的请求字段和模型发现逻辑继续只用于硅基流动。新服务的专属规则请单独处理，避免相互影响。/,
   );
 
   for (const prompt of [englishPrompt, chinesePrompt]) {

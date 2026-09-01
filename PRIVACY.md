@@ -1,88 +1,84 @@
 # Privacy
 
-Effective: July 28, 2026
+Last updated: August 31, 2026
 
-YouTube Digest is a GitHub-only, bring-your-own-key Chrome extension. It has no YouTube Digest account, developer-operated backend, analytics, advertising, or telemetry.
+Video Digest is a local, bring-your-own-key Chrome and Edge extension. It has no developer-operated backend, Video Digest account, analytics, advertising, telemetry, or data-broker integration.
 
-## Data the extension handles
+## Data handled
 
-Depending on the feature you use, YouTube Digest handles:
+Depending on the site and feature, the extension handles:
 
-- the canonical URL and video ID of the active YouTube video;
-- transcript text and timestamps;
-- video metadata such as title, channel, description, and duration;
-- text you select in the transcript and nearby transcript context;
-- transcript context around a timestamped note;
-- content you ask to translate;
-- notes you save;
-- Supadata and DeepSeek configuration, including API keys; and
-- cached transcript, digest, and translation results.
+- the active YouTube video ID or Bilibili BV number and part number;
+- video title, creator or channel name, description, duration, and playback time;
+- subtitle text, timestamps, detected language, and whether a Bilibili track is AI-generated;
+- generated chapters, quotes, translations, explanations, and timestamped notes;
+- Supadata and SiliconFlow API keys plus the selected SiliconFlow chat-model ID; and
+- local UI preferences, cache timestamps, and transcript reading positions.
 
-## Where data goes
+## Network requests
 
 ### Supadata
 
-YouTube Digest sends the canonical YouTube video URL to `https://api.supadata.ai` with your Supadata API key. Supadata returns the transcript and timestamps. A Supadata key is required for transcript retrieval.
+For YouTube only, Video Digest sends the canonical YouTube watch URL to `https://api.supadata.ai` with the user-supplied Supadata API key. It requests native captions and receives subtitle text and timestamps.
 
-### DeepSeek
+No Supadata request is made for Bilibili videos.
 
-The published version sends AI feature content to DeepSeek V4 Flash at `https://api.deepseek.com`:
+### Bilibili
 
-- transcript plus relevant title, channel, description, or duration for an overview;
-- selected text plus nearby transcript context for an explanation;
-- small semantic transcript batches currently needed for progressive Chinese
-  translation, or requested overview or explanation content;
-- nearby transcript context and video metadata when polishing a saved note.
+For Bilibili videos, Video Digest requests video metadata and subtitle-track metadata from `https://api.bilibili.com`. These requests use `credentials: include`, so Chrome may attach Bilibili cookies already present in the same browser profile. This allows Bilibili to return subtitle tracks available to the signed-in user.
 
-The endpoint and `deepseek-v4-flash` model are fixed in the published Settings page. You provide one DeepSeek API key. To use another provider or model, you must adapt your own local source copy and its permissions. The Settings page provides a coding-agent prompt for that purpose and warns you never to include an API key in the prompt or chat.
+The extension does not request Chrome's `cookies` permission. It does not enumerate, read, copy, log, or store cookie values itself.
 
-Requests go directly from the extension to Supadata or DeepSeek. They are authenticated with the keys you supply. YouTube Digest's developer does not proxy or receive these requests.
+The selected subtitle JSON is downloaded from a Bilibili-controlled `https://*.hdslb.com` URL with `credentials: omit`, so cookies are not attached to that request. Bilibili receives these requests under its own privacy policy and account settings.
 
-Those services process data under their own terms, privacy policies, retention practices, and account settings. Do not send confidential, personal, or regulated content unless their terms and your obligations permit it.
+### SiliconFlow
 
-## Local storage and retention
+For AI features, Video Digest sends relevant subtitle text and video context directly to `https://api.siliconflow.cn/v1`, authenticated with the user's SiliconFlow API key. The selected model may receive:
 
-YouTube Digest uses Chrome's local extension storage, not a YouTube Digest cloud service.
+- video title, creator, description, and duration;
+- timestamped transcript sections;
+- text selected for explanation;
+- note context; and
+- content selected for Chinese translation.
 
-- Supadata and DeepSeek settings and API keys remain on the device in Chrome's extension storage.
-- Saved notes remain until you delete them or remove/clear the extension's data. The extension keeps up to 100 notes.
-- Recent transcript, digest, and per-segment translation cache entries are stored
-  locally. The cache is limited to 20 videos, and entries older than 30 days are
-  removed when the side panel opens.
+When the user clicks **Load models**, Settings sends the SiliconFlow API key to `GET /v1/models?type=text&sub_type=chat`. That request does not contain a video URL, subtitle, or note.
 
-Chrome extension storage is not a password vault. Anyone with sufficient access to your browser profile or device may be able to recover locally stored keys or content. Use scoped keys where providers support them, set spending limits, and rotate or revoke a key if the device or browser profile is compromised.
+The Video Digest developer does not proxy or receive Supadata, Bilibili, or SiliconFlow requests.
 
-To remove data:
+## Local storage
 
-- delete individual saved notes in YouTube Digest;
-- use the Options page to clear cached digests, delete all notes, or reset all extension data;
-- remove the extension or clear its stored data from Chrome to delete all local settings, keys, notes, and cache entries; and
-- revoke keys in the Supadata or DeepSeek dashboard to stop their future use.
+Chrome local extension storage contains:
 
-Clearing local data does not delete information already processed or retained by Supadata or DeepSeek. Use each service's controls for service-side requests.
+- Supadata and SiliconFlow settings and API keys;
+- the selected SiliconFlow chat-model ID;
+- cached transcripts, translations, overviews, and video metadata;
+- saved notes and timestamped links; and
+- UI and reading-position preferences.
+
+YouTube keeps its historical raw video ID as the cache key. Bilibili uses a key containing the BV number and part number.
+
+Content scripts cannot read local extension storage because the background service worker restricts access to trusted extension contexts.
+
+## Retention and deletion
+
+Digest cache entries expire after 30 days, and the extension keeps at most 20 cached videos. Notes remain until individually deleted or until all local data is cleared.
+
+Settings provides controls to clear cached digests or reset all Video Digest data. Uninstalling the extension also removes its Chrome extension storage. Clearing local data does not delete information already processed or retained by Supadata, Bilibili, or SiliconFlow.
 
 ## Permissions
 
-YouTube Digest uses Chrome permissions for these purposes:
+- `sidePanel`: display the interface beside a supported video.
+- `storage`: store settings, cache, preferences, and notes locally.
+- `tabs`: identify and message the active supported-video tab.
+- `scripting`: read canonical YouTube player metadata.
+- YouTube host access: interact with the active YouTube page.
+- Supadata host access: retrieve YouTube native captions.
+- SiliconFlow host access: list models and perform configured AI requests.
+- Bilibili host access: interact with Bilibili playback pages and retrieve metadata and subtitle tracks.
+- `*.hdslb.com` host access: download the selected Bilibili subtitle JSON.
 
-- `sidePanel`: display the YouTube Digest interface beside YouTube.
-- `storage`: store settings, keys, notes, and cached results locally.
-- `tabs`: identify and interact with the active YouTube tab.
-- `scripting`: coordinate the extension's YouTube page controls.
-- YouTube host access: read the active video's URL and metadata and provide timestamp controls.
-- Supadata host access: retrieve transcripts.
-- DeepSeek host access: provide AI overviews, explanations, translation, and note polishing through DeepSeek V4 Flash.
+Video Digest does not use these permissions to monitor unrelated browsing.
 
-YouTube Digest does not use these permissions to monitor general browsing activity.
+## Contact
 
-## No sale or advertising use
-
-YouTube Digest does not sell personal information, build advertising profiles, or share data with data brokers. It does not include analytics SDKs.
-
-## Changes
-
-Privacy-relevant changes will be documented in this file and in the repository history. Review updates before installing a new version.
-
-## Questions
-
-This repository does not provide a public support or issue channel. Review this policy, the source code, and each provider's documentation before using the extension. For a vulnerability or accidental secret exposure, follow the private process in [SECURITY.md](SECURITY.md).
+Review the source and security guidance before installing a locally distributed build. Security concerns should follow [SECURITY.md](SECURITY.md).

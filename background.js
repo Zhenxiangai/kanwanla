@@ -3,8 +3,8 @@
  *
  * This is the "brain" of the extension. It runs in the background and handles:
  * 1. Opening the side panel when the user clicks the extension icon
- * 2. Fetching YouTube transcripts via Supadata API
- * 3. Calling DeepSeek to analyze the transcript
+ * 2. Fetching YouTube transcripts via Supadata and Bilibili subtitles directly
+ * 3. Calling SiliconFlow to analyze the transcript
  * 4. Sending results back to the side panel
  *
  * Think of it like a backend server — it does the heavy lifting
@@ -13,17 +13,27 @@
 
 // Import safe defaults and validation helpers. Secret keys live in
 // chrome.storage.local and are never part of the extension source.
-importScripts("settings.js");
+importScripts(
+  "settings.js",
+  "platforms.js",
+  "transcripts.js",
+  "lib/wbi.js",
+  "lib/bili-api.js",
+);
 
 const DEBUG = false;
-const AI_PROVIDER_IDLE_TIMEOUT_MS = 50_000;
-const AI_PROVIDER_HARD_TIMEOUT_MS = 120_000;
+const AI_PROVIDER_IDLE_TIMEOUT_MS = 90_000;
+const AI_PROVIDER_HARD_TIMEOUT_MS = 180_000;
 const AI_PROVIDER_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+// SSE envelopes can be much larger than the final answer because reasoning
+// models emit reasoning_content in separate JSON events. Keep the final
+// content at 2 MiB, but allow a bounded amount of discarded reasoning data.
+const AI_PROVIDER_MAX_STREAM_BYTES = 16 * 1024 * 1024;
 const debugLog = (...args) => {
   if (DEBUG) console.log(...args);
 };
 
-// Prevent the YouTube content script from reading API keys or cached data.
+// Prevent all video-page content scripts from reading API keys or cached data.
 // Side panel, options, and service-worker contexts remain trusted.
 chrome.storage.local
   .setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" })
@@ -77,13 +87,22 @@ async function requestAiCompletion({
   maxTokens,
   temperature,
   responseFormat,
+  stream = false,
+  thinkingBudget,
 }) {
   const settings = await getSettings();
   if (!settings.aiApiKey) {
     const error = new Error(
-      "DeepSeek API key not configured. Open YouTube Digest Settings.",
+      "尚未配置硅基流动 API 密钥，请打开 Video Digest 设置。",
     );
     error.code = "NO_AI_KEY";
+    throw error;
+  }
+  if (!settings.aiModel) {
+    const error = new Error(
+      "尚未选择硅基流动模型，请打开 Video Digest 设置。",
+    );
+    error.code = "NO_AI_MODEL";
     throw error;
   }
   const body = {
@@ -92,12 +111,61 @@ async function requestAiCompletion({
     messages,
   };
   if (typeof temperature === "number") body.temperature = temperature;
+  if (stream) body.stream = true;
+  if (Number.isInteger(thinkingBudget) && thinkingBudget > 0) {
+    body.thinking_budget = thinkingBudget;
+  }
   if (responseFormat) {
     body.response_format = responseFormat;
   }
-  // Product features need bounded, predictable latency rather than reasoning traces.
-  body.thinking = { type: "disabled" };
 
+  const removedFallbacks = new Set();
+  while (true) {
+    try {
+      return await sendAiCompletionRequest(settings, body);
+    } catch (error) {
+      if (
+        body.response_format &&
+        !removedFallbacks.has("response_format") &&
+        shouldRetryWithoutResponseFormat(error)
+      ) {
+        removedFallbacks.add("response_format");
+        delete body.response_format;
+        continue;
+      }
+      if (
+        body.thinking_budget &&
+        !removedFallbacks.has("thinking_budget") &&
+        shouldRetryWithoutThinkingBudget(error)
+      ) {
+        removedFallbacks.add("thinking_budget");
+        delete body.thinking_budget;
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+function shouldRetryWithoutResponseFormat(error) {
+  return (
+    (error?.status === 400 || error?.status === 422) &&
+    /response[_\s-]*format|json[_\s-]*(?:object|mode)/i.test(
+      String(error?.message || ""),
+    )
+  );
+}
+
+function shouldRetryWithoutThinkingBudget(error) {
+  return (
+    (error?.status === 400 || error?.status === 422) &&
+    /thinking[_\s-]*budget|(?:unsupported|unknown|invalid)[^\n]{0,80}thinking/i.test(
+      String(error?.message || ""),
+    )
+  );
+}
+
+async function sendAiCompletionRequest(settings, body) {
   const controller = new AbortController();
   let timeoutKind = "";
   let idleTimeoutId;
@@ -122,7 +190,7 @@ async function requestAiCompletion({
   resetIdleTimeout();
   try {
     const response = await fetch(
-      YTD_SETTINGS.chatCompletionsUrl(),
+      YTD_SETTINGS.chatCompletionsUrl(settings.aiBaseUrl),
       {
         method: "POST",
         headers: {
@@ -133,9 +201,22 @@ async function requestAiCompletion({
         signal: controller.signal,
       },
     );
-    // Receiving headers proves DeepSeek is still making progress. DeepSeek
+    // Receiving headers proves SiliconFlow is still making progress. SiliconFlow
     // may then send blank-line body chunks while a non-streaming request queues.
     resetIdleTimeout();
+
+    if (body.stream && response.ok) {
+      const text = await readBoundedAiStreamResponse(
+        response,
+        resetIdleTimeout,
+      );
+      if (!text.trim()) {
+        const error = new Error("硅基流动返回了空响应。");
+        error.code = "EMPTY_AI_RESPONSE";
+        throw error;
+      }
+      return { text, settings };
+    }
 
     const data = await readBoundedAiResponse(response, resetIdleTimeout);
     if (!response.ok) {
@@ -143,7 +224,7 @@ async function requestAiCompletion({
       const error = new Error(
         errorData.error?.message ||
           errorData.message ||
-          `DeepSeek error: ${response.status}`,
+          `SiliconFlow error: ${response.status}`,
       );
       error.status = response.status;
       throw error;
@@ -151,7 +232,7 @@ async function requestAiCompletion({
 
     const text = data.choices?.[0]?.message?.content;
     if (typeof text !== "string" || !text.trim()) {
-      const error = new Error("DeepSeek returned an empty response.");
+      const error = new Error("硅基流动返回了空响应。");
       error.code = "EMPTY_AI_RESPONSE";
       throw error;
     }
@@ -160,14 +241,14 @@ async function requestAiCompletion({
   } catch (error) {
     if (timeoutKind === "idle") {
       const timeoutError = new Error(
-        "DeepSeek request was inactive for 50 seconds. Please Retry.",
+        "硅基流动请求连续 90 秒没有返回数据，请重试。",
       );
       timeoutError.code = "AI_IDLE_TIMEOUT";
       throw timeoutError;
     }
     if (timeoutKind === "hard") {
       const timeoutError = new Error(
-        "DeepSeek request exceeded the 120-second limit. Please Retry.",
+        "硅基流动请求超过 180 秒，请重试。",
       );
       timeoutError.code = "AI_HARD_TIMEOUT";
       throw timeoutError;
@@ -179,6 +260,128 @@ async function requestAiCompletion({
   }
 }
 
+function readSseDataEvent(frame) {
+  const data = String(frame || "")
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trimStart())
+    .join("\n")
+    .trim();
+  if (!data) return { done: false, text: "" };
+  if (data === "[DONE]") return { done: true, text: "" };
+
+  const payload = JSON.parse(data);
+  if (payload?.error) {
+    const error = new Error(
+      payload.error?.message || payload.message || "硅基流动流式响应失败。",
+    );
+    error.status = payload.status;
+    throw error;
+  }
+  const choice = payload?.choices?.[0];
+  const content = choice?.delta?.content ?? choice?.message?.content ?? "";
+  return {
+    done: false,
+    text: typeof content === "string" ? content : "",
+  };
+}
+
+function consumeSseFrames(buffer, onEvent) {
+  let rest = buffer;
+  while (true) {
+    const boundary = rest.match(/\r?\n\r?\n/);
+    if (!boundary || boundary.index === undefined) break;
+    const frame = rest.slice(0, boundary.index);
+    rest = rest.slice(boundary.index + boundary[0].length);
+    if (onEvent(frame)) return { rest, done: true };
+  }
+  return { rest, done: false };
+}
+
+async function readBoundedAiStreamResponse(response, onActivity) {
+  const collected = { text: "", bytes: 0 };
+  const appendContent = (text) => {
+    if (!text) return;
+    collected.bytes += new TextEncoder().encode(text).byteLength;
+    if (collected.bytes > AI_PROVIDER_MAX_RESPONSE_BYTES) {
+      const error = new Error("硅基流动返回的概览内容超过 2 MiB 限制。");
+      error.code = "AI_RESPONSE_TOO_LARGE";
+      throw error;
+    }
+    collected.text += text;
+  };
+  const assertStreamSize = (byteLength) => {
+    if (byteLength > AI_PROVIDER_MAX_STREAM_BYTES) {
+      const error = new Error("硅基流动流式响应超过 16 MiB 安全限制。");
+      error.code = "AI_RESPONSE_TOO_LARGE";
+      throw error;
+    }
+  };
+  const reader = response.body?.getReader?.();
+  if (!reader) {
+    const responseText =
+      typeof response.text === "function"
+        ? await response.text()
+        : JSON.stringify(await response.json());
+    onActivity();
+    const byteLength = new TextEncoder().encode(responseText).byteLength;
+    if (!/^\s*(?:data:|:)/m.test(responseText)) {
+      if (byteLength > AI_PROVIDER_MAX_RESPONSE_BYTES) {
+        const error = new Error("硅基流动响应超过 2 MiB 限制。");
+        error.code = "AI_RESPONSE_TOO_LARGE";
+        throw error;
+      }
+      const payload = JSON.parse(responseText.trimStart());
+      return String(
+        payload?.choices?.[0]?.message?.content ??
+          payload?.choices?.[0]?.delta?.content ??
+        "",
+      );
+    }
+    assertStreamSize(byteLength);
+    const consumed = consumeSseFrames(`${responseText}\n\n`, (frame) => {
+      const event = readSseDataEvent(frame);
+      appendContent(event.text);
+      return event.done;
+    });
+    if (!consumed.done && consumed.rest.trim()) {
+      appendContent(readSseDataEvent(consumed.rest).text);
+    }
+    return collected.text;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let responseBytes = 0;
+  let doneEvent = false;
+  while (!doneEvent) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    onActivity();
+    responseBytes += value?.byteLength ?? 0;
+    if (responseBytes > AI_PROVIDER_MAX_STREAM_BYTES) {
+      await reader.cancel?.().catch(() => {});
+      assertStreamSize(responseBytes);
+    }
+    buffer += decoder.decode(value, { stream: true });
+    const consumed = consumeSseFrames(buffer, (frame) => {
+      const event = readSseDataEvent(frame);
+      appendContent(event.text);
+      return event.done;
+    });
+    buffer = consumed.rest;
+    doneEvent = consumed.done;
+  }
+  buffer += decoder.decode();
+  if (!doneEvent && buffer.trim()) {
+    const event = readSseDataEvent(buffer);
+    appendContent(event.text);
+    doneEvent = event.done;
+  }
+  if (doneEvent) await reader.cancel?.().catch(() => {});
+  return collected.text;
+}
+
 async function readBoundedAiResponse(response, onActivity) {
   const reader = response.body?.getReader?.();
   if (reader) {
@@ -188,13 +391,13 @@ async function readBoundedAiResponse(response, onActivity) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      // Every received chunk is activity, including DeepSeek's blank lines.
+      // Every received chunk is activity, including SiliconFlow's blank lines.
       onActivity();
       const byteLength = value?.byteLength ?? 0;
       responseBytes += byteLength;
       if (responseBytes > AI_PROVIDER_MAX_RESPONSE_BYTES) {
         await reader.cancel?.().catch(() => {});
-        const error = new Error("DeepSeek response exceeded the 2 MiB limit.");
+        const error = new Error("硅基流动响应超过 2 MiB 限制。");
         error.code = "AI_RESPONSE_TOO_LARGE";
         throw error;
       }
@@ -211,7 +414,7 @@ async function readBoundedAiResponse(response, onActivity) {
     onActivity();
     const byteLength = new TextEncoder().encode(responseText).byteLength;
     if (byteLength > AI_PROVIDER_MAX_RESPONSE_BYTES) {
-      const error = new Error("DeepSeek response exceeded the 2 MiB limit.");
+      const error = new Error("硅基流动响应超过 2 MiB 限制。");
       error.code = "AI_RESPONSE_TOO_LARGE";
       throw error;
     }
@@ -234,7 +437,7 @@ async function readBoundedAiResponse(response, onActivity) {
  * Chrome's Side Panel API lets us show a persistent panel alongside the page.
  */
 chrome.action.onClicked.addListener((tab) => {
-  if (!(tab.url || "").startsWith("https://www.youtube.com")) {
+  if (!YTD_PLATFORMS.isSupportedSiteUrl(tab.url)) {
     void updatePanelForTab(tab.id, tab.url, tab.windowId);
     return;
   }
@@ -249,7 +452,7 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 /**
- * Allow the side panel to open on any page, but it's designed for YouTube.
+ * Allow the side panel to open on supported video sites.
  */
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
@@ -258,11 +461,11 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 });
 
 /**
- * Keep the side panel scoped to YouTube tabs only.
+ * Keep the side panel scoped to supported video tabs only.
  *
  * Chrome side panels are "global" by default: once opened, the panel follows
- * you to every tab. To make YouTube Digest behave like a YouTube-only tool, we
- * enable the panel on YouTube tabs and disable it everywhere else. Disabling
+ * you to every tab. Video Digest enables the panel only on supported video
+ * tabs and disables it everywhere else. Disabling
  * on a tab makes Chrome hide/close the panel for that tab, so it never lingers
  * on a new tab or some other website.
  *
@@ -270,7 +473,7 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
  *   - onUpdated: the current tab navigates to a new URL
  *   - onActivated: you switch to (or open) a different tab
  * The original code only handled onUpdated, which is why the panel stayed
- * visible when switching to an already-loaded non-YouTube tab.
+ * visible when switching to an already-loaded unsupported tab.
  */
 async function closePanelForTab(tabId, windowId) {
   // Chrome 141 added an explicit close API. On older supported versions,
@@ -292,8 +495,8 @@ async function closePanelForTab(tabId, windowId) {
 }
 
 async function updatePanelForTab(tabId, url, windowId) {
-  const isYouTube = (url || "").startsWith("https://www.youtube.com");
-  if (!isYouTube) {
+  const isSupportedSite = YTD_PLATFORMS.isSupportedSiteUrl(url);
+  if (!isSupportedSite) {
     // Close the visible instance first. Then disable this tab so Chrome cannot
     // reopen the global default panel as navigation settles.
     await closePanelForTab(tabId, windowId);
@@ -350,7 +553,12 @@ chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // We need to return true to indicate we'll respond asynchronously
   if (message.action === "fetchTranscript") {
-    handleFetchTranscript(message.videoId)
+    handleFetchTranscript(message.videoId, {
+      platform: message.platform,
+      page: message.page,
+      tabId: message.tabId,
+      storageId: message.storageId,
+    })
       .then(sendResponse)
       .catch((err) => sendResponse({ error: err.message }));
     return true; // Keep the message channel open for async response
@@ -371,7 +579,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "explainSelection") {
-    // Explain selected text using DeepSeek.
+    // Explain selected text using the configured SiliconFlow model.
     handleExplainSelection(
       message.selectedText,
       message.transcriptContext,
@@ -391,6 +599,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       message.videoTitle,
       message.channelName,
       message.selectedText,
+      {
+        platform: message.platform,
+        sourceVideoId: message.sourceVideoId,
+        page: message.page,
+        tabId: Number.isInteger(message.tabId) ? message.tabId : sender.tab?.id,
+        videoUrl: message.videoUrl,
+      },
     )
       .then(sendResponse)
       .catch((err) => sendResponse({ success: false, error: err.message }));
@@ -420,7 +635,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // Translation: send content to DeepSeek.
+  // Translation: send content to the configured SiliconFlow model.
   if (message.action === "translateContent") {
     handleTranslateContent(
       message.content,
@@ -439,6 +654,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({
           hasSupadataKey: !!settings.supadataApiKey,
           hasAiKey: !!settings.aiApiKey,
+          hasAiModel: !!settings.aiModel,
         }),
       )
       .catch((error) => sendResponse({ error: error.message }));
@@ -508,42 +724,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     debugLog("[YouTube Digest BG] Relay request:", message.payload?.action);
     (async () => {
       try {
-        // Query specifically for YouTube tabs to avoid side panel context issues
-        // Try multiple query strategies to find the right tab
-        let tabs = await chrome.tabs.query({
-          active: true,
-          lastFocusedWindow: true,
-        });
-        debugLog(
-          "[YouTube Digest BG] Active tab in last focused window:",
-          tabs.length,
-          tabs[0]?.url,
-        );
-
-        // If no YouTube tab found, try broader query
-        if (!tabs[0] || !tabs[0].url?.includes("youtube.com")) {
-          tabs = await chrome.tabs.query({
-            url: "https://www.youtube.com/*",
+        let tab = null;
+        if (Number.isInteger(message.tabId)) {
+          tab = await chrome.tabs.get(message.tabId).catch(() => null);
+        }
+        if (!tab) {
+          const tabs = await chrome.tabs.query({
             active: true,
+            lastFocusedWindow: true,
           });
-          debugLog("[YouTube Digest BG] Active YouTube tabs:", tabs.length);
+          tab = tabs[0] || null;
         }
+        const videoRef = YTD_PLATFORMS.parseVideoRef(tab?.url);
 
-        // Still nothing? Try any YouTube tab
-        if (!tabs[0]) {
-          tabs = await chrome.tabs.query({ url: "https://www.youtube.com/*" });
-          debugLog("[YouTube Digest BG] Any YouTube tabs:", tabs.length);
-        }
-
-        if (tabs[0]) {
+        if (tab && videoRef) {
           debugLog(
             "[YouTube Digest BG] Sending to tab:",
-            tabs[0].id,
+            tab.id,
             "URL:",
-            tabs[0].url,
+            tab.url,
           );
           let response = await chrome.tabs.sendMessage(
-            tabs[0].id,
+            tab.id,
             message.payload,
           );
 
@@ -555,8 +757,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // real channel ("Replit and Stripe"), and its description is
           // truncated while the box is collapsed. We fall back to the DOM
           // only for fields the player didn't provide.
-          if (message.payload?.action === "getVideoInfo") {
-            const playerInfo = await getPlayerVideoDetails(tabs[0].id);
+          if (
+            message.payload?.action === "getVideoInfo" &&
+            videoRef.platform === "youtube"
+          ) {
+            const playerInfo = await getPlayerVideoDetails(tab.id);
             if (playerInfo) {
               response = {
                 title: playerInfo.title || response?.title || "",
@@ -572,8 +777,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           debugLog("[YouTube Digest BG] Got response from content:", response);
           sendResponse({ success: true, response });
         } else {
-          debugLog("[YouTube Digest BG] No YouTube tab found");
-          sendResponse({ success: false, error: "No YouTube tab found" });
+          debugLog("[Video Digest BG] No supported video tab found");
+          sendResponse({
+            success: false,
+            error: "没有找到受支持的 YouTube 或 B 站视频标签页",
+          });
         }
       } catch (err) {
         console.error("[YouTube Digest BG] Relay error:", err.message);
@@ -624,8 +832,108 @@ async function getPlayerVideoDetails(tabId) {
 }
 
 // ============================================================
-// TRANSCRIPT FETCHING VIA SUPADATA API
+// TRANSCRIPT FETCHING
 // ============================================================
+
+async function handleFetchTranscript(videoId, context = {}) {
+  if (context.platform === "bilibili") {
+    return handleFetchBilibiliTranscript(videoId, context.page);
+  }
+  return handleFetchYouTubeTranscript(videoId);
+}
+
+/**
+ * Fetches a Bilibili subtitle directly from Bilibili's official web APIs.
+ * The browser's existing Bilibili cookies are included for API calls because
+ * creator and AI subtitle tracks are often hidden from signed-out requests.
+ */
+async function handleFetchBilibiliTranscript(bvid, page = 1) {
+  try {
+    const normalizedBvid = BILI_API.parseBvid(bvid);
+    if (!normalizedBvid || normalizedBvid !== bvid) {
+      return {
+        success: false,
+        error: "INVALID_BILIBILI_ID",
+        message: "B 站 BV 号无效。",
+      };
+    }
+    const normalizedPage = YTD_PLATFORMS.normalizePage(page);
+    const videoInfo = await BILI_API.fetchVideoInfo(normalizedBvid, {
+      page: normalizedPage,
+    });
+    const subtitleResult = await BILI_API.fetchSubtitleTracks(videoInfo);
+
+    if (!subtitleResult.tracks.length) {
+      if (subtitleResult.needLogin) {
+        return {
+          success: false,
+          error: "BILIBILI_LOGIN_REQUIRED",
+          message:
+            "B 站要求登录后才能读取此字幕。请登录 bilibili.com，重新加载视频后重试。",
+        };
+      }
+      return {
+        success: false,
+        error: "NO_TRANSCRIPT",
+        message: "这个 B 站视频分 P 没有可用字幕轨。",
+      };
+    }
+
+    const track = BILI_API.pickSubtitleTrack(subtitleResult.tracks);
+    const transcript = await BILI_API.fetchSubtitleTrackContent(track.url);
+    if (!transcript.length) {
+      return {
+        success: false,
+        error: "EMPTY_TRANSCRIPT",
+        message: "B 站为这个视频分 P 返回了空字幕轨。",
+      };
+    }
+
+    let transcriptTextPlain = "";
+    let transcriptTextTimestamped = "";
+    const normalizedTranscript = transcript.map((entry) => {
+      const cleanText = String(entry.text || "").replace(/\s+/g, " ").trim();
+      const startSeconds = Math.max(0, Number(entry.start) || 0);
+      const wholeSeconds = Math.floor(startSeconds);
+      const minutes = Math.floor(wholeSeconds / 60);
+      const seconds = wholeSeconds % 60;
+      transcriptTextPlain += `${cleanText} `;
+      transcriptTextTimestamped += `[${minutes}:${String(seconds).padStart(2, "0")}] ${cleanText}\n`;
+      return {
+        text: cleanText,
+        start: startSeconds,
+        duration: Math.max(0, Number(entry.duration) || 0),
+        language: track.lang || null,
+      };
+    });
+
+    return {
+      success: true,
+      transcript: normalizedTranscript,
+      transcriptText: transcriptTextPlain.trim(),
+      transcriptTextTimestamped: transcriptTextTimestamped.trim(),
+      language: track.lang || null,
+      languageLabel: track.langLabel || track.lang || null,
+      subtitleIsAi: !!track.isAi,
+      videoInfo: {
+        title: videoInfo.title,
+        channelName: videoInfo.owner,
+        description: videoInfo.description,
+        duration: videoInfo.duration,
+        bvid: videoInfo.bvid,
+        page: videoInfo.page,
+        pageCount: videoInfo.pageCount,
+      },
+    };
+  } catch (error) {
+    console.error("Bilibili transcript fetch error:", error);
+    return {
+      success: false,
+      error: error.code || "BILIBILI_TRANSCRIPT_ERROR",
+      message: error.message || "无法获取 B 站字幕。",
+    };
+  }
+}
 
 /**
  * Fetches the transcript for a YouTube video using Supadata API.
@@ -639,14 +947,14 @@ async function getPlayerVideoDetails(tabId) {
  * @param {string} videoId - The YouTube video ID (e.g., "dQw4w9WgXcQ")
  * @returns {Object} - { success, transcript, transcriptText, language } or { success: false, error }
  */
-async function handleFetchTranscript(videoId) {
+async function handleFetchYouTubeTranscript(videoId) {
   try {
     const settings = await getSettings();
     if (!settings.supadataApiKey) {
       return {
         success: false,
         error: "NO_SUPADATA_KEY",
-        message: "Supadata API key not configured. Open YouTube Digest Settings.",
+        message: "尚未配置 Supadata API 密钥，请打开 Video Digest 设置。",
       };
     }
 
@@ -680,7 +988,7 @@ async function handleFetchTranscript(videoId) {
       return {
         success: false,
         error: "NO_TRANSCRIPT",
-        message: "No native subtitle track is available for this video.",
+        message: "此视频没有可用的原生字幕轨。",
       };
     }
 
@@ -690,14 +998,14 @@ async function handleFetchTranscript(videoId) {
         return {
           success: false,
           error: "INVALID_SUPADATA_KEY",
-          message: "Your Supadata API key is invalid. Open YouTube Digest Settings.",
+          message: "Supadata API 密钥无效，请打开 Video Digest 设置检查。",
         };
       }
       if (response.status === 404) {
         return {
           success: false,
           error: "NO_TRANSCRIPT",
-          message: "No subtitles found for this video.",
+          message: "未找到此视频的字幕。",
         };
       }
       if (response.status === 429) {
@@ -705,7 +1013,7 @@ async function handleFetchTranscript(videoId) {
           success: false,
           error: "RATE_LIMITED",
           message:
-            "Supadata rate limit reached. Please wait a minute and try again.",
+            "Supadata 请求次数已达上限，请等待一分钟后重试。",
         };
       }
       throw new Error(
@@ -745,7 +1053,7 @@ async function handleFetchTranscript(videoId) {
           // Plain text without timestamps (for display/export)
           transcriptTextPlain += cleanText + " ";
 
-          // Timestamped text for DeepSeek (format: [MM:SS] text)
+          // Timestamped text for the AI model (format: [MM:SS] text)
           // This allows the model to reference actual transcript positions.
           transcriptTextTimestamped += `[${timestamp}] ${cleanText}\n`;
         }
@@ -756,7 +1064,7 @@ async function handleFetchTranscript(videoId) {
       return {
         success: false,
         error: "EMPTY_TRANSCRIPT",
-        message: "Supadata returned an empty transcript for this video.",
+        message: "Supadata 为此视频返回了空字幕。",
       };
     }
 
@@ -844,13 +1152,13 @@ async function pollTranscriptJob(jobId, supadataApiKey) {
     }
 
     if (data.status === "failed") {
-      throw new Error("Transcript processing failed");
+      throw new Error("字幕处理失败");
     }
 
     // Status is 'queued' or 'active' — keep polling
   }
 
-  throw new Error("Transcript processing timed out");
+  throw new Error("字幕处理超时");
 }
 
 // ============================================================
@@ -894,11 +1202,11 @@ function parseLooseJson(text) {
 }
 
 // ============================================================
-// DEEPSEEK ANALYSIS
+// AI ANALYSIS
 // ============================================================
 
 /**
- * Sends the transcript to DeepSeek for analysis.
+ * Sends the transcript to the configured SiliconFlow model for analysis.
  *
  * The prompt asks the model to produce chapters covering the whole video
  * and 3-5 key quotes with timestamps.
@@ -921,7 +1229,8 @@ async function handleAnalyzeTranscript(
       return {
         success: false,
         error: "NO_AI_KEY",
-        message: "DeepSeek API key not configured. Open YouTube Digest Settings.",
+        message:
+          "尚未配置硅基流动 API 密钥，请打开 Video Digest 设置。",
       };
     }
 
@@ -977,7 +1286,9 @@ async function handleAnalyzeTranscript(
 
     debugLog("[YouTube Digest] Requesting video analysis", settings.aiModel);
     const { text: responseText } = await requestAiCompletion({
-      maxTokens: 8192,
+      stream: true,
+      thinkingBudget: 1024,
+      maxTokens: 4096,
       responseFormat: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -998,18 +1309,18 @@ async function handleAnalyzeTranscript(
     };
   } catch (error) {
     console.error("Analysis error:", error);
-    if (error.status === 401) {
+    if (error.status === 401 || error.status === 403) {
       return {
         success: false,
         error: "INVALID_AI_KEY",
-        message: "DeepSeek rejected the API key.",
+        message: "硅基流动拒绝了 API 密钥或账号访问权限。",
       };
     }
     if (error.status === 429) {
       return {
         success: false,
         error: "RATE_LIMITED",
-        message: "DeepSeek rate-limited this request. Try again shortly.",
+        message: "硅基流动限制了此请求，请稍后重试。",
       };
     }
     return {
@@ -1023,7 +1334,7 @@ async function handleAnalyzeTranscript(
  * Validates all timestamps in the analysis and fixes any that exceed video duration.
  * This is a safety net to prevent hallucinated timestamps from reaching the UI.
  *
- * @param {Object} analysis - The parsed analysis from DeepSeek
+ * @param {Object} analysis - The parsed analysis from the AI model
  * @param {number} maxSeconds - Maximum valid timestamp in seconds
  * @returns {Object} - Analysis with validated timestamps
  */
@@ -1117,7 +1428,7 @@ async function handleGetVideoInfo(tabId) {
 // ============================================================
 
 /**
- * Explains selected text using DeepSeek.
+ * Explains selected text using the configured SiliconFlow model.
  * Provides context, definitions, and clarification for complex terms.
  *
  * @param {string} selectedText - The text the user selected
@@ -1129,6 +1440,29 @@ async function handleGetVideoInfo(tabId) {
 // NOTE MANAGEMENT
 // ============================================================
 
+function noteVideoRef(videoId, context = {}) {
+  const storageId = String(videoId || "");
+  const storedBilibiliMatch = storageId.match(
+    /^bilibili:(BV[0-9A-Za-z]{10}):p(\d+)$/,
+  );
+  if (context.platform === "bilibili" || storedBilibiliMatch) {
+    const sourceVideoId =
+      BILI_API.parseBvid(context.sourceVideoId) || storedBilibiliMatch?.[1];
+    return {
+      platform: "bilibili",
+      sourceVideoId,
+      page: YTD_PLATFORMS.normalizePage(
+        context.page || storedBilibiliMatch?.[2] || 1,
+      ),
+    };
+  }
+  return {
+    platform: "youtube",
+    sourceVideoId: context.sourceVideoId || storageId,
+    page: 1,
+  };
+}
+
 /**
  * Saves a note at a timestamp. Exact selected text is stored directly.
  * Other note requests find the relevant transcript line and clean it up.
@@ -1139,10 +1473,15 @@ async function handleSaveNote(
   videoTitle,
   channelName,
   selectedText,
+  context = {},
 ) {
   try {
-    const canonicalVideoUrl = YTD_SETTINGS.canonicalYouTubeUrl(videoId);
+    const videoRef = noteVideoRef(videoId, context);
     const safeTimestamp = Math.max(0, Math.floor(Number(timestamp) || 0));
+    const timestampedUrl = YTD_PLATFORMS.canonicalVideoUrl(
+      videoRef,
+      safeTimestamp,
+    );
     const exactSelectedText =
       typeof selectedText === "string"
         ? selectedText.replace(/\s+/g, " ").trim().slice(0, 3000)
@@ -1164,7 +1503,10 @@ async function handleSaveNote(
           typeof channelName === "string" ? channelName.slice(0, 300) : "",
         timestamp: `${minutes}:${String(seconds).padStart(2, "0")}`,
         timestampSeconds: safeTimestamp,
-        timestampedUrl: `${canonicalVideoUrl}&t=${safeTimestamp}s`,
+        timestampedUrl,
+        platform: videoRef.platform,
+        sourceVideoId: videoRef.sourceVideoId,
+        page: videoRef.page,
         text: exactSelectedText,
         rawText: exactSelectedText,
         createdAt: Date.now(),
@@ -1192,9 +1534,12 @@ async function handleSaveNote(
 
     // If no cached transcript, fetch it
     if (!transcript) {
-      const transcriptResult = await handleFetchTranscript(videoId);
+      const transcriptResult = await handleFetchTranscript(
+        videoRef.sourceVideoId,
+        videoRef,
+      );
       if (!transcriptResult.success) {
-        return { success: false, error: "Could not fetch transcript" };
+        return { success: false, error: "无法获取字幕" };
       }
       transcript = transcriptResult.transcript;
     }
@@ -1265,7 +1610,7 @@ async function handleSaveNote(
       }
     }
 
-    // Clean up the text with DeepSeek.
+    // Clean up the text with the configured SiliconFlow model.
     const cleanedText = await cleanupNoteText(
       matchedLine.text,
       beforeLine,
@@ -1280,8 +1625,6 @@ async function handleSaveNote(
     const formattedTimestamp = `${minutes}:${String(seconds).padStart(2, "0")}`;
 
     // Create timestamped URL
-    const timestampedUrl = `${canonicalVideoUrl}&t=${safeTimestamp}s`;
-
     // Create the note object
     const note = {
       id: `note_${Date.now()}`,
@@ -1295,6 +1638,9 @@ async function handleSaveNote(
       timestamp: formattedTimestamp,
       timestampSeconds: safeTimestamp,
       timestampedUrl: timestampedUrl,
+      platform: videoRef.platform,
+      sourceVideoId: videoRef.sourceVideoId,
+      page: videoRef.page,
       text: cleanedText,
       rawText: matchedLine.text,
       createdAt: Date.now(),
@@ -1314,7 +1660,7 @@ async function handleSaveNote(
 }
 
 /**
- * Cleans up transcript lines using DeepSeek.
+ * Cleans up transcript lines using the configured SiliconFlow model.
  * Takes the target line plus buffer sentences (1 before, 1 after).
  * Uses JSON output to prevent any preambles from appearing.
  */
@@ -1453,7 +1799,7 @@ async function handleExplainSelection(
       return {
         success: false,
         error: "NO_AI_KEY",
-        message: "DeepSeek API key not configured.",
+        message: "尚未配置硅基流动 API 密钥。",
       };
     }
 
@@ -1592,7 +1938,7 @@ function normalizeTranslatedSegmentBatch(parsed, sourceSegments) {
 }
 
 /**
- * Translates content using DeepSeek.
+ * Translates content using the configured SiliconFlow model.
  * @param {Object} content - JSON object containing semantic transcript segments
  * @param {string} contentType - 'transcriptBatch' or 'interfaceBatch'
  * @param {string} targetLanguage - 'zh' for Simplified Chinese
@@ -1621,7 +1967,7 @@ async function handleTranslateContent(
 
     const settings = await getSettings();
     if (!settings.aiApiKey) {
-      return { success: false, error: "DeepSeek API key not configured" };
+      return { success: false, error: "尚未配置硅基流动 API 密钥" };
     }
 
     const sourceSegments = validateTranscriptBatchRequest(content);
@@ -1652,7 +1998,7 @@ async function handleTranslateContent(
       translationOptions,
     );
 
-    // DeepSeek JSON mode can rarely return an empty content string. The prompt
+    // JSON mode can rarely return an empty content string. The prompt
     // already requires JSON, so retry once without response_format.
     if (!result.success && result.code === "EMPTY_AI_RESPONSE") {
       result = await callAiTranslation(systemPrompt, userContent, {
@@ -1667,7 +2013,7 @@ async function handleTranslateContent(
     if (!aligned.segments.some((segment) => segment.text)) {
       return {
         success: false,
-        error: "Translation returned no valid Chinese segments",
+        error: "翻译没有返回有效的中文分段",
       };
     }
     return { success: true, translatedContent: aligned };
@@ -1678,7 +2024,7 @@ async function handleTranslateContent(
 }
 
 /**
- * Makes a single DeepSeek call for translation.
+ * Makes a single SiliconFlow call for translation.
  * Uses temperature 0.3 for consistent, predictable translations.
  *
  * @param {string} systemPrompt - The system-level instructions
@@ -1706,7 +2052,7 @@ async function callAiTranslation(
     if (error.status === 429) {
       return {
         success: false,
-        error: "Rate limited — try again in a moment",
+        error: "请求频率受限，请稍后重试",
         code: "RATE_LIMITED",
       };
     }
@@ -1720,7 +2066,10 @@ globalThis.__YTD_TRANSLATION_TESTING__ = {
   callAiTranslation,
   validateTranscriptBatchRequest,
   normalizeTranslatedSegmentBatch,
+  handleFetchTranscript,
+  handleFetchBilibiliTranscript,
   handleSaveNote,
+  noteVideoRef,
   handleTranslateContent,
   closePanelForTab,
   updatePanelForTab,

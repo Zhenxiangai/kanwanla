@@ -40,7 +40,7 @@ test("all timestamped transcript row clicks use the selection-aware seek helper"
 test("the selection toolbar preserves selection and contains pointer events", () => {
   assert.match(
     source,
-    /class="explain-btn"[\s\S]*?>Explain<[\s\S]*class="selection-note-btn"[\s\S]*?>Note</,
+    /class="explain-btn"[\s\S]*?>解释<[\s\S]*class="selection-note-btn"[\s\S]*?>笔记</,
   );
   assert.match(
     source,
@@ -125,14 +125,14 @@ test("the first non-YouTube navigation is checked again after commit", () => {
   );
 });
 
-test("the panel never borrows a background YouTube tab", () => {
+test("the panel never borrows a background video tab", () => {
   assert.match(
     source,
     /const tabs = await chrome\.tabs\.query\(\{\s*active: true,\s*lastFocusedWindow: true,\s*\}\);/,
   );
   assert.match(
     source,
-    /if \(!tab\.url\.startsWith\("https:\/\/www\.youtube\.com"\)\) \{\s*handleFrontTabUrl\(tab\.url\);\s*return;/,
+    /if \(!YTD_PLATFORMS\.isSupportedSiteUrl\(tab\.url\)\) \{\s*handleFrontTabUrl\(tab\.url\);\s*return;/,
   );
   assert.doesNotMatch(
     source,

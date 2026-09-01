@@ -6,6 +6,8 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
+const platforms = require("../platforms.js");
+const biliApi = require("../lib/bili-api.js");
 
 function loadSidepanelHelpers({
   sendMessage = () => Promise.resolve({}),
@@ -61,9 +63,15 @@ function loadSidepanelHelpers({
         },
       },
       windows: { getCurrent: () => Promise.resolve({ id: 1 }) },
-      tabs: { onUpdated: listeners, onActivated: listeners },
+      tabs: {
+        onUpdated: listeners,
+        onActivated: listeners,
+        onRemoved: listeners,
+        get: async (tabId) => ({ id: tabId, url: "https://example.com/" }),
+      },
     },
     YTD_SETTINGS: {},
+    YTD_PLATFORMS: platforms,
   };
   sandbox.globalThis = sandbox;
   vm.runInNewContext(read("sidepanel.js"), sandbox);
@@ -72,14 +80,15 @@ function loadSidepanelHelpers({
 
 function loadBackgroundHelpers({
   settings = {
-    provider: "deepseek",
+    provider: "siliconflow",
     aiApiKey: "test-key",
-    aiBaseUrl: "https://api.deepseek.com",
-    aiModel: "deepseek-v4-flash",
+    aiBaseUrl: "https://api.siliconflow.cn/v1",
+    aiModel: "Qwen/Qwen3-8B",
   },
   fetchImpl = fetch,
   setTimeoutImpl = () => 0,
   clearTimeoutImpl = () => {},
+  biliApiImpl = biliApi,
   sidePanel = {
     setPanelBehavior() {},
     setOptions: () => Promise.resolve(),
@@ -125,7 +134,12 @@ function loadBackgroundHelpers({
         getURL: (resourcePath) => `chrome-extension://test/${resourcePath}`,
         sendMessage: () => Promise.resolve({ success: true }),
       },
-      tabs: { onUpdated: listeners, onActivated: listeners },
+      tabs: {
+        onUpdated: listeners,
+        onActivated: listeners,
+        onRemoved: listeners,
+        get: async (tabId) => ({ id: tabId, url: "https://example.com/" }),
+      },
     },
     YTD_SETTINGS: {
       STORAGE_KEY: "ytd_settings",
@@ -134,6 +148,8 @@ function loadBackgroundHelpers({
       canonicalYouTubeUrl: (videoId) =>
         `https://www.youtube.com/watch?v=${videoId}`,
     },
+    YTD_PLATFORMS: platforms,
+    BILI_API: biliApiImpl,
   };
   sandbox.globalThis = sandbox;
   vm.runInNewContext(read("background.js"), sandbox);
@@ -237,11 +253,15 @@ const nextTurn = () => new Promise((resolve) => setImmediate(resolve));
 test("the header exposes one universal language control for all result tabs", () => {
   const html = read("sidepanel.html");
   const js = read("sidepanel.js");
-  assert.match(html, /id="transcriptModeControl"[\s\S]*aria-label="Content language"/);
+  assert.match(html, /<html lang="zh-CN">/);
+  assert.match(html, /id="transcriptModeControl"[\s\S]*aria-label="内容语言"/);
   assert.match(html, /id="transcriptModeControl"[\s\S]*id="tabsNav"/);
-  assert.match(html, /data-transcript-mode="original"[\s\S]*?>Original</);
+  assert.match(html, /data-transcript-mode="original"[\s\S]*?>原文</);
   assert.match(html, /data-transcript-mode="zh"[\s\S]*?>\u4e2d\u6587</);
   assert.match(html, /data-transcript-mode="bilingual"[\s\S]*?>\u53cc\u8bed</);
+  assert.match(html, /data-tab="transcript">字幕</);
+  assert.match(html, /data-tab="overview">概览</);
+  assert.match(html, /data-tab="notes">笔记</);
   assert.match(js, /handleDisplayLanguageModeChange\(button\.dataset\.transcriptMode\)/);
   assert.match(js, /contentType: "transcriptBatch"/);
   assert.match(js, /contentType: "interfaceBatch"/);
@@ -251,13 +271,56 @@ test("the header exposes one universal language control for all result tabs", ()
   assert.doesNotMatch(`${html}\n${js}`, /From video subtitles/);
 });
 
-test("new videos default to Original while returning videos restore their choice", async () => {
+test("new videos default to Chinese while returning videos restore their choice", async () => {
   const { loadDisplayLanguageMode, saveDisplayLanguageMode } =
     loadSidepanelHelpers();
 
   await saveDisplayLanguageMode("video-a", "bilingual");
   assert.equal(await loadDisplayLanguageMode("video-a"), "bilingual");
-  assert.equal(await loadDisplayLanguageMode("unseen-video"), "original");
+  assert.equal(await loadDisplayLanguageMode("unseen-video"), "zh");
+});
+
+test("Chinese source subtitles render directly instead of calling the translation provider", () => {
+  const { shouldTranslateTranscriptToChinese, renderTranscriptSegmentContent } =
+    loadSidepanelHelpers();
+
+  assert.equal(shouldTranslateTranscriptToChinese("zh-CN", "这是中文字幕。"), false);
+  assert.equal(shouldTranslateTranscriptToChinese("ai-zh", "这是 AI 中文字幕。"), false);
+  assert.equal(shouldTranslateTranscriptToChinese("en", "This is English."), true);
+  assert.equal(shouldTranslateTranscriptToChinese("", "纯中文也应直接显示。"), false);
+
+  const rendered = renderTranscriptSegmentContent(
+    { text: "这是中文字幕。" },
+    "zh",
+    "",
+    "",
+    "zh-CN",
+  );
+  assert.match(rendered, /这是中文字幕。/);
+  assert.doesNotMatch(rendered, /Waiting|Retry|translation-pending/);
+});
+
+test("Chinese Overview and Notes content bypass interface translation", () => {
+  const { shouldTranslateInterfaceTextToChinese } = loadSidepanelHelpers();
+  const js = read("sidepanel.js");
+
+  assert.equal(shouldTranslateInterfaceTextToChinese("这是中文概览。"), false);
+  assert.equal(
+    shouldTranslateInterfaceTextToChinese("自然健身的 FFMI 23 上限讨论"),
+    false,
+  );
+  assert.equal(
+    shouldTranslateInterfaceTextToChinese("This Overview still needs translation."),
+    true,
+  );
+  assert.match(
+    js,
+    /renderLocalizedContent[\s\S]*?!shouldTranslateInterfaceTextToChinese\(original\)/,
+  );
+  assert.match(
+    js,
+    /const missing = segments[\s\S]*?shouldTranslateInterfaceTextToChinese\(segment\.text\)/,
+  );
 });
 
 test("Overview shares the Transcript batch generation and retries when opened", () => {
@@ -287,6 +350,76 @@ test("Overview shares the Transcript batch generation and retries when opened", 
   );
 });
 
+test("Overview exits loading and shows a retryable error when its runtime message stalls", async () => {
+  const source = read("sidepanel.js");
+  const runtimeWatchdog =
+    source.match(
+      /function sendRuntimeMessageWithTimeout\([\s\S]*?^}\n/m,
+    )?.[0] || "";
+  const triggerAnalysisSource = source.match(
+    /async function triggerAnalysis\(\) \{[\s\S]*?^}\n/m,
+  )?.[0];
+  assert.ok(triggerAnalysisSource, "Expected the real Overview trigger function");
+
+  const chapterList = { innerHTML: "" };
+  const quotesList = { innerHTML: "" };
+  const timeoutDelays = [];
+  const sandbox = {
+    console: { error() {} },
+    queueMicrotask,
+    setTimeout(callback, delay) {
+      timeoutDelays.push(delay);
+      queueMicrotask(callback);
+      return timeoutDelays.length;
+    },
+    clearTimeout() {},
+    document: {
+      getElementById(id) {
+        return id === "chapterList"
+          ? chapterList
+          : id === "quotesList"
+            ? quotesList
+            : null;
+      },
+    },
+    chrome: {
+      runtime: {
+        sendMessage: () => new Promise(() => {}),
+      },
+    },
+    currentTranscriptTimestamped: "[00:00] Test transcript",
+    currentVideoTitle: "Test video",
+    currentChannelName: "Test channel",
+    currentVideoDescription: "Test description",
+    currentVideoDuration: 60,
+    currentVideoId: "test-video",
+    currentAnalysis: null,
+    isAnalysisLoading: false,
+    ANALYSIS_MESSAGE_TIMEOUT_MS: 195_000,
+    escapeHtml: (value) => String(value),
+    renderAnalysisResults() {},
+    highlightMomentsOnPage() {},
+    saveToCache: async () => {},
+  };
+  sandbox.globalThis = sandbox;
+  vm.runInNewContext(
+    `${runtimeWatchdog}\n${triggerAnalysisSource}\n` +
+      "globalThis.__analysisHarness = { triggerAnalysis, get loading() { return isAnalysisLoading; } };",
+    sandbox,
+  );
+
+  const result = await Promise.race([
+    sandbox.__analysisHarness.triggerAnalysis().then(() => "settled"),
+    new Promise((resolve) => setTimeout(() => resolve("stuck"), 50)),
+  ]);
+
+  assert.equal(result, "settled", "Overview remained permanently loading");
+  assert.equal(sandbox.__analysisHarness.loading, false);
+  assert.ok(timeoutDelays.includes(195_000));
+  assert.match(chapterList.innerHTML, /概览请求等待超过 195 秒，请重试/);
+  assert.match(quotesList.innerHTML, /概览请求等待超过 195 秒，请重试/);
+});
+
 test("transcript reading position survives a side panel close", async () => {
   const { saveTranscriptViewState, loadTranscriptViewState } =
     loadSidepanelHelpers();
@@ -309,7 +442,7 @@ test("selected transcript notes keep exact text and row timestamp", async () => 
   });
 
   const result = await handleSaveNote(
-    "video123",
+    "video123abc",
     92.9,
     "Test video",
     "Test channel",
@@ -323,7 +456,104 @@ test("selected transcript notes keep exact text and row timestamp", async () => 
   assert.equal(result.note.timestampSeconds, 92);
   assert.equal(
     result.note.timestampedUrl,
-    "https://www.youtube.com/watch?v=video123&t=92s",
+    "https://www.youtube.com/watch?v=video123abc&t=92s",
+  );
+});
+
+test("Bilibili transcript routing does not require Supadata", async () => {
+  const fakeBiliApi = {
+    parseBvid: (value) => value,
+    fetchVideoInfo: async (bvid, { page }) => ({
+      bvid,
+      aid: 11,
+      cid: 22,
+      page,
+      title: "第二集",
+      description: "简介",
+      owner: "测试 UP",
+      duration: 120,
+      pageCount: 2,
+    }),
+    fetchSubtitleTracks: async () => ({
+      tracks: [
+        {
+          lang: "zh-CN",
+          langLabel: "中文",
+          url: "https://i0.hdslb.com/subtitle.json",
+          isAi: false,
+        },
+      ],
+      needLogin: false,
+    }),
+    pickSubtitleTrack: (tracks) => tracks[0],
+    fetchSubtitleTrackContent: async () => [
+      { text: "第一句", start: 0, duration: 2.5 },
+      { text: "第二句", start: 2.5, duration: 2.5 },
+    ],
+  };
+  const { handleFetchTranscript } = loadBackgroundHelpers({
+    settings: {
+      provider: "siliconflow",
+      aiApiKey: "test-key",
+      aiBaseUrl: "https://api.siliconflow.cn/v1",
+      aiModel: "Qwen/Qwen3-8B",
+      supadataApiKey: "",
+    },
+    biliApiImpl: fakeBiliApi,
+    fetchImpl: async () => {
+      throw new Error("The Bilibili adapter should not call Supadata");
+    },
+  });
+
+  const result = await handleFetchTranscript("BV1GJ411x7h7", {
+    platform: "bilibili",
+    page: 2,
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.transcript.length, 2);
+  assert.equal(result.transcriptTextTimestamped, "[0:00] 第一句\n[0:02] 第二句");
+  assert.equal(result.videoInfo.title, "第二集");
+  assert.equal(result.videoInfo.page, 2);
+});
+
+test("Bilibili login-only subtitles return a distinct action message", async () => {
+  const fakeBiliApi = {
+    parseBvid: (value) => value,
+    fetchVideoInfo: async (bvid) => ({ bvid, aid: 1, cid: 2, page: 1 }),
+    fetchSubtitleTracks: async () => ({ tracks: [], needLogin: true }),
+  };
+  const { handleFetchTranscript } = loadBackgroundHelpers({
+    biliApiImpl: fakeBiliApi,
+  });
+  const result = await handleFetchTranscript("BV1GJ411x7h7", {
+    platform: "bilibili",
+    page: 1,
+  });
+  assert.equal(result.success, false);
+  assert.equal(result.error, "BILIBILI_LOGIN_REQUIRED");
+  assert.match(result.message, /登录/);
+});
+
+test("Bilibili selected notes preserve the part and timestamp deep link", async () => {
+  const { handleSaveNote } = loadBackgroundHelpers();
+  const result = await handleSaveNote(
+    "bilibili:BV1GJ411x7h7:p2",
+    95,
+    "第二集",
+    "测试 UP",
+    "原样保存这句话",
+    {
+      platform: "bilibili",
+      sourceVideoId: "BV1GJ411x7h7",
+      page: 2,
+    },
+  );
+  assert.equal(result.success, true);
+  assert.equal(result.note.platform, "bilibili");
+  assert.equal(
+    result.note.timestampedUrl,
+    "https://www.bilibili.com/video/BV1GJ411x7h7?p=2&t=95",
   );
 });
 
@@ -403,7 +633,7 @@ test("structured translation batches align by stable ID and expose missing fallb
   );
   assert.equal(aligned[0].id, source[0].id);
   assert.equal(aligned[0].text, "");
-  assert.match(aligned[0].error, /unavailable/i);
+  assert.match(aligned[0].error, /暂时无法翻译/);
   assert.equal(aligned[1].text, "\u7b2c\u4e8c\u4e2a\u5b8c\u6574\u53e5\u5b50\u3002");
 });
 
@@ -480,8 +710,8 @@ test("background rejects unsupported language fallthrough and malformed batches"
   );
 });
 
-test("all AI product requests use DeepSeek non-thinking and JSON behavior", async () => {
-  const deepSeekRequests = [];
+test("all AI product requests use the selected SiliconFlow model and JSON behavior", async () => {
+  const siliconFlowRequests = [];
   const successfulFetch = (requests) => async (_url, options) => {
     requests.push(JSON.parse(options.body));
     return {
@@ -492,17 +722,18 @@ test("all AI product requests use DeepSeek non-thinking and JSON behavior", asyn
     };
   };
 
-  const deepSeek = loadBackgroundHelpers({
-    fetchImpl: successfulFetch(deepSeekRequests),
+  const siliconFlow = loadBackgroundHelpers({
+    fetchImpl: successfulFetch(siliconFlowRequests),
   });
-  const deepSeekResult = await deepSeek.requestAiCompletion({
+  const siliconFlowResult = await siliconFlow.requestAiCompletion({
     maxTokens: 128,
     responseFormat: { type: "json_object" },
     messages: [{ role: "user", content: "Hello." }],
   });
-  assert.equal(deepSeekResult.text, "translated");
-  assert.deepEqual(deepSeekRequests[0].thinking, { type: "disabled" });
-  assert.deepEqual(deepSeekRequests[0].response_format, {
+  assert.equal(siliconFlowResult.text, "translated");
+  assert.equal(siliconFlowRequests[0].model, "Qwen/Qwen3-8B");
+  assert.equal(Object.hasOwn(siliconFlowRequests[0], "thinking"), false);
+  assert.deepEqual(siliconFlowRequests[0].response_format, {
     type: "json_object",
   });
 
@@ -525,6 +756,141 @@ test("all AI product requests use DeepSeek non-thinking and JSON behavior", asyn
   }
 });
 
+test("Overview enables SiliconFlow SSE and assembles streamed JSON content", async () => {
+  const requests = [];
+  const helpers = loadBackgroundHelpers({
+    fetchImpl: async (_url, options) => {
+      requests.push(JSON.parse(options.body));
+      return streamingResponse([
+        encode(
+          'data: {"choices":[{"delta":{"reasoning_content":"thinking"}}]}\n\n',
+        ),
+        encode(
+          'data: {"choices":[{"delta":{"content":"{\\"chapters\\":[],"}}]}\n\n',
+        ),
+        encode(
+          'data: {"choices":[{"delta":{"content":"\\"keyQuotes\\":[]}"}}]}\n\n',
+        ),
+        encode("data: [DONE]\n\n"),
+      ]);
+    },
+  });
+
+  const result = await helpers.requestAiCompletion({
+    stream: true,
+    thinkingBudget: 1024,
+    maxTokens: 4096,
+    responseFormat: { type: "json_object" },
+    messages: [{ role: "user", content: "Create an overview." }],
+  });
+
+  assert.equal(requests[0].stream, true);
+  assert.equal(requests[0].thinking_budget, 1024);
+  assert.equal(result.text, '{"chapters":[],"keyQuotes":[]}');
+  const analysisFunction = read("background.js").match(
+    /async function handleAnalyzeTranscript\([\s\S]*?^}\n/m,
+  )?.[0];
+  assert.ok(analysisFunction);
+  assert.match(
+    analysisFunction,
+    /requestAiCompletion\(\{[\s\S]*?stream:\s*true/,
+  );
+  assert.match(
+    analysisFunction,
+    /requestAiCompletion\(\{[\s\S]*?maxTokens:\s*4096/,
+  );
+  assert.match(
+    analysisFunction,
+    /requestAiCompletion\(\{[\s\S]*?thinkingBudget:\s*1024/,
+  );
+});
+
+test("Overview ignores a large reasoning stream while bounding final content", async () => {
+  const reasoning = "r".repeat(2 * 1024 * 1024 + 1);
+  const helpers = loadBackgroundHelpers({
+    fetchImpl: async () =>
+      streamingResponse([
+        encode(
+          `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: reasoning } }] })}\n\n`,
+        ),
+        encode(
+          'data: {"choices":[{"delta":{"content":"{\\"chapters\\":[],\\"keyQuotes\\":[]}"}}]}\n\n',
+        ),
+        encode("data: [DONE]\n\n"),
+      ]),
+  });
+
+  const result = await helpers.requestAiCompletion({
+    stream: true,
+    maxTokens: 4096,
+    messages: [{ role: "user", content: "Create an overview." }],
+  });
+
+  assert.equal(result.text, '{"chapters":[],"keyQuotes":[]}');
+});
+
+test("Overview still rejects final streamed content over 2 MiB", async () => {
+  const content = "x".repeat(2 * 1024 * 1024 + 1);
+  const helpers = loadBackgroundHelpers({
+    fetchImpl: async () =>
+      streamingResponse([
+        encode(
+          `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`,
+        ),
+        encode("data: [DONE]\n\n"),
+      ]),
+  });
+
+  await assert.rejects(
+    helpers.requestAiCompletion({
+      stream: true,
+      maxTokens: 4096,
+      messages: [{ role: "user", content: "Create an overview." }],
+    }),
+    (error) =>
+      error?.code === "AI_RESPONSE_TOO_LARGE" &&
+      /概览内容超过 2 MiB/.test(error.message),
+  );
+});
+
+test("unsupported thinking_budget is retried once without changing models", async () => {
+  const requests = [];
+  const helpers = loadBackgroundHelpers({
+    fetchImpl: async (_url, options) => {
+      const body = JSON.parse(options.body);
+      requests.push(body);
+      if (Object.hasOwn(body, "thinking_budget")) {
+        return {
+          ok: false,
+          status: 400,
+          json: async () => ({
+            error: { message: "thinking_budget is unsupported for this model" },
+          }),
+        };
+      }
+      return streamingResponse([
+        encode(
+          'data: {"choices":[{"delta":{"content":"{\\"chapters\\":[],\\"keyQuotes\\":[]}"}}]}\n\n',
+        ),
+        encode("data: [DONE]\n\n"),
+      ]);
+    },
+  });
+
+  const result = await helpers.requestAiCompletion({
+    stream: true,
+    thinkingBudget: 1024,
+    maxTokens: 4096,
+    messages: [{ role: "user", content: "Create an overview." }],
+  });
+
+  assert.equal(result.text, '{"chapters":[],"keyQuotes":[]}');
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].model, requests[1].model);
+  assert.equal(requests[0].thinking_budget, 1024);
+  assert.equal(Object.hasOwn(requests[1], "thinking_budget"), false);
+});
+
 test("blank-line chunks reset provider idle timeout and valid JSON succeeds", async () => {
   const timers = createFakeTimers();
   const helpers = loadBackgroundHelpers({
@@ -541,9 +907,9 @@ test("blank-line chunks reset provider idle timeout and valid JSON succeeds", as
   const result = await helpers.callAiTranslation("Translate.", "Hello.");
   assert.equal(result.success, true);
   assert.equal(result.text, "translated");
-  assert.equal(timers.createdCount(50_000), 5);
-  assert.equal(timers.activeCount(50_000), 0);
-  assert.equal(timers.activeCount(120_000), 0);
+  assert.equal(timers.createdCount(90_000), 5);
+  assert.equal(timers.activeCount(90_000), 0);
+  assert.equal(timers.activeCount(180_000), 0);
 });
 
 test("provider idle silence aborts with a distinct Retry-able error", async () => {
@@ -571,12 +937,12 @@ test("provider idle silence aborts with a distinct Retry-able error", async () =
 
   const request = helpers.callAiTranslation("Translate.", "Hello.");
   await nextTurn();
-  timers.fireActive(50_000);
+  timers.fireActive(90_000);
   const result = await request;
   assert.equal(result.success, false);
   assert.equal(result.code, "AI_IDLE_TIMEOUT");
-  assert.match(result.error, /inactive for 50 seconds.*Retry/i);
-  assert.equal(timers.activeCount(120_000), 0);
+  assert.match(result.error, /90 秒.*重试/);
+  assert.equal(timers.activeCount(180_000), 0);
 });
 
 test("blank-line keepalives cannot evade the provider hard cap", async () => {
@@ -614,13 +980,13 @@ test("blank-line keepalives cannot evade the provider hard cap", async () => {
   await nextTurn();
   releaseRead();
   await nextTurn();
-  assert.equal(timers.activeCount(50_000), 1);
-  timers.fireActive(120_000);
+  assert.equal(timers.activeCount(90_000), 1);
+  timers.fireActive(180_000);
   const result = await request;
   assert.equal(result.success, false);
   assert.equal(result.code, "AI_HARD_TIMEOUT");
-  assert.match(result.error, /120-second limit.*Retry/i);
-  assert.equal(timers.activeCount(50_000), 0);
+  assert.match(result.error, /180 秒.*重试/);
+  assert.equal(timers.activeCount(90_000), 0);
 });
 
 test("provider response reader accepts leading whitespace before JSON", async () => {
@@ -643,10 +1009,10 @@ test("provider response reader rejects bodies over 2 MiB", async () => {
   const result = await helpers.callAiTranslation("Translate.", "Hello.");
   assert.equal(result.success, false);
   assert.equal(result.code, "AI_RESPONSE_TOO_LARGE");
-  assert.match(result.error, /2 MiB limit/);
+  assert.match(result.error, /2 MiB.*限制/);
 });
 
-test("DeepSeek retries one empty transcript JSON response without response_format", async () => {
+test("SiliconFlow retries one empty transcript JSON response without response_format", async () => {
   const requests = [];
   const helpers = loadBackgroundHelpers({
     fetchImpl: async (url, options) => {
@@ -741,9 +1107,9 @@ test("translation message watchdog rejects, clears its timer, and ignores late r
   const request = helpers.sendTranslationMessage({
     action: "translateContent",
   });
-  assert.equal(timeoutDelay, 130_000);
+  assert.equal(timeoutDelay, 195_000);
   timeoutCallback();
-  await assert.rejects(request, /timed out after 130 seconds.*Retry/i);
+  await assert.rejects(request, /翻译请求等待超过 195 秒.*重试/);
   assert.equal(clearCount, 1);
 
   resolveMessage({ success: true });

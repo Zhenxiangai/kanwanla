@@ -1,44 +1,61 @@
-# Security Policy
+# Security policy
 
-## Supported versions
+## Supported version
 
-YouTube Digest is a small GitHub-only project. Security fixes are made on the latest code on `main` and, when releases are published, the latest GitHub release. Older snapshots are not supported.
+Security fixes apply to the latest code and latest packaged release. Older local snapshots are not supported.
 
-## Report a vulnerability privately
+## Secret handling
 
-Do not publish vulnerability details, exposed credentials, private video information, or transcript data through a public issue or pull request. This repository does not accept public security reports.
+Video Digest is a bring-your-own-key extension. API keys belong only in the extension's Settings page, where Chrome stores them in local extension storage.
 
-Use GitHub's private vulnerability reporting flow from this repository's **Security** tab when it is available. If the private reporting link is not visible, contact the repository owner through their GitHub profile and ask for a private reporting channel without including vulnerability details in the public message. Include the following only in the private report:
+Do not put API keys, access tokens, cookies, or private transcripts in:
 
-- the affected version or commit;
-- the minimum steps needed to reproduce the problem;
-- the expected and observed behavior;
-- the security and privacy impact; and
-- a suggested fix, if you have one.
+- source files or configuration examples;
+- commits, issues, pull requests, or chat messages;
+- screenshots, recordings, logs, or packaged ZIP files; or
+- copied customization prompts.
 
-Remove real API keys, access tokens, private URLs, transcripts, notes, and personal information. Use redacted values and public test content.
+Revoke a key at its provider immediately if it may have been exposed.
 
-There is no guaranteed response time or bug-bounty program. Please allow a reasonable period for investigation and remediation before public disclosure.
+The extension restricts `chrome.storage.local` access to trusted extension contexts. YouTube and Bilibili content scripts cannot read stored API keys or cached extension data. The SiliconFlow key stays inside trusted extension contexts and is never sent to a video page.
 
-## High-priority issues
+## Bilibili login state
 
-Examples include:
+Bilibili API requests use Chrome's normal credential handling, so Bilibili may attach cookies already present for the signed-in browser profile. Video Digest does not request the Chrome `cookies` permission and does not read or persist cookie values. Subtitle CDN requests explicitly omit credentials.
 
-- API keys or private content included in source, logs, screenshots, or release ZIPs;
-- requests to network origins outside the documented YouTube, Supadata, and DeepSeek hosts;
-- script or HTML injection through transcript, metadata, service errors, or model output;
-- access to browsing data outside the documented YouTube scope;
-- unintended transmission of notes, transcripts, or credentials;
-- a dependency or release-workflow compromise; and
-- bypasses of local data deletion or DeepSeek configuration controls.
+## Network scope
 
-## User security guidance
+Release builds should communicate only with the documented hosts:
 
-- Install only from a GitHub source or release you trust.
-- Review changes and the packaged file list before loading an update.
-- Use dedicated, scoped API keys where possible and set provider spending limits.
-- Do not reuse keys from production systems.
-- Revoke keys immediately if a device, browser profile, ZIP, log, or screenshot exposes them.
-- Remember that Chrome local extension storage is not an encrypted password vault.
+- `www.youtube.com`;
+- `api.supadata.ai`;
+- `api.siliconflow.cn`;
+- `www.bilibili.com`;
+- `api.bilibili.com`; and
+- Bilibili subtitle hosts under `*.hdslb.com`.
 
-The release tooling uses an explicit file allowlist and scans public files for common credential patterns, but automated checks cannot detect every secret.
+Unexpected network destinations, credential exposure, permission expansion, unsafe HTML rendering, or a release ZIP containing private files should be treated as security issues.
+
+## Release checks
+
+The release script:
+
+- packages only an explicit file allowlist;
+- validates the manifest and local file references;
+- checks JavaScript syntax;
+- runs the Node test suite; and
+- scans public files for common credential patterns.
+
+These checks reduce mistakes but cannot prove that a build is safe. Review source changes and the final ZIP before distribution.
+
+## Reporting
+
+Do not disclose vulnerabilities, credentials, private video information, or transcript data in a public issue or pull request. Use GitHub's private vulnerability-reporting flow from this repository's Security tab. If that option is unavailable, contact the repository owner through their GitHub profile and request a private channel without including vulnerability details.
+
+In the private report, describe the affected version, reproduction steps, expected impact, and suggested mitigation. Remove all keys, cookies, private subtitle text, account identifiers, and personal information.
+
+## Third-party code
+
+Video Digest is a derivative work of [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License.
+
+The Bilibili WBI signer, subtitle API adapter, and parts of the Bilibili page-injection strategy are adapted from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest) under the MIT License. Copyright notices are preserved in [LICENSE](LICENSE) and the adapted source files.

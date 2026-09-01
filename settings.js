@@ -7,27 +7,42 @@
 var YTD_SETTINGS = (() => {
   const STORAGE_KEY = "ytd_settings";
   const DEFAULTS = Object.freeze({
-    provider: "deepseek",
+    provider: "siliconflow",
     aiApiKey: "",
-    aiBaseUrl: "https://api.deepseek.com",
-    aiModel: "deepseek-v4-flash",
+    aiBaseUrl: "https://api.siliconflow.cn/v1",
+    aiModel: "",
     supadataApiKey: "",
   });
 
-  function isLegacyCustom(input) {
-    return !!input && input.provider === "custom";
+  function isCurrentProvider(input) {
+    return !!input && input.provider === DEFAULTS.provider;
+  }
+
+  function isLegacyProvider(input) {
+    return (
+      !!input &&
+      typeof input === "object" &&
+      Object.keys(input).length > 0 &&
+      !isCurrentProvider(input)
+    );
+  }
+
+  function normalizeModel(value) {
+    if (typeof value !== "string") return "";
+    const model = value.trim();
+    return /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$/.test(model) ? model : "";
   }
 
   function normalize(input = {}) {
+    const keepAiSettings = isCurrentProvider(input);
     return {
       provider: DEFAULTS.provider,
-      aiApiKey: isLegacyCustom(input)
-        ? ""
-        : typeof input.aiApiKey === "string"
+      aiApiKey:
+        keepAiSettings && typeof input.aiApiKey === "string"
           ? input.aiApiKey.trim()
           : "",
       aiBaseUrl: DEFAULTS.aiBaseUrl,
-      aiModel: DEFAULTS.aiModel,
+      aiModel: keepAiSettings ? normalizeModel(input.aiModel) : "",
       supadataApiKey:
         typeof input.supadataApiKey === "string"
           ? input.supadataApiKey.trim()
@@ -35,15 +50,27 @@ var YTD_SETTINGS = (() => {
     };
   }
 
-  function migrateLegacyCustom(input = {}) {
+  function migrateLegacyProvider(input = {}) {
     return {
       settings: normalize(input),
-      migrated: isLegacyCustom(input),
+      migrated: isLegacyProvider(input),
     };
   }
 
-  function chatCompletionsUrl() {
-    return `${DEFAULTS.aiBaseUrl}/chat/completions`;
+  function apiUrl(baseUrl, path) {
+    const normalizedBaseUrl =
+      typeof baseUrl === "string" && baseUrl.trim()
+        ? baseUrl.trim().replace(/\/+$/, "")
+        : DEFAULTS.aiBaseUrl;
+    return `${normalizedBaseUrl}/${String(path || "").replace(/^\/+/, "")}`;
+  }
+
+  function chatCompletionsUrl(baseUrl = DEFAULTS.aiBaseUrl) {
+    return apiUrl(baseUrl, "chat/completions");
+  }
+
+  function modelsUrl(baseUrl = DEFAULTS.aiBaseUrl) {
+    return `${apiUrl(baseUrl, "models")}?type=text&sub_type=chat`;
   }
 
   function canonicalYouTubeUrl(videoId) {
@@ -57,10 +84,13 @@ var YTD_SETTINGS = (() => {
   return {
     STORAGE_KEY,
     DEFAULTS,
-    isLegacyCustom,
+    isCurrentProvider,
+    isLegacyProvider,
+    normalizeModel,
     normalize,
-    migrateLegacyCustom,
+    migrateLegacyProvider,
     chatCompletionsUrl,
+    modelsUrl,
     canonicalYouTubeUrl,
   };
 })();

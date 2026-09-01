@@ -1,25 +1,26 @@
-# Secrets — your real keys live here, never commit them
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
 config.js
+*.pem
+*.key
 
-# OS / editor cruft
+# Build output and dependencies
+dist/
+node_modules/
+coverage/
+
+# OS and editor files
 .DS_Store
 
-# Planning / intermediate files (kept local, not published)
-architecture.excalidraw
-explainer-video/
-
-# Tooling & agent workspaces
+# Agent and planning workspaces
 .agents/
 .augment/
 .claude/
+.planning/
+.playwright-mcp/
 skills/
 skills-lock.json
-.playwright-mcp/
-node_modules/
-dist/
-
-# Environment
-.env
-.env.*
-*.pem
-*.key
+architecture.excalidraw
+explainer-video/

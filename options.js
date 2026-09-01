@@ -5,36 +5,44 @@ const YTD_OPTIONS = (() => {
 
   const COPY = {
     en: {
-      pageTitle: "YouTube Digest Settings",
+      pageTitle: "Video Digest Settings",
       languageGroupLabel: "Interface language",
       heading: "Bring your own API keys",
       lede:
-        "Keys stay in this Chrome profile and are sent only to Supadata and DeepSeek. This open-source extension has no developer server or analytics.",
+        "Keys stay in this browser profile and are sent only to Supadata and SiliconFlow. This open-source extension has no developer server or analytics.",
       transcriptProvider: "Transcript provider",
       supadataApiKeyLabel: "Supadata API key",
-      supadataHelp: "Used to fetch timestamped YouTube subtitles. ",
+      supadataApiKeyPlaceholder: "Paste your Supadata key",
+      supadataHelp:
+        "Optional. Used only to fetch timestamped YouTube subtitles; Bilibili uses its own caption source. ",
       supadataLink: "Create a Supadata account and key",
       supadataHelpSuffix:
         ". Supadata generates the key during onboarding.",
       aiProvider: "AI provider",
       providerSummaryLabel: "Supported AI provider",
       providerBadge: "Supported in this version",
-      deepseekApiKeyLabel: "DeepSeek API key",
-      deepseekHelp:
-        "YouTube Digest uses DeepSeek V4 Flash for overviews, explanations, translation, and note polishing. ",
-      deepseekLink: "Create a DeepSeek API key",
-      deepseekHelpSuffix: ".",
+      siliconflowApiKeyLabel: "SiliconFlow API key",
+      siliconflowApiKeyPlaceholder: "Paste your SiliconFlow key",
+      siliconflowHelp:
+        "Used for overviews, explanations, translation, note polishing, and loading the models available to your account. ",
+      siliconflowLink: "Create a SiliconFlow API key",
+      siliconflowHelpSuffix: ".",
+      aiModelLabel: "AI model",
+      aiModelPlaceholder: "Load or enter a model ID",
+      loadModels: "Load models",
+      aiModelHelp:
+        "Enter your key, then load the current text chat models from SiliconFlow. You can also enter an exact model ID manually.",
       privacyNote:
-        "When you use AI features, DeepSeek receives the video transcript and relevant video context. Review DeepSeek's terms and pricing before saving.",
+        "When you use AI features, SiliconFlow and your selected model receive the transcript and relevant video context. Review SiliconFlow's terms and model pricing before saving.",
       saveSettings: "Save settings",
       localRemix: "Local remix",
-      customizationTitle: "Want to use another AI model?",
+      customizationTitle: "Want to use another AI provider?",
       customizationPurpose: "Edit and copy a safe prompt for your coding agent",
       agentBadge: "Coding agent ready",
       customizationIntro:
         "You can edit the prompt directly. Complete these three steps before copying:",
       customizationStepFolder:
-        "Open the extracted YouTube Digest project folder in your coding agent.",
+        "Open the extracted Video Digest project folder in your coding agent.",
       customizationStepReplace:
         "Replace [PROVIDER] and [MODEL] with the service and model you want to use.",
       customizationStepKeys:
@@ -44,22 +52,33 @@ const YTD_OPTIONS = (() => {
       customizationReminder:
         "Before copying, replace [PROVIDER] and [MODEL] with the provider and model you want to use.",
       customizationPrompt:
-        "Customize this local YouTube Digest workspace to use [PROVIDER] with [MODEL]. Work only in the current workspace. Before editing, verify that it contains manifest.json and that the manifest name is YouTube Digest. If verification fails, stop and ask me to open the extracted YouTube Digest project folder in my coding agent. Do not search other folders, edit a guessed copy, assume an installation path, or claim Chrome can reveal the absolute OS source path. Update the provider's API endpoint, request format, and minimum Chrome host permissions. Preserve bring-your-own-key and local Chrome storage. Never put API keys in source code, commits, logs, screenshots, this prompt, or chat; after the code is ready, tell me where to enter the key myself. Keep DeepSeek-only request fields and retry behavior isolated to DeepSeek. Handle provider-specific rules separately so one provider does not affect another. Update README.md, README.zh-CN.md, PRIVACY.md, SECURITY.md, and tests. Run npm test, npm run check, and npm run package. Then explain how to reload the unpacked extension and test it on a real YouTube video.",
+        "Customize this local Video Digest workspace to use [PROVIDER] with [MODEL]. Work only in the current workspace. Before editing, verify that it contains manifest.json and that the manifest name is Video Digest. If verification fails, stop and ask me to open the extracted Video Digest project folder in my coding agent. Do not search other folders, edit a guessed copy, assume an installation path, or claim Chrome can reveal the absolute OS source path. Update the provider's API endpoint, request format, and minimum Chrome host permissions. Preserve bring-your-own-key and local Chrome storage. Never put API keys in source code, commits, logs, screenshots, this prompt, or chat; after the code is ready, tell me where to enter the key myself. Keep SiliconFlow-only request fields and model discovery isolated to SiliconFlow. Handle provider-specific rules separately so one provider does not affect another. Update README.md, README.zh-CN.md, PRIVACY.md, SECURITY.md, and tests. Run npm test, npm run check, and npm run package. Then explain how to reload the unpacked extension and test it on YouTube and Bilibili videos.",
       copyCustomizationPrompt: "Copy edited prompt",
       localData: "Local data",
       localDataHelp:
-        "Digests, translations, and notes are stored only in this Chrome profile. You can remove them at any time.",
+        "Digests, translations, and notes are stored only in this browser profile. You can remove them at any time.",
       clearCache: "Clear cached digests",
       deleteNotes: "Delete all notes",
       resetData: "Reset extension data",
       footer:
         'Read <a href="PRIVACY.md" target="_blank">PRIVACY.md</a> in the repository for the complete data-flow description.',
       migrationWarning:
-        "Custom provider settings were removed safely. Your Supadata key was kept, but the AI key was cleared. Enter a DeepSeek API key to continue.",
+        "Previous AI provider settings were removed safely. Your Supadata key was kept, but the old AI key was cleared. Enter a SiliconFlow API key and choose a model to continue.",
       saving: "Saving…",
       addSupadataKey: "Add a Supadata API key.",
-      addDeepseekKey: "Add a DeepSeek API key.",
-      saved: "Saved. Reopen YouTube Digest to use these settings.",
+      addSiliconFlowKey: "Add a SiliconFlow API key.",
+      chooseAiModel: "Load or enter a SiliconFlow model ID.",
+      loadingModels: "Loading text chat models…",
+      modelsLoaded: ({ count }) =>
+        `Loaded ${count} text chat model${count === 1 ? "" : "s"}.`,
+      noModelsFound: "No text chat models were returned. Enter a model ID manually.",
+      modelListUnauthorized:
+        "SiliconFlow rejected this key. Check the key and account access.",
+      modelListRateLimited:
+        "SiliconFlow rate-limited the model list request. Try again shortly.",
+      modelListFailed:
+        "Could not load models. You can still enter an exact model ID manually.",
+      saved: "Saved. Reopen Video Digest to use these settings.",
       saveFailed: "Could not save settings. Please try again.",
       copying: "Copying…",
       promptCopied: "Edited prompt copied.",
@@ -69,40 +88,47 @@ const YTD_OPTIONS = (() => {
         `Cleared ${count} cached digest${count === 1 ? "" : "s"}.`,
       notesDeleted: "Deleted all saved notes.",
       resetConfirm:
-        "Delete API keys, cached digests, translations, and saved notes from this Chrome profile?",
-      allDataDeleted: "All YouTube Digest data was deleted.",
+        "Delete API keys, cached digests, translations, and saved notes from this browser profile?",
+      allDataDeleted: "All Video Digest data was deleted.",
       settingsLoadFailed:
         "Could not load saved settings. You can still preview this page.",
     },
     "zh-CN": {
-      pageTitle: "YouTube Digest 设置",
+      pageTitle: "Video Digest 设置",
       languageGroupLabel: "界面语言",
       heading: "使用你自己的 API 密钥",
       lede:
-        "密钥仅保存在当前 Chrome 个人资料中，只会发送给 Supadata 和 DeepSeek。本开源扩展没有开发者服务器，也不使用分析服务。",
+        "密钥仅保存在当前浏览器个人资料中，只会发送给 Supadata 和硅基流动。本开源扩展没有开发者服务器，也不使用分析服务。",
       transcriptProvider: "字幕服务",
       supadataApiKeyLabel: "Supadata API 密钥",
-      supadataHelp: "用于获取带时间戳的 YouTube 字幕。",
+      supadataApiKeyPlaceholder: "粘贴 Supadata API 密钥",
+      supadataHelp: "可选。仅用于获取带时间戳的 YouTube 字幕；B 站使用自己的字幕来源。",
       supadataLink: "创建 Supadata 账号并获取密钥",
       supadataHelpSuffix: "。Supadata 会在引导流程中生成密钥。",
       aiProvider: "AI 服务",
       providerSummaryLabel: "支持的 AI 服务",
       providerBadge: "当前版本支持",
-      deepseekApiKeyLabel: "DeepSeek API 密钥",
-      deepseekHelp:
-        "YouTube Digest 使用 DeepSeek V4 Flash 生成概览、解释内容、翻译字幕和润色笔记。",
-      deepseekLink: "创建 DeepSeek API 密钥",
-      deepseekHelpSuffix: "。",
+      siliconflowApiKeyLabel: "硅基流动 API 密钥",
+      siliconflowApiKeyPlaceholder: "粘贴硅基流动 API 密钥",
+      siliconflowHelp:
+        "用于生成概览、解释内容、翻译字幕、润色笔记，以及读取当前账号可用的模型列表。",
+      siliconflowLink: "创建硅基流动 API 密钥",
+      siliconflowHelpSuffix: "。",
+      aiModelLabel: "AI 模型",
+      aiModelPlaceholder: "加载或填写模型 ID",
+      loadModels: "加载模型",
+      aiModelHelp:
+        "先填写密钥，再从硅基流动读取当前可用的文本对话模型。也可以手动填写准确的模型 ID。",
       privacyNote:
-        "使用 AI 功能时，DeepSeek 会收到视频字幕及相关视频上下文。保存前请查看 DeepSeek 的服务条款和价格。",
+        "使用 AI 功能时，硅基流动及你选择的模型会收到字幕和相关视频上下文。保存前请查看硅基流动的服务条款和模型价格。",
       saveSettings: "保存设置",
       localRemix: "本地改造",
-      customizationTitle: "想使用其他 AI 模型？",
+      customizationTitle: "想使用其他 AI 服务？",
       customizationPurpose: "编辑并复制一段可安全交给编程 Agent 的提示词",
       agentBadge: "可交给编程 Agent",
       customizationIntro: "你可以直接编辑提示词。复制前完成以下三步：",
       customizationStepFolder:
-        "在编程 Agent 中打开 YouTube Digest 解压后的项目文件夹。",
+        "在编程 Agent 中打开 Video Digest 解压后的项目文件夹。",
       customizationStepReplace:
         "把 [PROVIDER] 和 [MODEL] 替换成你想使用的服务和模型。",
       customizationStepKeys:
@@ -112,22 +138,29 @@ const YTD_OPTIONS = (() => {
       customizationReminder:
         "复制前，请先把 [PROVIDER] 和 [MODEL] 替换成你想使用的服务和模型。",
       customizationPrompt:
-        "请把当前本地 YouTube Digest 工作区改为使用 [PROVIDER] 提供的 [MODEL]。只在当前工作区中操作。编辑前，先确认其中包含 manifest.json，且 manifest 中的 name 是 YouTube Digest。如果验证失败，请停止，并让我在编程 Agent 中打开 YouTube Digest 解压后的项目文件夹。不要搜索其他文件夹，不要编辑猜测的副本，不要假设安装路径，也不要声称 Chrome 可以显示操作系统中的绝对源码路径。更新该服务的 API endpoint、请求格式和最少的 Chrome host permissions。保留用户自带密钥模式和 Chrome 本地存储。不要把 API 密钥写入源代码、提交记录、日志、截图、这段提示词或聊天；代码准备好后，请告诉我应该在哪里自行填写密钥。DeepSeek 专用的请求参数和重试逻辑继续只用于 DeepSeek。新服务的专属规则请单独处理，避免相互影响。更新 README.md、README.zh-CN.md、PRIVACY.md、SECURITY.md 和测试。运行 npm test、npm run check 和 npm run package。最后，说明如何重新加载已解压的扩展，并在真实 YouTube 视频上测试。",
+        "请把当前本地 Video Digest 工作区改为使用 [PROVIDER] 提供的 [MODEL]。只在当前工作区中操作。编辑前，先确认其中包含 manifest.json，且 manifest 中的 name 是 Video Digest。如果验证失败，请停止，并让我在编程 Agent 中打开 Video Digest 解压后的项目文件夹。不要搜索其他文件夹，不要编辑猜测的副本，不要假设安装路径，也不要声称 Chrome 可以显示操作系统中的绝对源码路径。更新该服务的 API endpoint、请求格式和最少的 Chrome host permissions。保留用户自带密钥模式和 Chrome 本地存储。不要把 API 密钥写入源代码、提交记录、日志、截图、这段提示词或聊天；代码准备好后，请告诉我应该在哪里自行填写密钥。硅基流动专用的请求字段和模型发现逻辑继续只用于硅基流动。新服务的专属规则请单独处理，避免相互影响。更新 README.md、README.zh-CN.md、PRIVACY.md、SECURITY.md 和测试。运行 npm test、npm run check 和 npm run package。最后，说明如何重新加载已解压的扩展，并在 YouTube 和 B 站视频上测试。",
       copyCustomizationPrompt: "复制编辑后的提示词",
       localData: "本地数据",
       localDataHelp:
-        "摘要、翻译和笔记仅保存在当前 Chrome 个人资料中。你可以随时删除。",
+        "摘要、翻译和笔记仅保存在当前浏览器个人资料中。你可以随时删除。",
       clearCache: "清除缓存的摘要",
       deleteNotes: "删除全部笔记",
       resetData: "重置扩展数据",
       footer:
         '完整数据流说明请参阅仓库中的 <a href="PRIVACY.md" target="_blank">PRIVACY.md</a>。',
       migrationWarning:
-        "已安全移除自定义服务设置。Supadata 密钥已保留，AI 密钥已清除。请输入 DeepSeek API 密钥以继续使用。",
+        "已安全移除之前的 AI 服务设置。Supadata 密钥已保留，旧 AI 密钥已清除。请输入硅基流动 API 密钥并选择模型以继续使用。",
       saving: "正在保存…",
       addSupadataKey: "请添加 Supadata API 密钥。",
-      addDeepseekKey: "请添加 DeepSeek API 密钥。",
-      saved: "已保存。请重新打开 YouTube Digest 以使用这些设置。",
+      addSiliconFlowKey: "请添加硅基流动 API 密钥。",
+      chooseAiModel: "请加载或填写硅基流动模型 ID。",
+      loadingModels: "正在加载文本对话模型…",
+      modelsLoaded: ({ count }) => `已加载 ${count} 个文本对话模型。`,
+      noModelsFound: "没有返回文本对话模型，请手动填写模型 ID。",
+      modelListUnauthorized: "硅基流动拒绝了此密钥，请检查密钥和账号权限。",
+      modelListRateLimited: "硅基流动限制了模型列表请求，请稍后重试。",
+      modelListFailed: "无法加载模型；你仍可手动填写准确的模型 ID。",
+      saved: "已保存。请重新打开 Video Digest 以使用这些设置。",
       saveFailed: "无法保存设置，请重试。",
       copying: "正在复制…",
       promptCopied: "已复制编辑后的提示词。",
@@ -135,14 +168,14 @@ const YTD_OPTIONS = (() => {
       clearedDigests: ({ count }) => `已清除 ${count} 条缓存摘要。`,
       notesDeleted: "已删除全部已保存的笔记。",
       resetConfirm:
-        "要从当前 Chrome 个人资料中删除 API 密钥、缓存摘要、翻译和已保存的笔记吗？",
-      allDataDeleted: "已删除全部 YouTube Digest 数据。",
+        "要从当前浏览器个人资料中删除 API 密钥、缓存摘要、翻译和已保存的笔记吗？",
+      allDataDeleted: "已删除全部 Video Digest 数据。",
       settingsLoadFailed: "无法加载已保存的设置，但你仍可预览此页面。",
     },
   };
 
   function normalizeLanguage(language) {
-    return SUPPORTED_LANGUAGES.has(language) ? language : "en";
+    return SUPPORTED_LANGUAGES.has(language) ? language : "zh-CN";
   }
 
   function translate(language, key, params = {}) {
@@ -330,6 +363,49 @@ const YTD_OPTIONS = (() => {
     await clipboard.writeText(value);
   }
 
+  function normalizeModelList(payload) {
+    const models = Array.isArray(payload?.data) ? payload.data : [];
+    return [
+      ...new Set(
+        models
+          .map((model) => (typeof model?.id === "string" ? model.id.trim() : ""))
+          .filter((modelId) =>
+            /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$/.test(modelId),
+          ),
+      ),
+    ].sort((left, right) => left.localeCompare(right));
+  }
+
+  async function fetchSiliconFlowModels(fetchImpl, modelsUrl, apiKey) {
+    const normalizedKey = typeof apiKey === "string" ? apiKey.trim() : "";
+    if (!normalizedKey) {
+      const error = new Error("SiliconFlow API key is required.");
+      error.code = "NO_AI_KEY";
+      throw error;
+    }
+
+    const response = await fetchImpl(modelsUrl, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${normalizedKey}` },
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      const error = new Error("Could not load SiliconFlow models.");
+      error.status = response.status;
+      throw error;
+    }
+    return normalizeModelList(payload);
+  }
+
+  function populateModelOptions(doc, datalist, modelIds) {
+    datalist.textContent = "";
+    for (const modelId of modelIds) {
+      const option = doc.createElement("option");
+      option.value = modelId;
+      datalist.appendChild(option);
+    }
+  }
+
   function getSafeLocalStorage(root) {
     try {
       return root.localStorage;
@@ -349,6 +425,9 @@ const YTD_OPTIONS = (() => {
     );
     const form = doc.getElementById("settingsForm");
     const aiApiKeyInput = doc.getElementById("aiApiKey");
+    const aiModelInput = doc.getElementById("aiModel");
+    const aiModelOptions = doc.getElementById("aiModelOptions");
+    const loadModelsBtn = doc.getElementById("loadModelsBtn");
     const supadataApiKeyInput = doc.getElementById("supadataApiKey");
     const customizationPrompt = doc.getElementById("customizationPrompt");
     const copyCustomizationPromptBtn = doc.getElementById(
@@ -356,11 +435,14 @@ const YTD_OPTIONS = (() => {
     );
     const copyStatus = doc.getElementById("copyStatus");
     const saveStatus = doc.getElementById("saveStatus");
+    const modelStatus = doc.getElementById("modelStatus");
     const dataStatus = doc.getElementById("dataStatus");
     const languageButtons = [...doc.querySelectorAll("[data-language]")];
     const statusStates = new Map();
     const promptDrafts = createPromptDrafts();
-    let currentLanguage = "en";
+    // The static HTML is Chinese, so there is no English flash before the
+    // stored choice is applied. English remains available as an explicit opt-in.
+    let currentLanguage = "zh-CN";
 
     function renderStatus(element) {
       const state = statusStates.get(element);
@@ -403,6 +485,12 @@ const YTD_OPTIONS = (() => {
           translate(currentLanguage, element.dataset.i18nAriaLabel),
         );
       }
+      for (const element of doc.querySelectorAll("[data-i18n-placeholder]")) {
+        element.setAttribute(
+          "placeholder",
+          translate(currentLanguage, element.dataset.i18nPlaceholder),
+        );
+      }
 
       updateLocalizedPrompt(
         customizationPrompt,
@@ -415,12 +503,13 @@ const YTD_OPTIONS = (() => {
     async function loadSettings() {
       try {
         const stored = await storage.get(settingsApi.STORAGE_KEY);
-        const migration = settingsApi.migrateLegacyCustom(
+        const migration = settingsApi.migrateLegacyProvider(
           stored[settingsApi.STORAGE_KEY],
         );
         const settings = migration.settings;
 
         aiApiKeyInput.value = settings.aiApiKey;
+        aiModelInput.value = settings.aiModel;
         supadataApiKeyInput.value = settings.supadataApiKey;
         if (migration.migrated) {
           await storage.set({ [settingsApi.STORAGE_KEY]: settings });
@@ -435,7 +524,7 @@ const YTD_OPTIONS = (() => {
       try {
         applyLanguage(await readPreferredLanguage(storage));
       } catch (_error) {
-        applyLanguage("en");
+        applyLanguage("zh-CN");
       }
       await loadSettings();
     }
@@ -445,16 +534,18 @@ const YTD_OPTIONS = (() => {
       setStatus(saveStatus, "saving");
 
       const settings = settingsApi.normalize({
+        provider: settingsApi.DEFAULTS.provider,
         aiApiKey: aiApiKeyInput.value,
+        aiModel: aiModelInput.value,
         supadataApiKey: supadataApiKeyInput.value,
       });
 
-      if (!settings.supadataApiKey) {
-        setStatus(saveStatus, "addSupadataKey");
+      if (!settings.aiApiKey) {
+        setStatus(saveStatus, "addSiliconFlowKey");
         return;
       }
-      if (!settings.aiApiKey) {
-        setStatus(saveStatus, "addDeepseekKey");
+      if (!settings.aiModel) {
+        setStatus(saveStatus, "chooseAiModel");
         return;
       }
 
@@ -463,6 +554,40 @@ const YTD_OPTIONS = (() => {
         setStatus(saveStatus, "saved");
       } catch (_error) {
         setStatus(saveStatus, "saveFailed");
+      }
+    }
+
+    async function loadModels() {
+      const apiKey = aiApiKeyInput.value.trim();
+      if (!apiKey) {
+        setStatus(modelStatus, "addSiliconFlowKey");
+        return;
+      }
+
+      setStatus(modelStatus, "loadingModels");
+      loadModelsBtn.disabled = true;
+      try {
+        const modelIds = await fetchSiliconFlowModels(
+          root.fetch.bind(root),
+          settingsApi.modelsUrl(settingsApi.DEFAULTS.aiBaseUrl),
+          apiKey,
+        );
+        populateModelOptions(doc, aiModelOptions, modelIds);
+        setStatus(
+          modelStatus,
+          modelIds.length ? "modelsLoaded" : "noModelsFound",
+          { count: modelIds.length },
+        );
+      } catch (error) {
+        if (error.status === 401 || error.status === 403) {
+          setStatus(modelStatus, "modelListUnauthorized");
+        } else if (error.status === 429) {
+          setStatus(modelStatus, "modelListRateLimited");
+        } else {
+          setStatus(modelStatus, "modelListFailed");
+        }
+      } finally {
+        loadModelsBtn.disabled = false;
       }
     }
 
@@ -504,6 +629,7 @@ const YTD_OPTIONS = (() => {
     }
 
     form.addEventListener("submit", saveSettings);
+    loadModelsBtn.addEventListener("click", loadModels);
     copyCustomizationPromptBtn.addEventListener(
       "click",
       copyCustomizationPrompt,
@@ -534,6 +660,9 @@ const YTD_OPTIONS = (() => {
     copyPromptValue,
     createPromptDrafts,
     createStorageAdapter,
+    fetchSiliconFlowModels,
+    normalizeModelList,
+    populateModelOptions,
     normalizeLanguage,
     persistPreferredLanguage,
     readPreferredLanguage,

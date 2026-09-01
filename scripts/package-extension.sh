@@ -12,15 +12,31 @@ command -v zip >/dev/null 2>&1 || {
   exit 1
 }
 
+if ! release_output="$("$check_script" --print-files)"; then
+  printf 'Packaging failed: release checks did not pass\n' >&2
+  exit 1
+fi
+
 release_files=()
 while IFS= read -r file; do
   [[ -n "$file" ]] && release_files+=("$file")
-done < <("$check_script" --print-files)
+done <<< "$release_output"
 
 if ((${#release_files[@]} == 0)); then
   printf 'Packaging failed: release allowlist is empty\n' >&2
   exit 1
 fi
+
+for file in "${release_files[@]}"; do
+  if [[ "$file" == /* || "$file" == ".." || "$file" == ../* || "$file" == */../* || "$file" == */.. ]]; then
+    printf 'Packaging failed: unsafe release path: %s\n' "$file" >&2
+    exit 1
+  fi
+  if [[ ! -f "$repo_root/$file" ]]; then
+    printf 'Packaging failed: release list contains a missing file: %s\n' "$file" >&2
+    exit 1
+  fi
+done
 
 version="$(node -e 'const m=require(process.argv[1]); process.stdout.write(m.version)' "$repo_root/manifest.json")"
 if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
@@ -29,9 +45,9 @@ if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
 fi
 
 mkdir -p "$dist_dir"
-temporary_dir="$(mktemp -d "$dist_dir/.youtube-digest-package.XXXXXX")"
-temporary_zip="$temporary_dir/youtube-digest.zip"
-output_zip="$dist_dir/youtube-digest-v$version.zip"
+temporary_dir="$(mktemp -d "$dist_dir/.video-digest-package.XXXXXX")"
+temporary_zip="$temporary_dir/video-digest.zip"
+output_zip="$dist_dir/video-digest-v$version.zip"
 
 cleanup() {
   if [[ -f "$temporary_zip" ]]; then

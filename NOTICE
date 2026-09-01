@@ -1,0 +1,18 @@
+Video Digest
+Copyright (c) 2026 Zhenxiangai
+
+This project is a derivative work based on YouTube Digest:
+https://github.com/zarazhangrui/youtube-digest
+Copyright (c) 2026 Zara Zhang
+Licensed under the MIT License.
+
+Bilibili support includes code adapted from bilibili-digest:
+https://github.com/biuworks/bilibili-digest
+Copyright (c) 2026 k1234567
+Licensed under the MIT License.
+
+The main changes in this fork include Bilibili and multipart-video support,
+SiliconFlow provider and model selection, Chrome and Edge compatibility,
+platform-aware caching, and streaming reliability improvements.
+
+See LICENSE for the complete license text.

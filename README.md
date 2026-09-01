@@ -1,230 +1,109 @@
-# YouTube Digest
+# Video Digest
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Turn every YouTube video into a resource for deep learning. YouTube Digest brings transcripts, bilingual translation, AI overviews, explanations, and timestamped notes into one Chrome side panel, so you can study ideas and language without losing your place.
+Turn YouTube and Bilibili videos into learning material with timestamped transcripts, bilingual reading, SiliconFlow-powered overviews, explanations, and notes.
 
-- Turn captions into a readable, searchable learning resource.
-- Learn languages with the original transcript, a Simplified Chinese translation, or an aligned bilingual view.
-- Build understanding with an AI overview, chapters, key quotes, and selected-text explanations.
-- Navigate long videos by clicking timestamps in the transcript, overview, or notes.
-- Save polished timestamped notes for later study.
-- Keep control of your data with your own API keys, local Chrome storage, and no analytics or telemetry.
+Video Digest is a local, bring-your-own-key Chromium extension for Chrome and Edge. It has no developer-operated backend, account system, analytics, advertising, or included API credits, and it requires no local server.
 
-YouTube Digest is a bring-your-own-key project installed locally from GitHub. It is not available through the Chrome Web Store, does not include API credits, and does not run a developer-operated server.
+> [!IMPORTANT]
+> Video Digest is a derivative work based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License. This independently maintained fork preserves the upstream copyright notice and adds Bilibili support, SiliconFlow model selection, Chrome and Edge compatibility, and reliability improvements.
 
-![YouTube Digest demo](YouTube%20Digest%20demo.png)
+![Video Digest demo](YouTube%20Digest%20demo.png)
 
-## New in v1.2.0
+## What this fork adds
 
-- Search transcript words or phrases and move through every match.
-- Use one Original, Chinese, or bilingual setting across Transcript, Overview, and Notes. New videos stay in Original by default.
-- Translate visible Overview and Notes content progressively in small cached batches.
-- Explain selected transcript text or save it directly as a timestamped note.
-- Keep your transcript position across navigation, with the panel closing automatically outside YouTube video pages.
+- Bilibili video and multipart-video support using Bilibili's official web APIs.
+- SiliconFlow as the AI provider, with account model discovery and manual model-ID selection.
+- Tested Chrome and Edge support for both supported video platforms.
+- Bounded SSE streaming, response-size protection, and retryable timeout handling for long overviews.
+- Platform-aware transcript caching, Chinese-caption passthrough, and independent multipart-video data.
 
-## Install with your coding agent
+## Supported sites
 
-You do not need to understand the code or use the command line. Send this message to your coding agent:
+- **YouTube:** standard watch pages. Native captions are retrieved through Supadata.
+- **Bilibili:** `/video/` and `/list/` playback pages, including multipart videos. Subtitle metadata and files are retrieved from Bilibili's official web APIs.
 
-> Download or clone this project into a permanent folder I choose, tell me its exact full path, and use that same folder for Chrome's Load unpacked step. If I need a suggestion during this first installation, offer `~/Documents/youtube-digest` on macOS or Linux, or `%USERPROFILE%\Documents\youtube-digest` on Windows, but do not assume either path. Walk me through installation and setup in simple terms. https://github.com/zarazhangrui/youtube-digest
+YouTube keeps its historical cache and note identifiers. Every Bilibili part uses a namespaced cache key, so multipart videos remain independent.
 
-Your agent should:
+## Features
 
-1. Ask where you want to keep the project, download or clone it there, and tell you the exact full path. If you want a suggestion, it can offer `~/Documents/youtube-digest` on macOS or Linux, or `%USERPROFILE%\Documents\youtube-digest` on Windows.
-2. Open the official Supadata and DeepSeek pages below and help you create your own accounts.
-3. Walk you through selecting the exact project folder you chose in Chrome with **Load unpacked**.
-4. Show you where to enter your API keys in the extension's **Settings** page.
-5. Open a YouTube video with captions and confirm the transcript and translation work.
+- Read a seekable transcript beside the player and follow playback automatically.
+- Click a transcript row, chapter, quote, or note to seek.
+- Switch between original, Chinese, and aligned bilingual views.
+- Display Chinese source captions directly without redundant translation requests.
+- Generate chapters and key quotes only when Overview is opened.
+- Explain selected transcript text and save timestamped notes.
+- Load the text-chat models available to a SiliconFlow account, or enter a model ID manually.
+- Cache transcripts, translations, analysis, reading position, and notes in browser-local extension storage.
+- Run entirely in the extension, without Whisper, a companion app, or a developer backend.
 
-Keep this folder in the same place after installation. If you move or delete it, Chrome's unpacked extension stops working until you load the extension again from its new permanent folder.
+## Requirements
 
-Never paste an API key into an AI chat, source file, screenshot, or public message. Enter keys yourself, directly in the YouTube Digest Settings page. Your coding agent can point to the correct field without seeing the key.
+- Chrome or Edge 116 or later.
+- A SiliconFlow API key and selected chat model for AI features.
+- A Supadata API key for YouTube transcript retrieval.
+- For Bilibili tracks visible only to signed-in users, a normal Bilibili login in the same browser profile.
 
-## Install manually
+Never put API keys in chat, source files, screenshots, logs, or commits. Enter them only on the extension's Settings page.
 
-If you prefer to do it yourself:
+## Install
 
-1. Open [github.com/zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest).
-2. Choose **Code**, then **Download ZIP**.
-3. Choose a permanent folder and unzip the project there. Optional suggestions are `~/Documents/youtube-digest` on macOS or Linux, or `%USERPROFILE%\Documents\youtube-digest` on Windows. You may use a different folder.
-4. In Chrome, open `chrome://extensions`.
-5. Turn on **Developer mode**.
-6. Click **Load unpacked**.
-7. Select the exact project folder you chose, which must contain `manifest.json`.
-8. Pin YouTube Digest from Chrome's Extensions menu if you want quick access.
+1. Download the ZIP from the [latest GitHub release](https://github.com/Zhenxiangai/video-digest/releases/latest) and extract it to a permanent folder.
+2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
+3. Enable **Developer mode** and click **Load unpacked**.
+4. Select the folder containing `manifest.json`.
+5. Open Video Digest Settings, enter your own API keys, load a SiliconFlow model, and save.
+6. Refresh any YouTube or Bilibili tabs that were already open.
 
-Because this is an unpacked extension, it does not update automatically. After downloading an update or changing local files, click **Reload** on the YouTube Digest card at `chrome://extensions`, then refresh open YouTube tabs. Moving or deleting the source folder breaks the unpacked extension until you load it again from the new location.
+After updating the files, click **Reload** on the Video Digest extension card and refresh the video page.
 
-## Set up your API keys
+## Transcript sources
 
-YouTube Digest needs two keys under your own provider accounts:
+### YouTube
 
-1. A **Supadata API key** to retrieve YouTube transcripts.
-2. A **DeepSeek API key** for overviews, explanations, translation, and automatic note polishing.
+Video Digest sends a canonical YouTube watch URL to Supadata's transcript endpoint with `mode=native`. It does not request generated transcription. If a video has no native caption track, the extension reports that no transcript is available.
 
-### Get a Supadata API key
+### Bilibili
 
-1. Open the official [Supadata sign-up page](https://dash.supadata.ai/auth/sign-up).
-2. Create an account and complete the short onboarding flow.
-3. Supadata generates an API key automatically during onboarding.
-4. Open the [Supadata dashboard](https://dash.supadata.ai/) whenever you need to find or manage the key.
-5. Copy the key and paste it into **Supadata API key** in YouTube Digest Settings.
+Video Digest uses this sequence:
 
-See the [official Supadata documentation](https://docs.supadata.ai/) if the dashboard flow changes.
+1. `api.bilibili.com/x/web-interface/view` resolves the BV number and selected part to its aid and cid.
+2. `api.bilibili.com/x/player/wbi/v2` returns subtitle tracks using Bilibili's WBI signature.
+3. The selected subtitle JSON is downloaded from a Bilibili `hdslb.com` host.
 
-### Get a DeepSeek API key
+Bilibili API requests may include the browser's existing Bilibili cookies so tracks available to the signed-in user can be listed. Subtitle CDN downloads omit cookies. The extension does not request the Chrome `cookies` permission and never reads or stores cookie values itself.
 
-1. Open the official [DeepSeek API Keys page](https://platform.deepseek.com/api_keys).
-2. Sign in or create a DeepSeek Platform account when prompted.
-3. Choose **Create new API key**, give it a recognizable name such as `YouTube Digest`, and create it.
-4. Copy the key immediately. The full key may only be shown once.
-5. Paste it into **DeepSeek API key** in YouTube Digest Settings.
-6. If DeepSeek reports insufficient balance, add credit in your DeepSeek Platform account and try again.
+Track preference is human Chinese, AI Chinese, then English. If no subtitle track is exposed by Bilibili, Video Digest reports that no transcript is available; it does not create one from the media stream.
 
-See the [official DeepSeek API documentation](https://api-docs.deepseek.com/) for current account and API details.
+## SiliconFlow
 
-Open **Settings** from the side panel. You can also open the YouTube Digest **Options** page from its card at `chrome://extensions` or by right-clicking its toolbar icon. Paste keys only into these Settings fields. Never paste a key into an AI chat, repository file, screenshot, or public message.
-
-The published version supports DeepSeek V4 Flash as its only AI provider:
+The AI endpoint is fixed to `https://api.siliconflow.cn/v1`. Settings loads text-chat model suggestions from:
 
 ```text
-Base URL: https://api.deepseek.com
-Model: deepseek-v4-flash
+GET /v1/models?type=text&sub_type=chat
 ```
 
-YouTube Digest sends every DeepSeek request in non-thinking mode for responsive, predictable interactions. The endpoint and model are fixed in Settings, so the only AI credential you enter is your DeepSeek API key. To use another provider or model, copy the safe customization prompt in Settings and give it to a coding agent for your local copy. Never add an API key to that prompt or chat.
+The selected model is used for overviews, explanations, non-Chinese-to-Chinese translation, and optional note cleanup. Chinese source captions bypass translation.
 
-Keys and settings are stored in Chrome's local extension storage on your device. Release builds do not include or use `config.js`.
+Overview generation uses SiliconFlow SSE streaming. Reasoning and final content have separate size limits, and the side panel has a bounded watchdog so interrupted requests become retryable errors instead of remaining stuck.
 
-## Use YouTube Digest
+Model availability, pricing, rate limits, and context limits vary. Review the current SiliconFlow console before selecting a model.
 
-1. Open a standard YouTube watch page with captions.
-2. Click the YouTube Digest extension icon to open the side panel.
-3. Read the timestamped transcript, or choose **Original**, **中文**, or **双语**.
-4. Open **Overview** when you want AI-generated chapters and key quotes.
-5. Select transcript text when you want an AI explanation.
-6. Save a note from the player or a key quote, then revisit it from **Notes**.
+## Bilibili limitations
 
-## What works today
+- Only subtitle tracks exposed by Bilibili are supported.
+- Some AI subtitle tracks require a Bilibili login.
+- Bilibili risk control may temporarily reject requests; open the video normally, wait, and retry.
+- If player selectors change, the extension falls back to floating Digest and Note buttons.
 
-- Google Chrome 116 or newer, using the Side Panel API.
-- Standard `youtube.com/watch` video pages.
-- Native subtitle tracks returned by Supadata. YouTube Digest prefers English when available, but may show another native language.
-- Original, Simplified Chinese, and aligned bilingual transcript views.
-- AI overviews, selected-text explanations, translation, and automatic note polishing.
-- Local notes and a local cache for recent transcript and digest results.
-- DeepSeek V4 Flash for all published AI features. Other providers require a local code adaptation and are not supported by this published version.
+## Local data
 
-Shorts, live streams, private or access-restricted videos, and videos without an available native transcript may not work. Firefox, Safari, mobile browsers, and other Chromium browsers are not currently tested or supported.
+Settings, transcripts, translations, overviews, notes, and reading positions stay in the current browser profile. Use **Clear cached digests** or **Reset extension data** in Settings when needed. See [PRIVACY.md](PRIVACY.md) for the complete data flow.
 
-YouTube Digest forces Supadata's `mode=native`. It does not request AI-generated transcripts or perform local audio transcription when native captions are unavailable.
+## Development
 
-## Supadata free tier and request costs
-
-Current as of August 9, 2026, the [Supadata pricing page](https://supadata.ai/pricing) lists a free tier with **100 credits per month**, no credit card required. Unused credits do not roll over. Supadata pricing can change, so check the current page before relying on these numbers.
-
-The [Supadata transcript documentation](https://docs.supadata.ai/get-transcript) describes the transcript request modes and credit behavior:
-
-- A native transcript request uses **1 credit**, regardless of video duration.
-- A generated transcript costs **2 credits per video minute**. YouTube Digest does not use this path because it forces `mode=native`.
-- An unavailable native lookup returned as HTTP `206` still uses **1 credit**.
-
-With the current native-only behavior, the free tier can cover roughly 100 transcript lookups per month when each request succeeds once. Retries and unavailable-caption lookups also consume credits, so actual successful-video coverage can be lower.
-
-DeepSeek usage is separate from Supadata. YouTube Digest does not collect payments or resell access. Set spending limits and monitor both accounts.
-
-## DeepSeek V4 Flash pricing
-
-As of August 27, 2026, DeepSeek lists these USD prices per 1 million tokens on its official [pricing page](https://api-docs.deepseek.com/quick_start/pricing/):
-
-| Token type | Off-peak | Peak |
-| --- | ---: | ---: |
-| Cache-hit input | $0.007 | $0.014 |
-| Cache-miss input | $0.22 | $0.44 |
-| Output | $0.66 | $1.32 |
-
-Peak hours are 01:00–04:00 and 06:00–10:00 UTC, Monday through Friday. All other hours use off-peak rates.
-
-A measured 20-minute English talk used about **32,600 input tokens** and an estimated **3,500 to 4,500 output tokens** across 43 small translation batches. At current prices, translating the full video costs approximately:
-
-- **Off-peak: $0.003 to $0.010 USD**.
-- **Peak: $0.005 to $0.020 USD**.
-
-The lower end assumes most repeated input hits DeepSeek's cache. The upper end assumes cache misses. Translation is lazy and cached, so translating only part of a video costs less. Check the official page before relying on these prices.
-
-## Remix it with your coding agent
-
-This is a personal remix project. Upstream issues and pull requests are not accepted. If something breaks or you want a new feature, download or fork your own copy and ask your coding agent to fix, remix, or personalize it for you.
-
-YouTube Digest uses plain HTML, CSS, and JavaScript with no build step, so it is a friendly starting point for agent-assisted projects. Ideas to try:
-
-- Add more translation languages and let each person choose a learning language.
-- Create customized summary templates for lectures, interviews, tutorials, reviews, or research talks.
-- Build a vocabulary notebook that saves a word, its sentence, meaning, and video timestamp.
-- Export notes and vocabulary to Markdown, CSV, Anki, or another study tool.
-- Add personal topic filters that highlight the chapters most relevant to a goal.
-- Add optional local-model support for a different privacy and cost tradeoff.
-- Improve accessibility with keyboard navigation, font controls, and higher-contrast themes.
-
-Ask your agent to preserve the bring-your-own-key model, keep secrets out of source files, run the checks below, and test the remix on real videos.
-
-If you want another AI provider or model, first open the exact YouTube Digest project folder that Chrome loaded through **Load unpacked** in your coding agent. Then open YouTube Digest Settings and use **Copy customization prompt**. Replace the `[PROVIDER]` and `[MODEL]` placeholders before sending it. Do not include any API key in the prompt or chat. After the agent updates your local copy, enter the key yourself in the Settings field it identifies.
-
-## Privacy and data flow
-
-YouTube Digest makes provider requests directly from the extension:
-
-1. It sends a canonical YouTube watch URL to Supadata to request the native transcript.
-2. It sends the transcript and relevant video metadata to DeepSeek when you request AI features.
-3. Focused features send only the content they need, such as selected text with context or small transcript batches for translation.
-4. It stores keys, settings, notes, and recent cache entries locally in Chrome.
-
-There is no YouTube Digest account system, advertising, analytics, or telemetry. Supadata and DeepSeek still receive data under their own terms and privacy policies. See [PRIVACY.md](PRIVACY.md) for details.
-
-## Troubleshooting
-
-### The Digest button is missing on a YouTube video
-
-- At `chrome://extensions`, find YouTube Digest and click **Reload**, then refresh the YouTube tab.
-- Confirm that you are on a standard `https://www.youtube.com/watch?...` page, not a Short, embed, or live page.
-- The current version automatically follows YouTube when its responsive action bar changes. Wait a moment after the page finishes loading.
-- If you have an older downloaded copy, resizing the YouTube window horizontally once may reveal the button. Then download the latest version so resizing is no longer required.
-- If it is still missing, ask your coding agent to inspect the content script on that exact video page.
-
-### The side panel does not open
-
-- Confirm that you are on a standard `https://www.youtube.com/watch?...` page.
-- At `chrome://extensions`, confirm YouTube Digest is enabled and click **Reload**.
-- Refresh the YouTube tab after reloading the extension.
-- Ask your coding agent to inspect the extension if the problem continues.
-
-### YouTube Digest asks for setup
-
-- Open **Settings** and save both a Supadata key and a DeepSeek key.
-- This published version uses the fixed DeepSeek V4 Flash endpoint and model. There are no Base URL or Model fields to configure.
-- If Settings says a legacy custom provider was removed, enter a DeepSeek key. The old AI key was cleared so it could not be reused with the wrong service.
-
-### No transcript is found
-
-- Confirm the video is public and has native captions.
-- Check your Supadata key, remaining credits, rate limit, and account status.
-- Remember that unavailable native lookups and manual retries may still consume credits.
-
-YouTube Digest will not fall back to generated transcription.
-
-### AI requests fail
-
-- A `401` or `403` usually means the DeepSeek key or account access is invalid.
-- A `429` usually means a DeepSeek rate or spending limit was reached.
-- Confirm the key was created in the DeepSeek Platform account linked above and that the account has available credit.
-- If you adapted a local copy for another model, use the Settings customization prompt again and ask your coding agent to inspect that local implementation.
-
-Never share API keys, private transcripts, or personal notes in chats, screenshots, or logs.
-
-## Checks for coding agents
-
-Ask your coding agent to run these commands after changing the project:
+The extension uses plain HTML, CSS, and JavaScript with no build step.
 
 ```bash
 npm test
@@ -232,8 +111,12 @@ npm run check
 npm run package
 ```
 
-The agent should also reload the unpacked extension in Chrome and test several real YouTube videos. Automated checks do not prove that live provider requests and YouTube interactions work.
+The package command validates the release allowlist, JavaScript syntax, tests, local references, and common credential patterns before creating a versioned ZIP in `dist/`.
 
-## License
+## Attribution
 
-MIT. See [LICENSE](LICENSE).
+Video Digest is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. This fork is independently maintained; issues about this version should be reported here rather than to the upstream project.
+
+The Bilibili WBI signer, subtitle API flow, and hydration-safe page injection strategy are adapted from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest), also used under the MIT License.
+
+The original and adapted copyright notices are preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and the relevant source files. This project remains licensed under the [MIT License](LICENSE).
