@@ -1,7 +1,7 @@
 /**
  * SIDE PANEL LOGIC
  *
- * Handles the UI for 看完了: video detection, transcript analysis,
+ * Handles the UI for 看完啦: video detection, transcript analysis,
  * rendering results, and export features.
  */
 
@@ -54,7 +54,8 @@ let currentNotes = [];
 let currentNotesFilterVideoId = null;
 let sidepanelNoteCaptureController = null;
 let currentLearningSessionId = null;
-const LEARNING_RECORD_REVISIONS_KEY = "kanwanle_learning_record_revisions";
+const LEARNING_RECORD_REVISIONS_KEY =
+  KANWANLA_BRAND.STORAGE_KEYS.learningRecordRevisions;
 const TRANSLATION_MESSAGE_TIMEOUT_MS = 195_000;
 const ANALYSIS_MESSAGE_TIMEOUT_MS = 195_000;
 const TRANSLATION_BATCH_SIZE = 8;
@@ -170,7 +171,7 @@ function renderUpdateBanner(status, doc = document) {
   if (title) {
     title.textContent = isReceipt
       ? `已更新到 v${currentVersion}`
-      : `看完了 v${latestVersion}`;
+      : `看完啦 v${latestVersion}`;
   }
   if (version) {
     version.textContent = isReceipt
@@ -540,7 +541,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.action === "analysisProgress") {
     if (
-      KANWANLE_ANALYSIS_PROGRESS.shouldApplyProgressEvent(
+      KANWANLA_ANALYSIS_PROGRESS.shouldApplyProgressEvent(
         message,
         currentAnalysisRequestId,
       )
@@ -555,10 +556,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.storage?.onChanged?.addListener((changes, areaName) => {
   if (
     areaName === "local" &&
-    changes[KANWANLE_I18N.LANGUAGE_STORAGE_KEY]
+    changes[KANWANLA_I18N.LANGUAGE_STORAGE_KEY]
   ) {
     applyInterfaceLanguage(
-      changes[KANWANLE_I18N.LANGUAGE_STORAGE_KEY].newValue,
+      changes[KANWANLA_I18N.LANGUAGE_STORAGE_KEY].newValue,
     );
   }
 });
@@ -779,7 +780,7 @@ async function checkCurrentTab() {
     });
     const tab = tabs[0] || null;
 
-    debugLog("[看完了 Panel] Found tab:", tab?.id, tab?.url);
+    debugLog("[看完啦 Panel] Found tab:", tab?.id, tab?.url);
 
     if (!tab?.url) {
       showState("welcome");
@@ -822,7 +823,7 @@ async function checkCurrentTab() {
           tabId: tab.id,
           payload: { action: "getVideoInfo" },
         });
-        debugLog("[看完了 Panel] getVideoInfo result:", result);
+        debugLog("[看完啦 Panel] getVideoInfo result:", result);
         if (result.success && result.response) {
           currentVideoTitle = result.response.title || "";
           currentChannelName = result.response.channelName || "";
@@ -830,7 +831,7 @@ async function checkCurrentTab() {
           currentVideoDuration = result.response.duration || 0;
         }
       } catch (e) {
-        console.error("[看完了 Panel] getVideoInfo error:", e);
+        console.error("[看完啦 Panel] getVideoInfo error:", e);
         currentVideoTitle = "";
         currentChannelName = "";
         currentVideoDescription = "";
@@ -866,25 +867,25 @@ function currentVideoMessageContext() {
 }
 
 function uiText(key, params = {}) {
-  return KANWANLE_I18N.translate(interfaceLanguage, key, params);
+  return KANWANLA_I18N.translate(interfaceLanguage, key, params);
 }
 
 function applyInterfaceLanguage(preference) {
-  interfaceLanguagePreference = KANWANLE_I18N.normalizePreference(preference);
-  interfaceLanguage = KANWANLE_I18N.applyDocument(
+  interfaceLanguagePreference = KANWANLA_I18N.normalizePreference(preference);
+  interfaceLanguage = KANWANLA_I18N.applyDocument(
     document,
     interfaceLanguagePreference,
-    KANWANLE_I18N.browserLanguage(chrome, navigator),
+    KANWANLA_I18N.browserLanguage(chrome, navigator),
   );
 }
 
 async function loadInterfaceLanguage() {
   try {
     const stored = await chrome.storage.local.get(
-      KANWANLE_I18N.LANGUAGE_STORAGE_KEY,
+      KANWANLA_I18N.LANGUAGE_STORAGE_KEY,
     );
     applyInterfaceLanguage(
-      stored[KANWANLE_I18N.LANGUAGE_STORAGE_KEY],
+      stored[KANWANLA_I18N.LANGUAGE_STORAGE_KEY],
     );
   } catch (_error) {
     applyInterfaceLanguage("zh-CN");
@@ -892,8 +893,8 @@ async function loadInterfaceLanguage() {
 }
 
 function showPanelNoteFeedback(result) {
-  return KANWANLE_NOTES.renderFeedback(document, result, {
-    id: "kanwanle-panel-note-feedback",
+  return KANWANLA_NOTES.renderFeedback(document, result, {
+    id: "kanwanla-panel-note-feedback",
     language: interfaceLanguage,
     onOpenNotes: () => switchTab("notes"),
   });
@@ -901,7 +902,7 @@ function showPanelNoteFeedback(result) {
 
 function getSidepanelNoteCaptureController() {
   if (!sidepanelNoteCaptureController) {
-    sidepanelNoteCaptureController = KANWANLE_NOTES.createCaptureController({
+    sidepanelNoteCaptureController = KANWANLA_NOTES.createCaptureController({
       save: (payload) => chrome.runtime.sendMessage(payload),
       onStateChange(state) {
         if (state.status === "saved") {
@@ -939,7 +940,7 @@ async function startDigest(videoRef, videoUrl) {
 
   // Every video change invalidates observer work and in-flight translations.
   if (videoChanged) {
-    currentLearningSessionId = KANWANLE_LEARNING_RECORDS.createSessionId({
+    currentLearningSessionId = KANWANLA_LEARNING_RECORDS.createSessionId({
       platform: videoRef.platform,
       videoId: videoRef.sourceVideoId,
       page: videoRef.page,
@@ -1064,7 +1065,7 @@ async function startDigest(videoRef, videoUrl) {
     if (transcriptResult.error === "NO_SUPADATA_KEY") {
       showError(
         "缺少 API 密钥",
-        "请在“看完了”设置中添加 Supadata API 密钥。",
+        "请在“看完啦”设置中添加 Supadata API 密钥。",
       );
       return;
     }
@@ -1206,7 +1207,7 @@ async function translateInterfaceSegments(surface, segments, rerender) {
           videoTitle: currentVideoTitle,
         });
       } catch (error) {
-        console.error("[看完了] Interface batch error:", error);
+        console.error("[看完啦] Interface batch error:", error);
         result = { success: false, error: error.message };
       }
       if (
@@ -1233,7 +1234,7 @@ async function translateInterfaceSegments(surface, segments, rerender) {
       await updateCache();
     }
   } catch (error) {
-    console.error("[看完了] Interface translation error:", error);
+    console.error("[看完啦] Interface translation error:", error);
     missing.forEach((segment) =>
       interfaceTranslationFailures.add(segment.cacheKey),
     );
@@ -1316,7 +1317,7 @@ function renderAnalysisResults(analysis) {
     `;
     li.addEventListener("click", () => {
       debugLog(
-        "[看完了 Panel] Chapter clicked:",
+        "[看完啦 Panel] Chapter clicked:",
         chapter.timestamp,
         chapter.timestampSeconds,
       );
@@ -1347,7 +1348,7 @@ function renderAnalysisResults(analysis) {
     `;
     div.addEventListener("click", () => {
       debugLog(
-        "[看完了 Panel] Quote clicked:",
+        "[看完啦 Panel] Quote clicked:",
         quote.timestamp,
         quote.timestampSeconds,
       );
@@ -1415,7 +1416,7 @@ async function saveQuoteAsNote(quote, btn) {
         btn.disabled = false;
       }, 1500);
     } else {
-      console.error("[看完了] Save quote as note failed:", result.error);
+      console.error("[看完啦] Save quote as note failed:", result.error);
       btn.textContent = "失败";
       setTimeout(() => {
         btn.textContent = originalText;
@@ -1423,7 +1424,7 @@ async function saveQuoteAsNote(quote, btn) {
       }, 1500);
     }
   } catch (error) {
-    console.error("[看完了] Save quote as note error:", error);
+    console.error("[看完啦] Save quote as note error:", error);
     btn.textContent = "失败";
     setTimeout(() => {
       btn.textContent = originalText;
@@ -1782,7 +1783,7 @@ function exportTranscript() {
 
   exportText += `字幕：\n\n${transcriptContent}\n`;
   exportText += `\n${"—".repeat(60)}\n`;
-  exportText += `由“看完了”导出\n`;
+  exportText += `由“看完啦”导出\n`;
 
   const filename = `${sanitizeFilename(currentVideoTitle)}-transcript.txt`;
   downloadTextFile(exportText, filename);
@@ -1842,7 +1843,7 @@ function showConfigError(configStatus, platform = currentVideoRef?.platform) {
   showState("error");
   document.getElementById("errorTitle").textContent = "需要完成设置";
   document.getElementById("errorMessage").textContent =
-    `请在“看完了”设置中配置：${missingSettings.join("、")}。`;
+    `请在“看完啦”设置中配置：${missingSettings.join("、")}。`;
   document.getElementById("errorBtn").textContent = "打开设置";
   errorAction = () => chrome.runtime.sendMessage({ action: "openOptions" });
 }
@@ -1981,7 +1982,7 @@ async function triggerAnalysis() {
     // Save to cache now that we have analysis
     await saveToCache(currentVideoId);
   } catch (error) {
-    console.error("[看完了 Panel] Analysis error:", error);
+    console.error("[看完啦 Panel] Analysis error:", error);
     if (chapterList)
       chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">错误：${escapeHtml(error.message)}</li>`;
     if (quotesList)
@@ -2026,9 +2027,9 @@ function renderAnalysisProgress(event) {
 // ============================================================
 
 async function seekTo(seconds) {
-  debugLog("[看完了 Panel] seekTo called with:", seconds);
+  debugLog("[看完啦 Panel] seekTo called with:", seconds);
   if (seconds === undefined || seconds === null) {
-    debugLog("[看完了 Panel] seekTo aborted - no seconds value");
+    debugLog("[看完啦 Panel] seekTo aborted - no seconds value");
     return;
   }
 
@@ -2042,11 +2043,11 @@ async function seekTo(seconds) {
     if (activeVideoTabId) {
       try {
         await chrome.tabs.sendMessage(activeVideoTabId, payload);
-        debugLog("[看完了 Panel] seekTo direct success");
+        debugLog("[看完啦 Panel] seekTo direct success");
         return;
       } catch (directErr) {
         debugLog(
-          "[看完了 Panel] Direct seekTo failed, falling back to relay:",
+          "[看完啦 Panel] Direct seekTo failed, falling back to relay:",
           directErr.message,
         );
       }
@@ -2058,9 +2059,9 @@ async function seekTo(seconds) {
       tabId: activeVideoTabId,
       payload,
     });
-    debugLog("[看完了 Panel] seekTo relay result:", result);
+    debugLog("[看完啦 Panel] seekTo relay result:", result);
   } catch (error) {
-    console.error("[看完了 Panel] seekTo error:", error);
+    console.error("[看完啦 Panel] seekTo error:", error);
   }
 }
 
@@ -2171,21 +2172,26 @@ async function buildCurrentLearningRecord({ persistRevision = true } = {}) {
   const includeTranscript = Boolean(
     document.getElementById("includeTranscriptInRecord")?.checked,
   );
-  const [notesResult, stored, language] = await Promise.all([
+  const [notesResult, storedAnnotations, storedRevisionState, language] =
+    await Promise.all([
     chrome.runtime.sendMessage({
       action: "getNotes",
       videoId: currentVideoId,
     }),
-    chrome.storage.local.get([
-      "kanwanle_annotations",
-      LEARNING_RECORD_REVISIONS_KEY,
-    ]),
+    KANWANLA_BRAND.readMigratedValue(
+      chrome.storage.local,
+      "annotations",
+      [],
+    ),
+    KANWANLA_BRAND.readMigratedValue(
+      chrome.storage.local,
+      "learningRecordRevisions",
+      {},
+    ),
     chrome.runtime.sendMessage({ action: "getLanguagePreferences" }),
   ]);
   const annotations = (
-    Array.isArray(stored.kanwanle_annotations)
-      ? stored.kanwanle_annotations
-      : []
+    Array.isArray(storedAnnotations) ? storedAnnotations : []
   ).filter(
     (annotation) =>
       annotation.videoId === currentVideoId ||
@@ -2214,7 +2220,7 @@ async function buildCurrentLearningRecord({ persistRevision = true } = {}) {
     transcript: currentTranscript,
     sessionId:
       currentLearningSessionId ||
-      KANWANLE_LEARNING_RECORDS.createSessionId({
+      KANWANLA_LEARNING_RECORDS.createSessionId({
         platform: currentVideoRef.platform,
         videoId: currentVideoRef.sourceVideoId,
         page: currentVideoRef.page,
@@ -2222,16 +2228,15 @@ async function buildCurrentLearningRecord({ persistRevision = true } = {}) {
     revision: 1,
     extensionVersion: chrome.runtime.getManifest?.().version || "",
   };
-  const provisional = KANWANLE_LEARNING_RECORDS.buildLearningRecord(
+  const provisional = KANWANLA_LEARNING_RECORDS.buildLearningRecord(
     baseInput,
     { includeTranscript },
   );
   const fingerprint =
-    KANWANLE_LEARNING_RECORDS.fingerprintRecord(provisional);
+    KANWANLA_LEARNING_RECORDS.fingerprintRecord(provisional);
   const revisionState =
-    stored[LEARNING_RECORD_REVISIONS_KEY] &&
-    typeof stored[LEARNING_RECORD_REVISIONS_KEY] === "object"
-      ? stored[LEARNING_RECORD_REVISIONS_KEY]
+    storedRevisionState && typeof storedRevisionState === "object"
+      ? storedRevisionState
       : {};
   const previous = revisionState[provisional.recordId];
   const revision =
@@ -2240,7 +2245,7 @@ async function buildCurrentLearningRecord({ persistRevision = true } = {}) {
       : previous
         ? Math.max(1, Number(previous.revision) || 1) + 1
         : 1;
-  const record = KANWANLE_LEARNING_RECORDS.buildLearningRecord(
+  const record = KANWANLA_LEARNING_RECORDS.buildLearningRecord(
     { ...baseInput, revision },
     { includeTranscript },
   );
@@ -2283,7 +2288,7 @@ async function copyCurrentLearningRecordForAgent() {
   try {
     const record = await buildCurrentLearningRecord();
     await navigator.clipboard.writeText(
-      KANWANLE_LEARNING_RECORDS.toAgentPrompt(record),
+      KANWANLA_LEARNING_RECORDS.toAgentPrompt(record),
     );
     setLearningExportStatus(
       `已复制给 Agent（${record.recordId}，修订 ${record.revision}）。`,
@@ -2298,7 +2303,7 @@ async function downloadCurrentLearningMarkdown() {
   try {
     const record = await buildCurrentLearningRecord();
     downloadTextFile(
-      KANWANLE_LEARNING_RECORDS.toMarkdown(record),
+      KANWANLA_LEARNING_RECORDS.toMarkdown(record),
       `${sanitizeFilename(record.source.title)}-learning-record.md`,
       "text/markdown;charset=utf-8",
     );
@@ -2313,7 +2318,7 @@ async function downloadCurrentLearningJson() {
   try {
     const record = await buildCurrentLearningRecord();
     downloadTextFile(
-      KANWANLE_LEARNING_RECORDS.toJson(record),
+      KANWANLA_LEARNING_RECORDS.toJson(record),
       `${sanitizeFilename(record.source.title)}-learning-record.json`,
       "application/json;charset=utf-8",
     );
@@ -2500,7 +2505,7 @@ function setupExplainFeature() {
           button.disabled = false;
         }, 900);
       } catch (error) {
-        console.error("[看完了] Save selected note error:", error);
+        console.error("[看完啦] Save selected note error:", error);
         button.textContent = "失败";
         setTimeout(() => {
           button.textContent = originalText;
@@ -2710,7 +2715,7 @@ async function evictOldCacheEntries(maxEntries) {
       .map((e) => e.key);
     if (toRemove.length > 0) {
       await chrome.storage.local.remove(toRemove);
-      debugLog(`[看完了] Evicted ${toRemove.length} old cache entries`);
+      debugLog(`[看完啦] Evicted ${toRemove.length} old cache entries`);
     }
   } catch (error) {
     console.error("Cache eviction error:", error);
@@ -2818,7 +2823,7 @@ async function loadNotes(videoId) {
       renderNotes(result.notes, videoId);
     }
   } catch (error) {
-    console.error("[看完了 Panel] Load notes error:", error);
+    console.error("[看完啦 Panel] Load notes error:", error);
   }
 }
 
@@ -2999,7 +3004,7 @@ async function deleteNote(noteId) {
       noteId: noteId,
     });
   } catch (error) {
-    console.error("[看完了 Panel] Delete note error:", error);
+    console.error("[看完啦 Panel] Delete note error:", error);
   }
 }
 
@@ -3180,7 +3185,7 @@ async function loadTranscriptViewState(videoId) {
     if (!Number.isFinite(scrollTop) || scrollTop < 0) return null;
     return { videoId, scrollTop };
   } catch (error) {
-    console.error("[看完了] Reading position load error:", error);
+    console.error("[看完啦] Reading position load error:", error);
     return null;
   }
 }
@@ -3204,7 +3209,7 @@ async function saveTranscriptViewState(videoId, scrollTop) {
     );
     await storage.set({ [TRANSCRIPT_VIEW_STATE_KEY]: recentStates });
   } catch (error) {
-    console.error("[看完了] Reading position save error:", error);
+    console.error("[看完啦] Reading position save error:", error);
   }
 }
 

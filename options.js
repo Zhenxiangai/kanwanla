@@ -6,7 +6,7 @@ const YTD_OPTIONS = (() => {
 
   const COPY = {
     en: {
-      pageTitle: "KanWanLe Settings",
+      pageTitle: "KanWanLa Settings",
       languageGroupLabel: "Interface language",
       automatic: "Auto",
       heading: "Bring your own API keys",
@@ -64,7 +64,7 @@ const YTD_OPTIONS = (() => {
       customizationIntro:
         "You can edit the prompt directly. Complete these three steps before copying:",
       customizationStepFolder:
-        "Open the extracted KanWanLe project folder in your coding agent.",
+        "Open the extracted KanWanLa project folder in your coding agent.",
       customizationStepReplace:
         "Replace [PROVIDER] and [MODEL] with the service and model you want to use.",
       customizationStepKeys:
@@ -74,7 +74,7 @@ const YTD_OPTIONS = (() => {
       customizationReminder:
         "Before copying, replace [PROVIDER] and [MODEL] with the provider and model you want to use.",
       customizationPrompt:
-        "Customize this local KanWanLe workspace to use [PROVIDER] with [MODEL]. Work only in the current workspace. Before editing, verify that it contains manifest.json and that the manifest name is 看完了. If verification fails, stop and ask me to open the extracted KanWanLe project folder in my coding agent. Do not search other folders, edit a guessed copy, assume an installation path, or claim Chrome can reveal the absolute OS source path. Update the provider's API endpoint, request format, and minimum Chrome host permissions. Preserve bring-your-own-key and local Chrome storage. Never put API keys in source code, commits, logs, screenshots, this prompt, or chat; after the code is ready, tell me where to enter the key myself. Keep SiliconFlow-only request fields and model discovery isolated to SiliconFlow. Handle provider-specific rules separately so one provider does not affect another. Update README.md, README.en.md, README.zh-CN.md, PRIVACY.md, SECURITY.md, and tests. Run npm test, npm run check, and npm run package. Then explain how to reload the unpacked extension and test it on YouTube and Bilibili videos.",
+        "Customize this local KanWanLa workspace to use [PROVIDER] with [MODEL]. Work only in the current workspace. Before editing, verify that it contains manifest.json and that the manifest name is 看完啦. If verification fails, stop and ask me to open the extracted KanWanLa project folder in my coding agent. Do not search other folders, edit a guessed copy, assume an installation path, or claim Chrome can reveal the absolute OS source path. Update the provider's API endpoint, request format, and minimum Chrome host permissions. Preserve bring-your-own-key and local Chrome storage. Never put API keys in source code, commits, logs, screenshots, this prompt, or chat; after the code is ready, tell me where to enter the key myself. Keep SiliconFlow-only request fields and model discovery isolated to SiliconFlow. Handle provider-specific rules separately so one provider does not affect another. Update README.md, README.en.md, README.zh-CN.md, PRIVACY.md, SECURITY.md, and tests. Run npm test, npm run check, and npm run package. Then explain how to reload the unpacked extension and test it on YouTube and Bilibili videos.",
       copyCustomizationPrompt: "Copy edited prompt",
       localData: "Local data",
       localDataHelp:
@@ -100,7 +100,7 @@ const YTD_OPTIONS = (() => {
         "SiliconFlow rate-limited the model list request. Try again shortly.",
       modelListFailed:
         "Could not load models. You can still enter an exact model ID manually.",
-      saved: "Saved. Reopen KanWanLe to use these settings.",
+      saved: "Saved. Reopen KanWanLa to use these settings.",
       saveFailed: "Could not save settings. Please try again.",
       copying: "Copying…",
       promptCopied: "Edited prompt copied.",
@@ -111,12 +111,12 @@ const YTD_OPTIONS = (() => {
       notesDeleted: "Deleted all saved notes.",
       resetConfirm:
         "Delete API keys, cached digests, translations, and saved notes from this browser profile?",
-      allDataDeleted: "All KanWanLe data was deleted.",
+      allDataDeleted: "All KanWanLa data was deleted.",
       settingsLoadFailed:
         "Could not load saved settings. You can still preview this page.",
     },
     "zh-CN": {
-      pageTitle: "看完了设置",
+      pageTitle: "看完啦设置",
       languageGroupLabel: "界面语言",
       automatic: "自动",
       heading: "使用你自己的 API 密钥",
@@ -169,7 +169,7 @@ const YTD_OPTIONS = (() => {
       agentBadge: "可交给编程 Agent",
       customizationIntro: "你可以直接编辑提示词。复制前完成以下三步：",
       customizationStepFolder:
-        "在编程 Agent 中打开“看完了”解压后的项目文件夹。",
+        "在编程 Agent 中打开“看完啦”解压后的项目文件夹。",
       customizationStepReplace:
         "把 [PROVIDER] 和 [MODEL] 替换成你想使用的服务和模型。",
       customizationStepKeys:
@@ -179,7 +179,7 @@ const YTD_OPTIONS = (() => {
       customizationReminder:
         "复制前，请先把 [PROVIDER] 和 [MODEL] 替换成你想使用的服务和模型。",
       customizationPrompt:
-        "请把当前本地“看完了”工作区改为使用 [PROVIDER] 提供的 [MODEL]。只在当前工作区中操作。编辑前，先确认其中包含 manifest.json，且 manifest 中的 name 是“看完了”。如果验证失败，请停止，并让我在编程 Agent 中打开“看完了”解压后的项目文件夹。不要搜索其他文件夹，不要编辑猜测的副本，不要假设安装路径，也不要声称 Chrome 可以显示操作系统中的绝对源码路径。更新该服务的 API endpoint、请求格式和最少的 Chrome host permissions。保留用户自带密钥模式和 Chrome 本地存储。不要把 API 密钥写入源代码、提交记录、日志、截图、这段提示词或聊天；代码准备好后，请告诉我应该在哪里自行填写密钥。硅基流动专用的请求字段和模型发现逻辑继续只用于硅基流动。新服务的专属规则请单独处理，避免相互影响。更新 README.md、README.zh-CN.md、PRIVACY.md、SECURITY.md 和测试。运行 npm test、npm run check 和 npm run package。最后，说明如何重新加载已解压的扩展，并在 YouTube 和 B 站视频上测试。",
+        "请把当前本地“看完啦”工作区改为使用 [PROVIDER] 提供的 [MODEL]。只在当前工作区中操作。编辑前，先确认其中包含 manifest.json，且 manifest 中的 name 是“看完啦”。如果验证失败，请停止，并让我在编程 Agent 中打开“看完啦”解压后的项目文件夹。不要搜索其他文件夹，不要编辑猜测的副本，不要假设安装路径，也不要声称 Chrome 可以显示操作系统中的绝对源码路径。更新该服务的 API endpoint、请求格式和最少的 Chrome host permissions。保留用户自带密钥模式和 Chrome 本地存储。不要把 API 密钥写入源代码、提交记录、日志、截图、这段提示词或聊天；代码准备好后，请告诉我应该在哪里自行填写密钥。硅基流动专用的请求字段和模型发现逻辑继续只用于硅基流动。新服务的专属规则请单独处理，避免相互影响。更新 README.md、README.zh-CN.md、PRIVACY.md、SECURITY.md 和测试。运行 npm test、npm run check 和 npm run package。最后，说明如何重新加载已解压的扩展，并在 YouTube 和 B 站视频上测试。",
       copyCustomizationPrompt: "复制编辑后的提示词",
       localData: "本地数据",
       localDataHelp:
@@ -201,7 +201,7 @@ const YTD_OPTIONS = (() => {
       modelListUnauthorized: "硅基流动拒绝了此密钥，请检查密钥和账号权限。",
       modelListRateLimited: "硅基流动限制了模型列表请求，请稍后重试。",
       modelListFailed: "无法加载模型；你仍可手动填写准确的模型 ID。",
-      saved: "已保存。请重新打开“看完了” 以使用这些设置。",
+      saved: "已保存。请重新打开“看完啦” 以使用这些设置。",
       saveFailed: "无法保存设置，请重试。",
       copying: "正在复制…",
       promptCopied: "已复制编辑后的提示词。",
@@ -210,7 +210,7 @@ const YTD_OPTIONS = (() => {
       notesDeleted: "已删除全部已保存的笔记。",
       resetConfirm:
         "要从当前浏览器个人资料中删除 API 密钥、缓存摘要、翻译和已保存的笔记吗？",
-      allDataDeleted: "已删除全部“看完了”数据。",
+      allDataDeleted: "已删除全部“看完啦”数据。",
       settingsLoadFailed: "无法加载已保存的设置，但你仍可预览此页面。",
     },
   };

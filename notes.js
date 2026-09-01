@@ -1,7 +1,7 @@
 (function attachNotesModule(root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
-  if (root) root.KANWANLE_NOTES = api;
+  if (root) root.KANWANLA_NOTES = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function createNotesApi() {
   "use strict";
 
@@ -153,7 +153,7 @@
   }
 
   function feedbackText(language, key) {
-    const shared = globalThis.KANWANLE_I18N;
+    const shared = globalThis.KANWANLA_I18N;
     if (shared?.translate) return shared.translate(language || "zh-CN", key);
     const fallback = {
       noteSaved: "笔记已保存",
@@ -211,7 +211,7 @@
   function renderFeedback(documentLike, result, options = {}) {
     if (!documentLike?.createElement || !documentLike?.body) return null;
     const model = createFeedbackModel(result, options.language);
-    const cardId = options.id || "kanwanle-note-feedback";
+    const cardId = options.id || "kanwanla-note-feedback";
     documentLike.getElementById?.(cardId)?.remove?.();
 
     const card = documentLike.createElement("section");

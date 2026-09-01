@@ -1,7 +1,7 @@
 (function attachI18nModule(root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
-  if (root) root.KANWANLE_I18N = api;
+  if (root) root.KANWANLA_I18N = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function createI18nApi() {
   "use strict";
 

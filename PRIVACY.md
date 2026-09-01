@@ -2,7 +2,7 @@
 
 Last updated: September 1, 2026
 
-看完了 is a local, bring-your-own-key Chrome and Edge extension. It has no developer-operated backend, 看完了 account, analytics, advertising, telemetry, or data-broker integration.
+看完啦 is a local, bring-your-own-key Chrome and Edge extension. It has no developer-operated backend, 看完啦 account, analytics, advertising, telemetry, or data-broker integration.
 
 ## Data handled
 
@@ -19,13 +19,13 @@ Depending on the site and feature, the extension handles:
 
 ### Supadata
 
-For YouTube only, 看完了 sends the canonical YouTube watch URL to `https://api.supadata.ai` with the user-supplied Supadata API key. By default it requests native captions and receives subtitle text and timestamps. If the user explicitly enables the no-caption AI fallback, the request uses Supadata's automatic mode, which may generate a transcript from the video when native captions are unavailable. Generated transcription can take longer and consume Supadata credits according to video duration.
+For YouTube only, 看完啦 sends the canonical YouTube watch URL to `https://api.supadata.ai` with the user-supplied Supadata API key. By default it requests native captions and receives subtitle text and timestamps. If the user explicitly enables the no-caption AI fallback, the request uses Supadata's automatic mode, which may generate a transcript from the video when native captions are unavailable. Generated transcription can take longer and consume Supadata credits according to video duration.
 
 No Supadata request is made for Bilibili videos.
 
 ### Bilibili
 
-For Bilibili videos, 看完了 requests video metadata and subtitle-track metadata from `https://api.bilibili.com`. These requests use `credentials: include`, so Chrome may attach Bilibili cookies already present in the same browser profile. This allows Bilibili to return subtitle tracks available to the signed-in user.
+For Bilibili videos, 看完啦 requests video metadata and subtitle-track metadata from `https://api.bilibili.com`. These requests use `credentials: include`, so Chrome may attach Bilibili cookies already present in the same browser profile. This allows Bilibili to return subtitle tracks available to the signed-in user.
 
 The extension does not request Chrome's `cookies` permission. It does not enumerate, read, copy, log, or store cookie values itself.
 
@@ -33,7 +33,7 @@ The selected subtitle JSON is downloaded from a Bilibili-controlled `https://*.h
 
 ### SiliconFlow
 
-For AI features, 看完了 sends relevant subtitle text and video context directly to `https://api.siliconflow.cn/v1`, authenticated with the user's SiliconFlow API key. The selected model may receive:
+For AI features, 看完啦 sends relevant subtitle text and video context directly to `https://api.siliconflow.cn/v1`, authenticated with the user's SiliconFlow API key. The selected model may receive:
 
 - video title, creator, description, and duration;
 - timestamped transcript sections;
@@ -44,13 +44,13 @@ For a long Bilibili overview, adjacent short caption cues are grouped before tra
 
 When the user clicks **Load models**, Settings sends the SiliconFlow API key to `GET /v1/models?type=text&sub_type=chat`. That request does not contain a video URL, subtitle, or note.
 
-The 看完了 developer does not proxy or receive Supadata, Bilibili, or SiliconFlow requests.
+The 看完啦 developer does not proxy or receive Supadata, Bilibili, or SiliconFlow requests.
 
 Timestamped notes are assembled and saved locally from the available caption cues. Saving a note does not wait for or send that note to SiliconFlow.
 
 ### GitCode and GitHub release checks
 
-When the side panel opens, 看完了 may request public release metadata from `https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanle/releases/latest`. If that request fails or returns invalid metadata, it falls back to `https://api.github.com/repos/Zhenxiangai/kanwanle/releases/latest`. A successful result is cached for 24 hours; a failed check is not retried for at least one hour. The response is reduced to the public version number, release title, short release notes, publication time, and a validated GitCode or GitHub release URL.
+When the side panel opens, 看完啦 may request public release metadata from `https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanla/releases/latest`. If that request fails or returns invalid metadata, it falls back to `https://api.github.com/repos/Zhenxiangai/kanwanla/releases/latest`. A successful result is cached for 24 hours; a failed check is not retried for at least one hour. The response is reduced to the public version number, release title, short release notes, publication time, and a validated GitCode or GitHub release URL.
 
 These requests do not contain Supadata or SiliconFlow API keys, video URLs, video identifiers, subtitles, notes, Bilibili cookies, or browser-account identifiers. GitCode or GitHub receives only the ordinary network metadata associated with an HTTPS request, such as the user's IP address and browser networking information, under that host's own privacy policy. Update-check failure does not block video features.
 
@@ -76,13 +76,13 @@ Content scripts cannot read local extension storage because the background servi
 
 The Notes tab can assemble the current source metadata, overview, key excerpts, saved notes, and selection Q&A into a copyable Agent prompt or downloadable Markdown/JSON file. This assembly happens locally in the extension. The complete transcript is excluded unless the user explicitly enables **Include full transcript**.
 
-看完了 does not automatically upload, sync, or send a learning record to Hermes or any other Agent. After copying or downloading, the user controls where that data goes. External tools that receive an exported record apply their own privacy and retention policies.
+看完啦 does not automatically upload, sync, or send a learning record to Hermes or any other Agent. After copying or downloading, the user controls where that data goes. External tools that receive an exported record apply their own privacy and retention policies.
 
 ## Retention and deletion
 
 Digest cache entries expire after 30 days, and the extension keeps at most 20 cached videos. Notes and saved selection Q&A are each capped at 100 entries. Notes can be deleted individually; saved selection Q&A and learning-record revision metadata are removed when all extension data is reset. Learning-record revision metadata is capped at 100 sources.
 
-Settings provides controls to clear cached digests or reset all 看完了 data. Uninstalling the extension also removes its Chrome extension storage. Clearing local data does not delete information already processed or retained by Supadata, Bilibili, or SiliconFlow.
+Settings provides controls to clear cached digests or reset all 看完啦 data. Uninstalling the extension also removes its Chrome extension storage. Clearing local data does not delete information already processed or retained by Supadata, Bilibili, or SiliconFlow.
 
 ## Permissions
 
@@ -98,7 +98,7 @@ Settings provides controls to clear cached digests or reset all 看完了 data. 
 - GitCode API host access: check the preferred public release version and release notes.
 - GitHub API host access: provide a release-check fallback when GitCode is unavailable.
 
-看完了 does not use these permissions to monitor unrelated browsing.
+看完啦 does not use these permissions to monitor unrelated browsing.
 
 ## Contact
 

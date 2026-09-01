@@ -1,6 +1,6 @@
 # 参与贡献 / Contributing
 
-感谢你帮助改进“看完了”。以下规则同时适用于中文和英文贡献。
+感谢你帮助改进“看完啦”。以下规则同时适用于中文和英文贡献。
 
 Before opening a pull request:
 

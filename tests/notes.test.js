@@ -116,8 +116,8 @@ test("all three note surfaces load the shared capture and feedback module", () =
 
   for (const file of ["content.js", "bilibili-content.js", "sidepanel.js"]) {
     const source = read(file);
-    assert.match(source, /KANWANLE_NOTES\.createCaptureController/);
-    assert.match(source, /KANWANLE_NOTES\.renderFeedback/);
+    assert.match(source, /KANWANLA_NOTES\.createCaptureController/);
+    assert.match(source, /KANWANLA_NOTES\.renderFeedback/);
   }
 });
 

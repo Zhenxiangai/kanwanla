@@ -30,8 +30,8 @@ function createLocalStorage() {
 }
 
 test("Settings copy covers English and Simplified Chinese", () => {
-  assert.equal(options.translate("en", "pageTitle"), "KanWanLe Settings");
-  assert.equal(options.translate("zh-CN", "pageTitle"), "看完了设置");
+  assert.equal(options.translate("en", "pageTitle"), "KanWanLa Settings");
+  assert.equal(options.translate("zh-CN", "pageTitle"), "看完啦设置");
   assert.equal(options.translate("en", "saveSettings"), "Save settings");
   assert.equal(options.translate("zh-CN", "saveSettings"), "保存设置");
   assert.equal(
@@ -138,11 +138,11 @@ test("customization guidance is concise and has a visible placeholder reminder",
   );
   assert.equal(
     options.translate("en", "customizationStepFolder"),
-    "Open the extracted KanWanLe project folder in your coding agent.",
+    "Open the extracted KanWanLa project folder in your coding agent.",
   );
   assert.equal(
     options.translate("zh-CN", "customizationStepFolder"),
-    "在编程 Agent 中打开“看完了”解压后的项目文件夹。",
+    "在编程 Agent 中打开“看完啦”解压后的项目文件夹。",
   );
   assert.doesNotMatch(html, /~\/Documents\/youtube-digest/);
   assert.doesNotMatch(html, /%USERPROFILE%\\Documents\\youtube-digest/);
@@ -176,7 +176,7 @@ test("customization prompt switches languages and preserves technical values", (
     /DeepSeek V4 Flash is selected by default.*choose another available model/,
   );
   assert.ok(html.includes(`>${chinesePrompt}</textarea>`));
-  assert.match(chinesePrompt, /^请把当前本地“看完了”工作区改为使用/);
+  assert.match(chinesePrompt, /^请把当前本地“看完啦”工作区改为使用/);
   assert.notEqual(chinesePrompt, englishPrompt);
   assert.match(
     englishPrompt,

@@ -8,10 +8,10 @@
 (() => {
   "use strict";
 
-  const OVERLAY_ID = "video-digest-bilibili-overlay";
-  const DIGEST_BUTTON_ID = "video-digest-bilibili-button";
-  const NOTE_BUTTON_ID = "video-digest-bilibili-note-button";
-  const NOTE_LABEL_CLASS = "video-digest-bilibili-note-label";
+  const OVERLAY_ID = "kanwanla-bilibili-overlay";
+  const DIGEST_BUTTON_ID = "kanwanla-bilibili-button";
+  const NOTE_BUTTON_ID = "kanwanla-bilibili-note-button";
+  const NOTE_LABEL_CLASS = "kanwanla-bilibili-note-label";
   const REINJECT_INTERVAL_MS = 800;
   const SETTLE_DELAY_MS = 1200;
   const PLAYER_WAIT_TIMEOUT_MS = 15000;
@@ -19,12 +19,12 @@
   let interfaceLanguage = "zh-CN";
 
   const uiText = (key) =>
-    KANWANLE_I18N.translate(interfaceLanguage, key);
+    KANWANLA_I18N.translate(interfaceLanguage, key);
 
   function applyLanguage(preference) {
-    interfaceLanguage = KANWANLE_I18N.resolveLanguage(
+    interfaceLanguage = KANWANLA_I18N.resolveLanguage(
       preference,
-      KANWANLE_I18N.browserLanguage(chrome, navigator),
+      KANWANLA_I18N.browserLanguage(chrome, navigator),
     );
     const digestButton = document.getElementById(DIGEST_BUTTON_ID);
     if (digestButton) digestButton.textContent = uiText("digest");
@@ -280,8 +280,8 @@
   }
 
   function showNoteFeedback(result) {
-    return KANWANLE_NOTES.renderFeedback(document, result, {
-      id: "kanwanle-bilibili-note-feedback",
+    return KANWANLA_NOTES.renderFeedback(document, result, {
+      id: "kanwanla-bilibili-note-feedback",
       language: interfaceLanguage,
       onOpenNotes: () =>
         chrome.runtime.sendMessage({
@@ -293,7 +293,7 @@
 
   function getNoteCaptureController() {
     if (!noteCaptureController) {
-      noteCaptureController = KANWANLE_NOTES.createCaptureController({
+      noteCaptureController = KANWANLA_NOTES.createCaptureController({
         save: (payload) => chrome.runtime.sendMessage(payload),
         onStateChange(state) {
           if (state.status === "saving") {

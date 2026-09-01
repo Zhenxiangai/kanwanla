@@ -11,6 +11,7 @@ const biliApi = require("../lib/bili-api.js");
 const updates = require("../updates.js");
 const notes = require("../notes.js");
 const i18n = require("../i18n.js");
+const brand = require("../brand.js");
 
 function loadSidepanelHelpers({
   sendMessage = () => Promise.resolve({}),
@@ -76,7 +77,8 @@ function loadSidepanelHelpers({
     },
     YTD_SETTINGS: {},
     YTD_PLATFORMS: platforms,
-    KANWANLE_I18N: i18n,
+    KANWANLA_BRAND: brand,
+    KANWANLA_I18N: i18n,
     BILI_API: biliApi,
   };
   sandbox.globalThis = sandbox;
@@ -156,9 +158,10 @@ function loadBackgroundHelpers({
         `https://www.youtube.com/watch?v=${videoId}`,
     },
     YTD_PLATFORMS: platforms,
-    KANWANLE_UPDATES: updates,
-    KANWANLE_NOTES: notes,
-    KANWANLE_I18N: i18n,
+    KANWANLA_BRAND: brand,
+    KANWANLA_UPDATES: updates,
+    KANWANLA_NOTES: notes,
+    KANWANLA_I18N: i18n,
     BILI_API: biliApiImpl,
   };
   sandbox.globalThis = sandbox;
@@ -248,7 +251,7 @@ test("the update banner renders version notes as text and can be hidden", () => 
   );
 
   assert.equal(elements.updateBanner.hidden, false);
-  assert.equal(elements.updateTitle.textContent, "看完了 v2.1.0");
+  assert.equal(elements.updateTitle.textContent, "看完啦 v2.1.0");
   assert.equal(elements.updatePrimaryBtn.textContent, "立即更新");
   assert.equal(notes.children[0].textContent, "新增 <安全> 更新入口");
 

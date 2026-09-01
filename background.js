@@ -17,6 +17,7 @@ importScripts(
   "settings.js",
   "platforms.js",
   "transcripts.js",
+  "brand.js",
   "updates.js",
   "i18n.js",
   "notes.js",
@@ -41,7 +42,7 @@ const debugLog = (...args) => {
   if (DEBUG) console.log(...args);
 };
 
-const updateManager = KANWANLE_UPDATES.createManager({
+const updateManager = KANWANLA_UPDATES.createManager({
   chromeApi: chrome,
   fetchImpl: (...args) => fetch(...args),
 });
@@ -51,7 +52,7 @@ const updateManager = KANWANLE_UPDATES.createManager({
 chrome.storage.local
   .setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" })
   .catch((error) =>
-    console.warn("[看完了] Could not restrict storage access:", error),
+    console.warn("[看完啦] Could not restrict storage access:", error),
   );
 
 async function getSettings() {
@@ -61,15 +62,15 @@ async function getSettings() {
 
 async function getLanguagePreferences() {
   const stored = await chrome.storage.local.get(
-    KANWANLE_I18N.LANGUAGE_STORAGE_KEY,
+    KANWANLA_I18N.LANGUAGE_STORAGE_KEY,
   );
-  const preference = KANWANLE_I18N.normalizePreference(
-    stored[KANWANLE_I18N.LANGUAGE_STORAGE_KEY],
+  const preference = KANWANLA_I18N.normalizePreference(
+    stored[KANWANLA_I18N.LANGUAGE_STORAGE_KEY],
   );
-  const browserLanguage = KANWANLE_I18N.browserLanguage(chrome);
+  const browserLanguage = KANWANLA_I18N.browserLanguage(chrome);
   return {
     preference,
-    interfaceLanguage: KANWANLE_I18N.resolveLanguage(
+    interfaceLanguage: KANWANLA_I18N.resolveLanguage(
       preference,
       browserLanguage,
     ),
@@ -78,7 +79,7 @@ async function getLanguagePreferences() {
 
 async function getOutputLanguageInstruction(settings) {
   const language = await getLanguagePreferences();
-  return KANWANLE_I18N.outputLanguageInstruction(
+  return KANWANLA_I18N.outputLanguageInstruction(
     settings.outputLanguage,
     language.interfaceLanguage,
   );
@@ -132,14 +133,14 @@ async function requestAiCompletion({
   const settings = await getSettings();
   if (!settings.aiApiKey) {
     const error = new Error(
-      "尚未配置硅基流动 API 密钥，请打开“看完了”设置。",
+      "尚未配置硅基流动 API 密钥，请打开“看完啦”设置。",
     );
     error.code = "NO_AI_KEY";
     throw error;
   }
   if (!settings.aiModel) {
     const error = new Error(
-      "尚未选择硅基流动模型，请打开“看完了”设置。",
+      "尚未选择硅基流动模型，请打开“看完啦”设置。",
     );
     error.code = "NO_AI_MODEL";
     throw error;
@@ -512,7 +513,7 @@ updateManager.bindLifecycle({
  * Keep the side panel scoped to supported video tabs only.
  *
  * Chrome side panels are "global" by default: once opened, the panel follows
- * you to every tab. 看完了 enables the panel only on supported video
+ * you to every tab. 看完啦 enables the panel only on supported video
  * tabs and disables it everywhere else. Disabling
  * on a tab makes Chrome hide/close the panel for that tab, so it never lingers
  * on a new tab or some other website.
@@ -529,7 +530,7 @@ async function closePanelForTab(tabId, windowId) {
   if (typeof chrome.sidePanel.close !== "function") return;
 
   try {
-    // This closes the tab-specific panel used by 看完了.
+    // This closes the tab-specific panel used by 看完啦.
     await chrome.sidePanel.close({ tabId });
     return;
   } catch (error) {
@@ -734,7 +735,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "languageChanged") {
-    const preference = KANWANLE_I18N.normalizePreference(message.preference);
+    const preference = KANWANLA_I18N.normalizePreference(message.preference);
     chrome.tabs
       .query({})
       .then((tabs) =>
@@ -806,7 +807,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       message.initialTab === "notes"
         ? { action: "showPanelTab", tab: "notes" }
         : { action: "startDigestFromButton" };
-    debugLog("[看完了 BG] openSidePanel requested from tab:", tabId);
+    debugLog("[看完啦 BG] openSidePanel requested from tab:", tabId);
 
     // Re-enable the panel (it may have been disabled by auto-close) and open it.
     // IMPORTANT: we call setOptions + open synchronously (no await between them)
@@ -829,7 +830,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }, 300);
         })
         .catch((err) => {
-          console.error("[看完了 BG] openSidePanel error:", err);
+          console.error("[看完啦 BG] openSidePanel error:", err);
         });
     } else {
       // Fallback: find the active tab
@@ -851,7 +852,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               })
               .catch((err) => {
                 console.error(
-                  "[看完了 BG] openSidePanel fallback error:",
+                  "[看完啦 BG] openSidePanel fallback error:",
                   err,
                 );
               });
@@ -865,7 +866,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Relay messages from side panel to content script
   if (message.action === "relayToContent") {
-    debugLog("[看完了 BG] Relay request:", message.payload?.action);
+    debugLog("[看完啦 BG] Relay request:", message.payload?.action);
     (async () => {
       try {
         let tab = null;
@@ -883,7 +884,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         if (tab && videoRef) {
           debugLog(
-            "[看完了 BG] Sending to tab:",
+            "[看完啦 BG] Sending to tab:",
             tab.id,
             "URL:",
             tab.url,
@@ -918,17 +919,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
 
-          debugLog("[看完了 BG] Got response from content:", response);
+          debugLog("[看完啦 BG] Got response from content:", response);
           sendResponse({ success: true, response });
         } else {
-          debugLog("[看完了 BG] No supported video tab found");
+          debugLog("[看完啦 BG] No supported video tab found");
           sendResponse({
             success: false,
             error: "没有找到受支持的 YouTube 或 B 站视频标签页",
           });
         }
       } catch (err) {
-        console.error("[看完了 BG] Relay error:", err.message);
+        console.error("[看完啦 BG] Relay error:", err.message);
         sendResponse({ success: false, error: err.message });
       }
     })();
@@ -970,7 +971,7 @@ async function getPlayerVideoDetails(tabId) {
     });
     return results?.[0]?.result || null;
   } catch (e) {
-    console.warn("[看完了 BG] Player details unavailable:", e.message);
+    console.warn("[看完啦 BG] Player details unavailable:", e.message);
     return null;
   }
 }
@@ -1098,7 +1099,7 @@ async function handleFetchYouTubeTranscript(videoId) {
       return {
         success: false,
         error: "NO_SUPADATA_KEY",
-        message: "尚未配置 Supadata API 密钥，请打开“看完了”设置。",
+        message: "尚未配置 Supadata API 密钥，请打开“看完啦”设置。",
       };
     }
 
@@ -1149,7 +1150,7 @@ async function handleFetchYouTubeTranscript(videoId) {
         return {
           success: false,
           error: "INVALID_SUPADATA_KEY",
-          message: "Supadata API 密钥无效，请打开“看完了”设置检查。",
+          message: "Supadata API 密钥无效，请打开“看完啦”设置检查。",
         };
       }
       if (response.status === 404) {
@@ -1499,7 +1500,7 @@ async function handleAnalyzeTranscript(
   progressContext = {},
 ) {
   const progress = progressContext.requestId
-    ? KANWANLE_ANALYSIS_PROGRESS.createProgressTracker({
+    ? KANWANLA_ANALYSIS_PROGRESS.createProgressTracker({
         requestId: progressContext.requestId,
         emit: (event) => {
           chrome.runtime
@@ -1517,7 +1518,7 @@ async function handleAnalyzeTranscript(
         success: false,
         error: "NO_AI_KEY",
         message:
-          "尚未配置硅基流动 API 密钥，请打开“看完了”设置。",
+          "尚未配置硅基流动 API 密钥，请打开“看完啦”设置。",
       };
     }
 
@@ -1584,7 +1585,7 @@ async function handleAnalyzeTranscript(
       promptVariables,
     );
 
-    debugLog("[看完了] Requesting video analysis", settings.aiModel);
+    debugLog("[看完啦] Requesting video analysis", settings.aiModel);
     progress?.update("requesting");
     const { text: responseText } = await requestAiCompletion({
       stream: true,
@@ -1836,10 +1837,10 @@ async function handleSaveNote(
       const cached = await chrome.storage.local.get(`digest_${videoId}`);
       if (cached[`digest_${videoId}`]?.transcript) {
         transcript = cached[`digest_${videoId}`].transcript;
-        debugLog("[看完了] Using cached transcript for note");
+        debugLog("[看完啦] Using cached transcript for note");
       }
     } catch (e) {
-      debugLog("[看完了] No cached transcript, fetching...");
+      debugLog("[看完啦] No cached transcript, fetching...");
     }
 
     // If no cached transcript, fetch it
@@ -1862,7 +1863,7 @@ async function handleSaveNote(
 
     // Build the note synchronously from local caption cues. A note is a user
     // action and must be durable immediately; it must never wait for a model.
-    const excerpt = KANWANLE_NOTES.buildTimedExcerpt(
+    const excerpt = KANWANLA_NOTES.buildTimedExcerpt(
       transcript,
       safeTimestamp,
     );
@@ -1909,7 +1910,7 @@ async function handleSaveNote(
 
     return { success: true, note };
   } catch (error) {
-    console.error("[看完了] Save note error:", error);
+    console.error("[看完啦] Save note error:", error);
     return { success: false, error: error.message };
   }
 }
@@ -1932,7 +1933,7 @@ async function cleanupNoteText(
   }
 
   try {
-    debugLog("[看完了] Requesting note cleanup");
+    debugLog("[看完啦] Requesting note cleanup");
     const variables = {
       videoTitle: videoTitle || "Unknown",
       fullContext,
@@ -1969,7 +1970,7 @@ async function cleanupNoteText(
       }
     } catch (parseError) {
       console.warn(
-        "[看完了] JSON parse failed for note, stripping preambles:",
+        "[看完啦] JSON parse failed for note, stripping preambles:",
         parseError,
       );
       result = result.replace(
@@ -1987,7 +1988,7 @@ async function cleanupNoteText(
 
     return result.slice(0, 3000);
   } catch (e) {
-    console.error("[看完了] Cleanup error:", e);
+    console.error("[看完啦] Cleanup error:", e);
   }
 
   // Return combined raw text if cleanup fails
@@ -2097,7 +2098,7 @@ async function handleExplainSelection(
       variables,
     );
 
-    debugLog("[看完了] Requesting selection explanation");
+    debugLog("[看完啦] Requesting selection explanation");
     const { text: explanation } = await requestAiCompletion({
       maxTokens: 1024,
       messages: [
@@ -2144,13 +2145,17 @@ function normalizeSelectionQuestion(value) {
 }
 
 async function saveLearningAnnotation(annotation) {
-  const result = await chrome.storage.local.get("kanwanle_annotations");
-  const annotations = Array.isArray(result.kanwanle_annotations)
-    ? result.kanwanle_annotations
+  const storedAnnotations = await KANWANLA_BRAND.readMigratedValue(
+    chrome.storage.local,
+    "annotations",
+    [],
+  );
+  const annotations = Array.isArray(storedAnnotations)
+    ? storedAnnotations
     : [];
   annotations.unshift(annotation);
   await chrome.storage.local.set({
-    kanwanle_annotations: annotations.slice(0, 100),
+    [KANWANLA_BRAND.STORAGE_KEYS.annotations]: annotations.slice(0, 100),
   });
 }
 
@@ -2331,7 +2336,7 @@ async function handleTranslateContent(
     }
     return { success: true, translatedContent: aligned };
   } catch (error) {
-    console.error("[看完了] Translation error:", error);
+    console.error("[看完啦] Translation error:", error);
     return { success: false, error: error.message || "Translation failed" };
   }
 }

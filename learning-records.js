@@ -1,11 +1,11 @@
 (function attachLearningRecords(root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
-  if (root) root.KANWANLE_LEARNING_RECORDS = api;
+  if (root) root.KANWANLA_LEARNING_RECORDS = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function createApi() {
   "use strict";
 
-  const SCHEMA = "kanwanle.learning-record/v1";
+  const SCHEMA = "kanwanla.learning-record/v1";
   const MAX_TRANSCRIPT_TEXT_CHARS = 80_000;
 
   function clean(value, maxLength = 3000) {
@@ -159,7 +159,7 @@
         .filter(Boolean)
         .slice(0, 20),
       provenance: {
-        extension: "看完了",
+        extension: "看完啦",
         extensionVersion: clean(input.extensionVersion, 40),
       },
     };

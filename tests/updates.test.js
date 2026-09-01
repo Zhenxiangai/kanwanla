@@ -22,9 +22,9 @@ test("versions are normalized and compared numerically", () => {
 test("GitHub release metadata is reduced to validated plain text", () => {
   const release = updates.normalizeRelease({
     tag_name: "v2.1.0",
-    name: "看完了 2.1.0",
+    name: "看完啦 2.1.0",
     html_url:
-      "https://github.com/Zhenxiangai/kanwanle/releases/tag/v2.1.0",
+      "https://github.com/Zhenxiangai/kanwanla/releases/tag/v2.1.0",
     published_at: "2026-09-02T08:00:00Z",
     draft: false,
     prerelease: false,
@@ -39,10 +39,10 @@ test("GitHub release metadata is reduced to validated plain text", () => {
   });
 
   assert.equal(release.version, "2.1.0");
-  assert.equal(release.title, "看完了 2.1.0");
+  assert.equal(release.title, "看完啦 2.1.0");
   assert.equal(
     release.url,
-    "https://github.com/Zhenxiangai/kanwanle/releases/tag/v2.1.0",
+    "https://github.com/Zhenxiangai/kanwanla/releases/tag/v2.1.0",
   );
   assert.equal(release.notes.length, 4);
   assert.match(release.notes[0], /新增.*版本提醒/);
@@ -54,7 +54,7 @@ test("GitCode release metadata produces a validated domestic release URL", () =>
   const release = updates.normalizeRelease(
     {
       tag_name: "v2.1.0",
-      name: "看完了 2.1.0",
+      name: "看完啦 2.1.0",
       created_at: "2026-09-02T16:00:00+08:00",
       prerelease: false,
       release_status: "latest",
@@ -65,9 +65,9 @@ test("GitCode release metadata produces a validated domestic release URL", () =>
 
   assert.deepEqual(release, {
     version: "2.1.0",
-    title: "看完了 2.1.0",
+    title: "看完啦 2.1.0",
     notes: ["新增国内镜像更新", "GitHub 自动兜底"],
-    url: "https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases/v2.1.0",
+    url: "https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases/v2.1.0",
     publishedAt: "2026-09-02T08:00:00.000Z",
   });
 });
@@ -76,14 +76,14 @@ test("foreign, draft, prerelease, and malformed releases are rejected", () => {
   const valid = {
     tag_name: "v2.1.0",
     html_url:
-      "https://github.com/Zhenxiangai/kanwanle/releases/tag/v2.1.0",
+      "https://github.com/Zhenxiangai/kanwanla/releases/tag/v2.1.0",
     body: "- 更新",
   };
 
   assert.equal(
     updates.normalizeRelease({
       ...valid,
-      html_url: "https://example.com/Zhenxiangai/kanwanle/releases/tag/v2.1.0",
+      html_url: "https://example.com/Zhenxiangai/kanwanla/releases/tag/v2.1.0",
     }),
     null,
   );
@@ -139,9 +139,9 @@ test("release responses are bounded before JSON is trusted", async () => {
 test("status shows only a newer, non-dismissed release or one update receipt", () => {
   const latestRelease = {
     version: "2.1.0",
-    title: "看完了 2.1.0",
+    title: "看完啦 2.1.0",
     notes: ["新增版本提醒"],
-    url: "https://github.com/Zhenxiangai/kanwanle/releases/tag/v2.1.0",
+    url: "https://github.com/Zhenxiangai/kanwanla/releases/tag/v2.1.0",
     publishedAt: "2026-09-02T08:00:00.000Z",
   };
   const available = updates.buildStatus("2.0.0", { latestRelease });
@@ -176,7 +176,14 @@ function createChromeMock({ storedState, updateCheckResult } = {}) {
     chromeApi: {
       storage: {
         local: {
-          get: async (key) => ({ [key]: structuredClone(values[key]) }),
+          get: async (keys) => {
+            const requested = Array.isArray(keys) ? keys : [keys];
+            return Object.fromEntries(
+              requested
+                .filter((key) => Object.hasOwn(values, key))
+                .map((key) => [key, structuredClone(values[key])]),
+            );
+          },
           set: async (next) => Object.assign(values, structuredClone(next)),
         },
       },
@@ -211,8 +218,8 @@ function createChromeMock({ storedState, updateCheckResult } = {}) {
 function githubRelease(version = "2.1.0") {
   return {
     tag_name: `v${version}`,
-    name: `看完了 ${version}`,
-    html_url: `https://github.com/Zhenxiangai/kanwanle/releases/tag/v${version}`,
+    name: `看完啦 ${version}`,
+    html_url: `https://github.com/Zhenxiangai/kanwanla/releases/tag/v${version}`,
     published_at: "2026-09-02T08:00:00Z",
     body: "- 新增安全更新提醒\n- 优化 B 站概览",
   };
@@ -221,7 +228,7 @@ function githubRelease(version = "2.1.0") {
 function gitcodeRelease(version = "2.1.0") {
   return {
     tag_name: `v${version}`,
-    name: `看完了 ${version}`,
+    name: `看完啦 ${version}`,
     created_at: "2026-09-02T16:00:00+08:00",
     prerelease: false,
     release_status: "latest",
@@ -254,6 +261,30 @@ test("browser manager caches GitCode checks and marks a new release", async () =
   assert.ok(browser.badgeTexts.includes("新"));
 });
 
+test("browser manager migrates the pre-v2.2 update state", async () => {
+  const browser = createChromeMock();
+  const legacyKey = require("../brand.js").LEGACY_STORAGE_KEYS.updateState;
+  browser.values[legacyKey] = {
+    lastCheckedAt: 123,
+    dismissedVersion: "2.1.3",
+  };
+  const manager = updates.createManager({
+    chromeApi: browser.chromeApi,
+    fetchImpl: async () => {
+      throw new Error("not used");
+    },
+  });
+
+  const status = await manager.getStatus({ refreshIfDue: false });
+
+  assert.equal(status.currentVersion, "2.0.0");
+  assert.equal(status.latestVersion, "2.0.0");
+  assert.equal(browser.values[updates.STORAGE_KEY].lastCheckedAt, 123);
+  assert.equal(browser.values[updates.STORAGE_KEY].dismissedVersion, "2.1.3");
+  assert.ok(Object.hasOwn(browser.values, updates.STORAGE_KEY));
+  assert.ok(Object.hasOwn(browser.values, legacyKey));
+});
+
 test("GitHub is queried only when the GitCode update source fails", async () => {
   const browser = createChromeMock();
   const requestedUrls = [];
@@ -283,7 +314,7 @@ test("GitHub is queried only when the GitCode update source fails", async () => 
   assert.equal(status.updateAvailable, true);
   assert.equal(
     status.releaseUrl,
-    "https://github.com/Zhenxiangai/kanwanle/releases/tag/v2.1.0",
+    "https://github.com/Zhenxiangai/kanwanla/releases/tag/v2.1.0",
   );
   assert.deepEqual(
     requestedUrls,

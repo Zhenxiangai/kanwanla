@@ -6,7 +6,7 @@ Security fixes apply to the latest code and latest packaged release. Older local
 
 ## Secret handling
 
-看完了 is a bring-your-own-key extension. API keys belong only in the extension's Settings page, where Chrome stores them in local extension storage.
+看完啦 is a bring-your-own-key extension. API keys belong only in the extension's Settings page, where Chrome stores them in local extension storage.
 
 Do not put API keys, access tokens, cookies, or private transcripts in:
 
@@ -21,7 +21,7 @@ The extension restricts `chrome.storage.local` access to trusted extension conte
 
 ## Bilibili login state
 
-Bilibili API requests use Chrome's normal credential handling, so Bilibili may attach cookies already present for the signed-in browser profile. 看完了 does not request the Chrome `cookies` permission and does not read or persist cookie values. Subtitle CDN requests explicitly omit credentials.
+Bilibili API requests use Chrome's normal credential handling, so Bilibili may attach cookies already present for the signed-in browser profile. 看完啦 does not request the Chrome `cookies` permission and does not read or persist cookie values. Subtitle CDN requests explicitly omit credentials.
 
 ## Network scope
 
@@ -62,6 +62,6 @@ In the private report, describe the affected version, reproduction steps, expect
 
 ## Third-party code
 
-看完了 is a derivative work of [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License.
+看完啦 is a derivative work of [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License.
 
 The Bilibili WBI signer, subtitle API adapter, and parts of the Bilibili page-injection strategy are adapted from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest) under the MIT License. Copyright notices are preserved in [LICENSE](LICENSE) and the adapted source files.

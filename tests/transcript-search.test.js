@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const brand = require("../brand.js");
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
@@ -48,6 +49,7 @@ function loadSearchHelper() {
       tabs: { onUpdated: listeners, onActivated: listeners },
     },
     YTD_SETTINGS: {},
+    KANWANLA_BRAND: brand,
   };
   sandbox.globalThis = sandbox;
   vm.runInNewContext(read("sidepanel.js"), sandbox);

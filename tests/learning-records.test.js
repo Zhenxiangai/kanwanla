@@ -66,7 +66,7 @@ function fixture(overrides = {}) {
 test("LearningRecord is allowlisted, bounded, and excludes transcript by default", () => {
   const record = records.buildLearningRecord(fixture());
 
-  assert.equal(record.schema, "kanwanle.learning-record/v1");
+  assert.equal(record.schema, "kanwanla.learning-record/v1");
   assert.match(record.recordId, /^record_/);
   assert.equal(record.sessionId, "session-test");
   assert.equal(record.revision, 3);

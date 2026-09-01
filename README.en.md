@@ -1,21 +1,47 @@
-# KanWanLe
+# KanWanLa
 
 [中文](README.md) | [English](README.en.md)
 
-> Long video? KanWanLe finds the parts worth keeping.
+> Long video? KanWanLa finds the parts worth keeping.
 
-**KanWanLe – AI Video Learning Assistant**
+**KanWanLa – AI Video Learning Assistant**
 
 Turn YouTube and Bilibili videos into learning material with timestamped transcripts, bilingual reading, SiliconFlow-powered overviews, explanations, and notes.
 
-KanWanLe is a local, bring-your-own-key Chromium extension for Chrome and Edge. It has no developer-operated backend, account system, analytics, advertising, or included API credits, and it requires no local server.
+KanWanLa is a local, bring-your-own-key Chromium extension for Chrome and Edge. It has no developer-operated backend, account system, analytics, advertising, or included API credits, and it requires no local server.
 
 > [!IMPORTANT]
-> KanWanLe is a derivative work based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License. This independently maintained fork preserves the upstream copyright notice and adds Bilibili support, SiliconFlow model selection, Chrome and Edge compatibility, and reliability improvements.
+> KanWanLa is a derivative work based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License. This independently maintained fork preserves the upstream copyright notice and adds Bilibili support, SiliconFlow model selection, Chrome and Edge compatibility, and reliability improvements.
 
-For faster access from mainland China, releases are mirrored on [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanle). [GitHub](https://github.com/Zhenxiangai/kanwanle) remains the primary source repository, issue tracker, and fallback download host.
+For faster access from mainland China, releases are mirrored on [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanla). [GitHub](https://github.com/Zhenxiangai/kanwanla) remains the primary source repository, issue tracker, and fallback download host.
 
-![KanWanLe demo](YouTube%20Digest%20demo.png)
+![KanWanLa demo](kanwanla-demo.png)
+
+## What changed in v2.2.0
+
+| Change | Why it matters to users |
+| --- | --- |
+| The extension, repositories, and ZIP files now share the KanWanLa name | Downloads and installed copies are easier to identify. |
+| Pre-v2.2 local data is migrated automatically | Existing settings, notes, annotations, and learning-record revisions remain available. |
+| The project home now explains the value of every release | Users can understand an update before installing it. |
+| GitCode and GitHub links use the new repository name | Mainland-China downloads keep their fast path and GitHub remains the fallback. |
+
+See the Chinese-first [version history](CHANGELOG.md) for earlier user-facing improvements.
+
+## How this fork differs from the reference projects
+
+KanWanLa is derived from [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), while its Bilibili integration also adapts ideas from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest).
+
+| Area | Original YouTube project | Bilibili reference project | KanWanLa |
+| --- | --- | --- | --- |
+| Platforms | YouTube | Bilibili | YouTube and Bilibili in one extension. |
+| Missing YouTube captions | Native captions only | Not applicable | Optional user-enabled Supadata AI transcription fallback. |
+| AI models | Fixed DeepSeek V4 Flash | User-provided model service | SiliconFlow DeepSeek V4 Flash by default, with model discovery and manual selection. |
+| Questions | Explain selected text | Selection explanations plus whole-video Q&A | Add a specific question to selected text for a targeted answer. |
+| Notes and exports | Timestamped notes | Editable/searchable notes and study exports | Shared click/`N` capture on both sites, real save receipts, and Agent/Markdown/JSON learning records. |
+| Updates | Manual GitHub download | Chrome and Edge store updates | Visible in-panel checks with GitCode-first and GitHub fallback downloads. |
+
+This is not a ranking. The Bilibili reference currently includes capabilities such as whole-video Q&A, editable notes, and store distribution that KanWanLa does not claim to replace. This comparison reflects the public project documentation checked on 2026-09-01.
 
 ## Interface and feature showcase
 
@@ -91,7 +117,7 @@ These screenshots come from real use on YouTube. Read transcripts, generate an A
 <p align="center">
   <strong>Full Bilibili side-panel experience</strong><br><br>
   <img src="docs/images/bilibili-overview.png" alt="Bilibili video overview, chapters, key highlights, and notes" width="900"><br>
-  <sub>Open KanWanLe directly on a Bilibili video to generate timestamped chapters and highlights with the same notes, language, and update controls.</sub>
+  <sub>Open KanWanLa directly on a Bilibili video to generate timestamped chapters and highlights with the same notes, language, and update controls.</sub>
 </p>
 
 ## What this fork adds
@@ -143,18 +169,18 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 
 ## Install
 
-1. Download the latest ZIP from [GitCode Releases](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases). If GitCode is temporarily unavailable, use the [GitHub fallback release](https://github.com/Zhenxiangai/kanwanle/releases/latest). Extract it to a permanent folder.
+1. Download the latest ZIP from [GitCode Releases](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases). If GitCode is temporarily unavailable, use the [GitHub fallback release](https://github.com/Zhenxiangai/kanwanla/releases/latest). Extract it to a permanent folder.
 2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
 3. Enable **Developer mode** and click **Load unpacked**.
 4. Select the folder containing `manifest.json`.
-5. Open KanWanLe Settings, enter your own API keys, and save. Keep the default DeepSeek V4 Flash model or load another SiliconFlow model.
+5. Open KanWanLa Settings, enter your own API keys, and save. Keep the default DeepSeek V4 Flash model or load another SiliconFlow model.
 6. Refresh any YouTube or Bilibili tabs that were already open.
 
 ## Updates
 
 - **Check updates** is always visible at the top of the panel content. Clicking it performs an immediate network check instead of waiting for the 24-hour automatic-check cache. If a release is found, the control changes to **New vX** and the same click continues into the update flow. Dismissing detailed release notes does not hide this control.
-- **Unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens a validated [GitCode release](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases), with GitHub used only if GitCode is unavailable. Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
-- **A future store install:** the browser remains responsible for installing updates. The control only asks the browser to check its corresponding store and apply a downloaded update. KanWanLe is not currently listed in Chrome Web Store or Edge Add-ons.
+- **Unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens a validated [GitCode release](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases), with GitHub used only if GitCode is unavailable. Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
+- **A future store install:** the browser remains responsible for installing updates. The control only asks the browser to check its corresponding store and apply a downloaded update. KanWanLa is not currently listed in Chrome Web Store or Edge Add-ons.
 
 The automatic release check runs at most once every 24 hours. It reads public metadata from GitCode first and falls back to GitHub if necessary. It never sends API keys, video URLs, transcripts, notes, or account data. A failed check does not block any video feature.
 
@@ -162,11 +188,11 @@ The automatic release check runs at most once every 24 hours. It reads public me
 
 ### YouTube
 
-KanWanLe sends a canonical YouTube watch URL to Supadata's transcript endpoint. The default `mode=native` reads existing captions only and reports when none are available. Users may explicitly enable **Use Supadata AI transcription as fallback** in Settings; this selects `mode=auto`, which tries native captions before asking Supadata to generate a transcript. Generated transcription is slower and consumes Supadata credits by video duration, so it is never enabled by default.
+KanWanLa sends a canonical YouTube watch URL to Supadata's transcript endpoint. The default `mode=native` reads existing captions only and reports when none are available. Users may explicitly enable **Use Supadata AI transcription as fallback** in Settings; this selects `mode=auto`, which tries native captions before asking Supadata to generate a transcript. Generated transcription is slower and consumes Supadata credits by video duration, so it is never enabled by default.
 
 ### Bilibili
 
-KanWanLe uses this sequence:
+KanWanLa uses this sequence:
 
 1. `api.bilibili.com/x/web-interface/view` resolves the BV number and selected part to its aid and cid.
 2. `api.bilibili.com/x/player/wbi/v2` returns subtitle tracks using Bilibili's WBI signature.
@@ -174,9 +200,9 @@ KanWanLe uses this sequence:
 
 Bilibili API requests may include the browser's existing Bilibili cookies so tracks available to the signed-in user can be listed. Subtitle CDN downloads omit cookies. The extension does not request the Chrome `cookies` permission and never reads or stores cookie values itself.
 
-Track preference is human Chinese, AI Chinese, then English. If no subtitle track is exposed by Bilibili, KanWanLe reports that no transcript is available; it does not create one from the media stream.
+Track preference is human Chinese, AI Chinese, then English. If no subtitle track is exposed by Bilibili, KanWanLa reports that no transcript is available; it does not create one from the media stream.
 
-For unpunctuated Chinese AI captions returned by Bilibili, KanWanLe conservatively adds comma, sentence, and paragraph boundaries in the browser. Existing punctuation is preserved, and this formatting does not send the caption text to another service.
+For unpunctuated Chinese AI captions returned by Bilibili, KanWanLa conservatively adds comma, sentence, and paragraph boundaries in the browser. Existing punctuation is preserved, and this formatting does not send the caption text to another service.
 
 ## SiliconFlow
 
@@ -202,7 +228,7 @@ YouTube transcripts require your own Supadata API key. Use the [Supadata signup 
 
 Expand **Learning record** in the Notes tab to copy an Agent-ready prompt or download the same normalized record as Markdown or JSON. It includes the source, overview, key excerpts, saved notes, and selection Q&A. A stable `recordId` plus increasing `revision` lets an Agent update the same record idempotently.
 
-The full transcript is excluded by default and appears only after the user explicitly enables it. Assembly happens inside the extension. KanWanLe does not connect to Hermes, upload the record to a developer server, or send it to an Agent automatically.
+The full transcript is excluded by default and appears only after the user explicitly enables it. Assembly happens inside the extension. KanWanLa does not connect to Hermes, upload the record to a developer server, or send it to an Agent automatically.
 
 ## Bilibili limitations
 
@@ -225,11 +251,11 @@ npm run check
 npm run package
 ```
 
-The package command validates the release allowlist, JavaScript syntax, tests, local references, and common credential patterns before creating `dist/kanwanle-v<version>.zip`.
+The package command validates the release allowlist, JavaScript syntax, tests, local references, and common credential patterns before creating `dist/kanwanla-v<version>.zip`.
 
 ## Attribution
 
-KanWanLe is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. It is independently maintained at [Zhenxiangai/kanwanle](https://github.com/Zhenxiangai/kanwanle) and mirrored to [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanle); issues about this version should be reported here rather than to the upstream project.
+KanWanLa is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. It is independently maintained at [Zhenxiangai/kanwanla](https://github.com/Zhenxiangai/kanwanla) and mirrored to [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanla); issues about this version should be reported here rather than to the upstream project.
 
 The Bilibili WBI signer, subtitle API flow, and hydration-safe page injection strategy are adapted from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest), also used under the MIT License.
 

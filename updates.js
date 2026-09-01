@@ -1,26 +1,34 @@
 /**
- * Shared update metadata helpers for 看完了.
+ * Shared update metadata helpers for 看完啦.
  *
  * This module knows how to compare extension versions and reduce untrusted
  * GitCode or GitHub Release responses to small plain-text records. Browser
  * lifecycle, storage, badges, and tabs stay in background.js.
  */
-var KANWANLE_UPDATES = (() => {
-  const REPOSITORY = "Zhenxiangai/kanwanle";
-  const GITCODE_REPOSITORY = "gcw_XQNnjJtX/kanwanle";
+var KANWANLA_UPDATES = (() => {
+  const BRAND =
+    typeof KANWANLA_BRAND !== "undefined"
+      ? KANWANLA_BRAND
+      : typeof require === "function"
+        ? require("./brand.js")
+        : null;
+  if (!BRAND) throw new Error("看完啦品牌兼容模块未加载。");
+
+  const REPOSITORY = "Zhenxiangai/kanwanla";
+  const GITCODE_REPOSITORY = "gcw_XQNnjJtX/kanwanla";
   const RELEASE_SOURCES = Object.freeze([
     Object.freeze({
       id: "gitcode",
       apiUrl:
-        "https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanle/releases/latest",
-      releasesUrl: "https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases",
+        "https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanla/releases/latest",
+      releasesUrl: "https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases",
       headers: Object.freeze({ Accept: "application/json" }),
     }),
     Object.freeze({
       id: "github",
       apiUrl:
-        "https://api.github.com/repos/Zhenxiangai/kanwanle/releases/latest",
-      releasesUrl: "https://github.com/Zhenxiangai/kanwanle/releases/latest",
+        "https://api.github.com/repos/Zhenxiangai/kanwanla/releases/latest",
+      releasesUrl: "https://github.com/Zhenxiangai/kanwanla/releases/latest",
       headers: Object.freeze({
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -29,7 +37,7 @@ var KANWANLE_UPDATES = (() => {
   ]);
   const RELEASE_API_URL = RELEASE_SOURCES[0].apiUrl;
   const RELEASES_URL = RELEASE_SOURCES[0].releasesUrl;
-  const STORAGE_KEY = "kanwanle_update_state";
+  const STORAGE_KEY = BRAND.STORAGE_KEYS.updateState;
   const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
   const FAILED_CHECK_INTERVAL_MS = 60 * 60 * 1000;
   const APPLY_REQUEST_TTL_MS = 10 * 60 * 1000;
@@ -39,13 +47,13 @@ var KANWANLE_UPDATES = (() => {
   const MAX_NOTE_CHARS = 180;
 
   const CURRENT_RELEASE = Object.freeze({
-    version: "2.1.3",
-    title: "看完了 2.1.3",
+    version: "2.2.0",
+    title: "看完啦 2.2.0",
     notes: Object.freeze([
-      "新增国内可访问的 GitCode 镜像与发行版下载。",
-      "版本检查优先访问 GitCode，失败时自动回退到 GitHub。",
-      "解压安装版会打开经过严格校验的 GitCode 发行页。",
-      "浏览器商店更新流程保持不变。",
+      "扩展、仓库和安装包统一使用“看完啦 / KanWanLa / kanwanla”。",
+      "升级后会自动沿用旧版设置、笔记、划线问答和学习记录。",
+      "项目首页新增版本价值与参考项目对比，更新前就能看懂区别。",
+      "GitCode 国内下载与 GitHub 备用下载已切换到新仓库地址。",
     ]),
   });
 
@@ -202,7 +210,7 @@ var KANWANLE_UPDATES = (() => {
     return {
       version,
       title:
-        cleanPlainText(input.name, 100) || `看完了 ${version}`,
+        cleanPlainText(input.name, 100) || `看完啦 ${version}`,
       notes: extractReleaseNotes(input.body),
       url,
       publishedAt: normalizePublishedAt(input.published_at || input.created_at),
@@ -216,7 +224,7 @@ var KANWANLE_UPDATES = (() => {
     if (!version || !url) return null;
     return {
       version,
-      title: cleanPlainText(input.title, 100) || `看完了 ${version}`,
+      title: cleanPlainText(input.title, 100) || `看完啦 ${version}`,
       notes: Array.isArray(input.notes)
         ? input.notes
             .map((note) => cleanPlainText(note))
@@ -359,8 +367,12 @@ var KANWANLE_UPDATES = (() => {
     }
 
     async function readState() {
-      const stored = await storage.get(STORAGE_KEY);
-      return normalizeState(stored?.[STORAGE_KEY]);
+      const storedState = await BRAND.readMigratedValue(
+        storage,
+        "updateState",
+        {},
+      );
+      return normalizeState(storedState);
     }
 
     async function writeState(state) {
@@ -611,5 +623,5 @@ var KANWANLE_UPDATES = (() => {
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = KANWANLE_UPDATES;
+  module.exports = KANWANLA_UPDATES;
 }

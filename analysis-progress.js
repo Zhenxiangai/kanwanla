@@ -1,7 +1,7 @@
 (function attachAnalysisProgress(root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
-  if (root) root.KANWANLE_ANALYSIS_PROGRESS = api;
+  if (root) root.KANWANLA_ANALYSIS_PROGRESS = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function createApi() {
   "use strict";
 

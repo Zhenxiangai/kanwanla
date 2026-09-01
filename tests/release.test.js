@@ -6,15 +6,15 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
-test("manifest identifies 看完了 and grants only its runtime hosts", () => {
+test("manifest identifies 看完啦 and grants only its runtime hosts", () => {
   const manifest = JSON.parse(read("manifest.json"));
   const packageJson = JSON.parse(read("package.json"));
 
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.minimum_chrome_version, "116");
-  assert.equal(manifest.name, "看完了");
-  assert.equal(manifest.version, "2.1.3");
-  assert.equal(packageJson.name, "kanwanle");
+  assert.equal(manifest.name, "看完啦");
+  assert.equal(manifest.version, "2.2.0");
+  assert.equal(packageJson.name, "kanwanla");
   assert.equal(packageJson.version, manifest.version);
   assert.equal(manifest.options_ui.page, "options.html");
   assert.equal(manifest.permissions.includes("activeTab"), false);
@@ -52,12 +52,13 @@ test("published copy explains all transcript paths and upstream attribution", ()
   const english = read("README.en.md");
   const privacy = read("PRIVACY.md");
   const security = read("SECURITY.md");
+  const changelog = read("CHANGELOG.md");
   const license = read("LICENSE");
   const notice = read("NOTICE");
   const published = [chinese, chineseCompatibility, english, privacy, security].join("\n");
 
-  assert.match(chinese, /^# 看完了$/m);
-  assert.match(english, /^# KanWanLe$/m);
+  assert.match(chinese, /^# 看完啦$/m);
+  assert.match(english, /^# KanWanLa$/m);
   assert.match(chinese, /中文.*English/);
   assert.match(published, /Bilibili/i);
   assert.match(published, /B 站/);
@@ -74,7 +75,13 @@ test("published copy explains all transcript paths and upstream attribution", ()
   assert.match(published, /no local server/i);
   assert.match(english, /zarazhangrui\/youtube-digest/);
   assert.match(chinese, /zarazhangrui\/youtube-digest/);
-  assert.match(chinese, /Zhenxiangai\/kanwanle/);
+  assert.match(chinese, /Zhenxiangai\/kanwanla/);
+  assert.match(chinese, /版本更新：每次升级能得到什么/);
+  assert.match(chinese, /和参考项目相比，“看完啦”增加了什么/);
+  assert.match(chinese, /一个扩展同时支持 YouTube 和 B 站/);
+  assert.match(chinese, /这不是优劣排名/);
+  assert.match(changelog, /^## v2\.2\.0 — 名字统一，升级不丢数据$/m);
+  assert.match(changelog, /对你的价值/);
   assert.match(notice, /https:\/\/github\.com\/zarazhangrui\/youtube-digest/);
   assert.match(license, /Zara Zhang \(youtube-digest\)/);
   assert.match(license, /Zhenxiangai/);
@@ -91,12 +98,14 @@ test("release tooling includes platform and update modules", () => {
     "lib/wbi.js",
     "lib/bili-api.js",
     "transcripts.js",
+    "brand.js",
     "updates.js",
     "i18n.js",
     "notes.js",
     "analysis-progress.js",
     "learning-records.js",
     "README.en.md",
+    "CHANGELOG.md",
   ]) {
     assert.match(check, new RegExp(file.replace(/[.*+?^$\{\}()|[\]\\]/g, "\\$&")));
   }
@@ -125,6 +134,7 @@ test("runtime has no source-file credential dependency or retired provider endpo
     "options.js",
     "settings.js",
     "platforms.js",
+    "brand.js",
     "updates.js",
     "i18n.js",
     "notes.js",
@@ -158,7 +168,9 @@ test("update UI uses browser updates with validated GitCode-first fallback", () 
   assert.ok(manifest.host_permissions.includes("https://api.github.com/*"));
   assert.match(updateRuntime, /runtime\.requestUpdateCheck/);
   assert.match(updateRuntime, /runtime\.onUpdateAvailable/);
-  assert.match(background, /KANWANLE_UPDATES\.createManager/);
+  assert.match(background, /KANWANLA_UPDATES\.createManager/);
+  assert.match(background, /KANWANLA_BRAND\.readMigratedValue/);
+  assert.match(panelHtml, /<script src="brand\.js"><\/script>/);
   assert.match(updates, /RELEASES_URL/);
   assert.match(panelHtml, /id="updateBanner"/);
   assert.match(panelHtml, /<script src="updates\.js"><\/script>/);

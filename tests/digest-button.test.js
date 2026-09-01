@@ -159,7 +159,7 @@ function createHarness() {
         },
       },
     },
-    KANWANLE_I18N: i18n,
+    KANWANLA_I18N: i18n,
     MutationObserver: class {
       constructor(callback) {
         this.callback = callback;

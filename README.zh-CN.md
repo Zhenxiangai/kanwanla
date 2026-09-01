@@ -1,4 +1,4 @@
-# 看完了
+# 看完啦
 
 [中文](README.md) | [English](README.en.md)
 
@@ -7,20 +7,22 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Zhenxiangai/kanwanle/releases/latest"><strong>下载最新版</strong></a>
+  <a href="https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases"><strong>国内下载最新版</strong></a>
   ·
   <a href="#3-分钟完成安装"><strong>安装教程</strong></a>
   ·
+  <a href="#版本更新每次升级能得到什么"><strong>版本更新</strong></a>
+  ·
   <a href="#常见问题"><strong>常见问题</strong></a>
   ·
-  <a href="https://gitcode.com/gcw_XQNnjJtX/kanwanle"><strong>国内代码镜像</strong></a>
+  <a href="https://github.com/Zhenxiangai/kanwanla"><strong>GitHub 备用</strong></a>
 </p>
 
 > 完全不懂代码也可以使用。你只需要会下载 ZIP、打开浏览器扩展页面，并把自己的服务密钥粘贴到“设置”中。
 
 ## 它能帮你做什么
 
-| 你想做的事 | “看完了”会怎么帮你 |
+| 你想做的事 | “看完啦”会怎么帮你 |
 | --- | --- |
 | 看懂长视频 | 把字幕放到视频旁边，点击时间就能跳回对应画面。 |
 | 阅读外语视频 | 在原文、中文和双语对照之间切换。 |
@@ -29,7 +31,41 @@
 | 记下有用内容 | 点击“记笔记”或按键盘上的 `N`，保存当前时间和字幕。 |
 | 把学习内容交给 Agent | 一键复制学习记录，或下载 Markdown、JSON 文件。 |
 
-这些内容默认保存在你自己的浏览器里。“看完了”没有开发者服务器、账号系统、广告或分析统计，也不要求安装本地 AI 软件。
+这些内容默认保存在你自己的浏览器里。“看完啦”没有开发者服务器、账号系统、广告或分析统计，也不要求安装本地 AI 软件。
+
+## 和参考项目相比，“看完啦”增加了什么
+
+“看完啦”基于 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二次开发，B 站部分参考并改编自 [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest)。下面只写公开 README 和当前代码能核对的区别。
+
+| 你关心的功能 | 原始 YouTube 项目 | B 站参考项目 | 看完啦 |
+| --- | --- | --- | --- |
+| 支持的视频网站 | YouTube | B 站 | 一个扩展同时支持 YouTube 和 B 站。 |
+| YouTube 没有原生字幕 | 不生成字幕 | 不适用 | 可由用户主动开启 Supadata AI 转写后备；默认仍优先原生字幕。 |
+| AI 服务和模型 | 固定 DeepSeek V4 Flash | 填写自己的模型服务 | 默认使用硅基流动 DeepSeek V4 Flash，也可读取账号可用模型或手动更换。 |
+| 中文和语言选择 | 原文、中文、双语内容视图 | 原文、译文、双语，自动判断翻译方向 | 新安装中文优先；界面语言、AI 输出语言和字幕显示方式可以分别选择。 |
+| 遇到看不懂的一句话 | 选中文字后让 AI 解释 | 划词解释，并有整视频问答 | 选中文字后，不只解释，还能输入自己的具体疑问，让 AI 针对回答。 |
+| 记笔记和带走内容 | 保存带时间戳笔记 | 可编辑、搜索并导出学习稿 | YouTube 与 B 站都可点击或按 `N` 保存；立即显示真实保存内容，并可复制给 Agent、下载 Markdown 或 JSON。 |
+| 等待 AI 概览时 | 生成章节与重点 | 分块显示进度，可停止和补失败块 | 统一显示正在准备、等待模型、生成、整理等真实阶段和已用时间。 |
+| 安装后的更新 | 从 GitHub 手动下载 | Chrome / Edge 商店自动更新 | 侧栏顶端直接检查；国内优先 GitCode，失败自动回退 GitHub。解压安装版仍需手动覆盖并重新加载。 |
+
+简单说，“看完啦”最主要的增量不是把两个项目简单拼在一起，而是把双平台、可选模型、针对性提问、可靠笔记、Agent 学习记录和国内更新入口整理成同一套更容易上手的流程。
+
+> 这不是优劣排名。B 站参考项目目前还提供整视频问答、可编辑笔记和浏览器商店自动更新等能力；“看完啦”当前更侧重双平台统一、中文小白体验和把学习结果交给 Agent。对比依据为 2026-09-01 的公开说明，后续可能变化。
+
+## 版本更新：每次升级能得到什么
+
+### 最新版 v2.2.0：统一叫“看完啦”
+
+| 这次更新 | 对你的好处 |
+| --- | --- |
+| 扩展、仓库和安装包统一为“看完啦 / KanWanLa / kanwanla” | 名称和下载文件终于一致，不容易装错。 |
+| 自动兼容旧版浏览器数据 | 原来保存的设置、笔记、划线问答和学习记录会继续保留。 |
+| 首页开始记录每个版本的用户价值 | 更新前就能看懂新版解决了什么问题。 |
+| 国内下载和 GitHub 备用地址同步换新 | 国内优先从 GitCode 下载，访问失败还有 GitHub。 |
+
+以前几个版本也解决了很实际的问题：v2.1.3 增加国内下载，v2.1.2 把检查更新放到侧栏顶端，v2.1.1 修复笔记并加入划线提问、真实进度和 Agent 导出。
+
+[查看完整版本更新记录](CHANGELOG.md) · [查看所有发行版](https://github.com/Zhenxiangai/kanwanla/releases)
 
 ## 看一眼实际效果
 
@@ -98,8 +134,8 @@
 
 目前使用的是“手动安装版”。第一次操作多几步，后面就可以一直使用。
 
-1. 点击页面上方的[下载最新版](https://github.com/Zhenxiangai/kanwanle/releases/latest)。
-2. 在发行版页面下载名称类似 `kanwanle-v版本号.zip` 的文件。
+1. 国内用户先打开 [GitCode 发行版](https://gitcode.com/gcw_XQNnjJtX/kanwanla/releases)；如果无法访问，再打开 [GitHub 最新版](https://github.com/Zhenxiangai/kanwanla/releases/latest)。
+2. 在发行版页面下载名称类似 `kanwanla-v版本号.zip` 的文件。
 3. 找到下载好的 ZIP，双击或右键解压。请把解压后的文件夹放在一个长期不移动的位置。
 4. 打开浏览器扩展页面：
    - Chrome：在地址栏输入 `chrome://extensions`
@@ -108,19 +144,19 @@
 6. 点击**加载已解压的扩展程序**，选择刚才解压的文件夹。正确的文件夹里面能看到 `manifest.json`。
 7. 回到已经打开的 YouTube 或 B 站视频页面，刷新一次。
 
-如果浏览器侧栏标题仍然显示 “Video Digest”，说明选到了旧文件夹。请重新选择包含 `manifest.json`、扩展名称为“看完了”的新文件夹。
+如果扩展卡片的名称不是“看完啦”，或版本号低于本页最新版，说明选到了旧文件夹。请重新选择包含 `manifest.json` 的新版文件夹。
 
 ### 不想自己操作？复制这段给 Agent
 
 点击下面代码块右上角的复制按钮，把整段内容发送给 Codex、Hermes 或其他能够操作电脑的 Agent：
 
 ```text
-请协助我在这台电脑上安装“看完了”浏览器扩展。
+请协助我在这台电脑上安装“看完啦”浏览器扩展。
 
 官方项目：
-- GitHub：https://github.com/Zhenxiangai/kanwanle
-- 国内镜像：https://gitcode.com/gcw_XQNnjJtX/kanwanle
-- 最新版：https://github.com/Zhenxiangai/kanwanle/releases/latest
+- GitHub：https://github.com/Zhenxiangai/kanwanla
+- 国内镜像：https://gitcode.com/gcw_XQNnjJtX/kanwanla
+- 最新版：https://github.com/Zhenxiangai/kanwanla/releases/latest
 
 请按下面的顺序执行：
 1. 先确认这台电脑使用的操作系统，以及我要安装到 Chrome 还是 Edge；优先使用我当前正在使用的浏览器。
@@ -128,11 +164,11 @@
 3. 只从上面的官方项目下载最新发行版 ZIP。国内镜像有可用发行版时优先使用；否则使用 GitHub 最新发行版。
 4. 解压到一个长期保留、不会被系统自动清理的独立文件夹，并确认该文件夹里有 manifest.json。
 5. 打开 chrome://extensions 或 edge://extensions，开启开发者模式，选择“加载已解压的扩展程序”。如果这一步必须由我点击，请一次只告诉我一个简短操作，等我完成后再继续。
-6. 核对扩展卡片名称为“看完了”，并记录显示的版本号。不要删除、停用或重新配置其他扩展。
+6. 核对扩展卡片名称为“看完啦”，并记录显示的版本号。不要删除、停用或重新配置其他扩展。
 7. 打开一个正常的 YouTube 或 B 站视频页面并刷新，确认“摘要”或“记笔记”入口出现，侧边栏可以打开。
 8. 安装完成后，再引导我进入“设置”页面。API 密钥由我亲自填写；不要读取、复制、记录或代填任何 API 密钥。
 
-不要安装无关软件、本地服务或其他浏览器扩展。遇到失败时先说明具体原因，再给出最小的修复步骤。只有“看完了”扩展已加载，并且至少一个支持的视频页面能打开侧边栏，才算安装完成。
+不要安装无关软件、本地服务或其他浏览器扩展。遇到失败时先说明具体原因，再给出最小的修复步骤。只有“看完啦”扩展已加载，并且至少一个支持的视频页面能打开侧边栏，才算安装完成。
 ```
 
 ## 第一次使用：设置自己的服务
@@ -161,7 +197,7 @@
 ## 平时怎么用
 
 1. 打开一个 YouTube 或 B 站视频。
-2. 点击视频附近的**摘要**按钮，或打开浏览器侧边栏中的“看完了”。
+2. 点击视频附近的**摘要**按钮，或打开浏览器侧边栏中的“看完啦”。
 3. 在侧边栏上方选择：
    - **字幕**：阅读、搜索、翻译和跳转时间。
    - **概览**：生成章节和重点摘录。
@@ -185,11 +221,11 @@
 
 ## 如何更新
 
-1. 在“看完了”侧栏顶部点击**检查更新**。
+1. 在“看完啦”侧栏顶部点击**检查更新**。
 2. 如果出现**新版本 vX**，点击它会打开最新发行版页面。
 3. 下载新的 ZIP 并解压。
 4. 把新文件复制到原来的扩展文件夹中，选择覆盖同名文件。
-5. 回到 `chrome://extensions` 或 `edge://extensions`，在“看完了”卡片上点击**重新加载**。
+5. 回到 `chrome://extensions` 或 `edge://extensions`，在“看完啦”卡片上点击**重新加载**。
 6. 刷新视频页面。
 
 浏览器不允许手动安装的扩展自己覆盖本地文件，所以现在还不能做到真正的一键安装更新。顶部按钮负责提醒并带你打开正确的下载页。
@@ -214,7 +250,7 @@
 
 ### “摘要”或“记笔记”按钮没有出现
 
-先刷新视频页面。如果仍未出现，请到浏览器扩展页面，在“看完了”卡片上点击**重新加载**，再回到视频页面刷新。
+先刷新视频页面。如果仍未出现，请到浏览器扩展页面，在“看完啦”卡片上点击**重新加载**，再回到视频页面刷新。
 
 ### API 密钥会上传到项目作者那里吗
 
@@ -266,14 +302,14 @@ npm run check
 npm run package
 ```
 
-打包后会生成 `dist/kanwanle-v<版本>.zip`。提交改动前请同时检查 Chrome、Edge、YouTube 和 B 站。
+打包后会生成 `dist/kanwanla-v<版本>.zip`。提交改动前请同时检查 Chrome、Edge、YouTube 和 B 站。
 
 </details>
 
 <details>
 <summary><strong>开源来源与授权</strong></summary>
 
-“看完了”由 [Zhenxiangai/kanwanle](https://github.com/Zhenxiangai/kanwanle) 独立维护，基于 Zara Zhang 的 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二次开发，并依据 MIT License 使用和发布。
+“看完啦”由 [Zhenxiangai/kanwanla](https://github.com/Zhenxiangai/kanwanla) 独立维护，基于 Zara Zhang 的 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二次开发，并依据 MIT License 使用和发布。
 
 B 站字幕接入与按钮注入方案参考并改编自 [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest)，同样依据 MIT License 使用。
 
