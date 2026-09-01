@@ -60,9 +60,27 @@ test("subtitle body becomes seekable transcript entries", () => {
       { from: 5, to: 6, content: "   " },
     ],
   }), [
-    { text: "第一句", start: 0, duration: 2.5 },
-    { text: "第二句", start: 2.5, duration: 2.5 },
+    { text: "第一句，", start: 0, duration: 2.5 },
+    { text: "第二句，", start: 2.5, duration: 2.5 },
   ]);
+});
+
+test("unpunctuated Chinese Bilibili captions gain readable cue boundaries", () => {
+  const entries = API.normalizeSubtitleBody({
+    body: [
+      {
+        from: 0,
+        to: 6,
+        content: "这是第一段没有标点的中文字幕所以阅读起来比较费劲",
+      },
+      { from: 6, to: 8, content: "已经有标点。" },
+      { from: 8, to: 10, content: "English caption" },
+    ],
+  });
+
+  assert.match(entries[0].text, /[，。！？]$/);
+  assert.equal(entries[1].text, "已经有标点。");
+  assert.equal(entries[2].text, "English caption");
 });
 
 test("video and subtitle-list API requests include browser cookies", async () => {

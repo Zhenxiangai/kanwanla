@@ -40,7 +40,7 @@ test("all timestamped transcript row clicks use the selection-aware seek helper"
 test("the selection toolbar preserves selection and contains pointer events", () => {
   assert.match(
     source,
-    /class="explain-btn"[\s\S]*?>解释<[\s\S]*class="selection-note-btn"[\s\S]*?>笔记</,
+    /class="explain-btn"[\s\S]*?uiText\("explain"\)[\s\S]*class="selection-note-btn"[\s\S]*?uiText\("notes"\)/,
   );
   assert.match(
     source,

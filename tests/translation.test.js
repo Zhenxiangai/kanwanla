@@ -9,6 +9,8 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const platforms = require("../platforms.js");
 const biliApi = require("../lib/bili-api.js");
 const updates = require("../updates.js");
+const notes = require("../notes.js");
+const i18n = require("../i18n.js");
 
 function loadSidepanelHelpers({
   sendMessage = () => Promise.resolve({}),
@@ -73,6 +75,7 @@ function loadSidepanelHelpers({
     },
     YTD_SETTINGS: {},
     YTD_PLATFORMS: platforms,
+    BILI_API: biliApi,
   };
   sandbox.globalThis = sandbox;
   vm.runInNewContext(read("sidepanel.js"), sandbox);
@@ -94,9 +97,10 @@ function loadBackgroundHelpers({
     setPanelBehavior() {},
     setOptions: () => Promise.resolve(),
   },
+  initialStorage = {},
 } = {}) {
   const listeners = { addListener() {} };
-  const localStorage = { ytd_settings: settings };
+  const localStorage = { ...initialStorage, ytd_settings: settings };
   const sandbox = {
     console,
     URL,
@@ -151,6 +155,8 @@ function loadBackgroundHelpers({
     },
     YTD_PLATFORMS: platforms,
     KANWANLE_UPDATES: updates,
+    KANWANLE_NOTES: notes,
+    KANWANLE_I18N: i18n,
     BILI_API: biliApiImpl,
   };
   sandbox.globalThis = sandbox;
@@ -311,9 +317,12 @@ test("the header exposes one universal language control for all result tabs", ()
   assert.match(html, /data-transcript-mode="original"[\s\S]*?>原文</);
   assert.match(html, /data-transcript-mode="zh"[\s\S]*?>\u4e2d\u6587</);
   assert.match(html, /data-transcript-mode="bilingual"[\s\S]*?>\u53cc\u8bed</);
-  assert.match(html, /data-tab="transcript">字幕</);
-  assert.match(html, /data-tab="overview">概览</);
-  assert.match(html, /data-tab="notes">笔记</);
+  assert.match(html, /data-tab="transcript"[^>]*>字幕</);
+  assert.match(html, /data-tab="overview"[^>]*>概览</);
+  assert.match(
+    html,
+    /data-tab="notes"[\s\S]*?data-ui-i18n="notes">笔记<[\s\S]*?id="notesCount"/,
+  );
   assert.match(js, /handleDisplayLanguageModeChange\(button\.dataset\.transcriptMode\)/);
   assert.match(js, /contentType: "transcriptBatch"/);
   assert.match(js, /contentType: "interfaceBatch"/);
@@ -383,7 +392,7 @@ test("Overview shares the Transcript batch generation and retries when opened", 
 
   assert.ok(transcriptFunction);
   assert.doesNotMatch(transcriptFunction, /translationGeneration \+= 1/);
-  assert.match(js, /const TRANSLATION_BATCH_SIZE = 3/);
+  assert.match(js, /const TRANSLATION_BATCH_SIZE = 8/);
   assert.match(
     js,
     /const batch = missing\.slice\(start, start \+ TRANSLATION_BATCH_SIZE\)[\s\S]*?rerender\(\);[\s\S]*?await updateCache\(\)/,
@@ -450,6 +459,7 @@ test("Overview exits loading and shows a retryable error when its runtime messag
     isAnalysisLoading: false,
     ANALYSIS_MESSAGE_TIMEOUT_MS: 195_000,
     escapeHtml: (value) => String(value),
+    renderAnalysisProgress() {},
     renderAnalysisResults() {},
     highlightMomentsOnPage() {},
     saveToCache: async () => {},
@@ -513,6 +523,82 @@ test("selected transcript notes keep exact text and row timestamp", async () => 
   );
 });
 
+test("selection questions are bounded and included in the explanation request", async () => {
+  let aiRequest = null;
+  const fetchImpl = async (url, options = {}) => {
+    if (String(url).startsWith("chrome-extension://")) {
+      return {
+        ok: true,
+        text: async () => read("prompts/explain.md"),
+      };
+    }
+    aiRequest = JSON.parse(options.body);
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "针对问题的回答" } }],
+      }),
+    };
+  };
+  const helpers = loadBackgroundHelpers({ fetchImpl });
+
+  assert.equal(
+    helpers.normalizeSelectionQuestion(`  ${"疑问 ".repeat(200)}  `).length,
+    500,
+  );
+  const result = await helpers.handleExplainSelection(
+    "被选中的原文",
+    "有限的上下文",
+    "测试视频",
+    "这段话在实际工作中应该怎么用？",
+    { videoId: "video123abc", timestamp: 92 },
+  );
+
+  assert.equal(result.success, true);
+  assert.match(aiRequest.messages[1].content, /这段话在实际工作中应该怎么用/);
+  assert.match(aiRequest.messages[1].content, /被选中的原文/);
+});
+
+test("selection UI asks an optional question before submitting", () => {
+  const source = read("sidepanel.js");
+  assert.match(source, /id="explainQuestion"/);
+  assert.match(source, /maxlength="500"/);
+  assert.match(source, /userQuestion:/);
+  assert.match(source, /timestamp: selectedTimestamp/);
+});
+
+test("timed notes persist from cached captions without calling the AI provider", async () => {
+  let providerCalls = 0;
+  const providerMustNotRun = async () => {
+    providerCalls += 1;
+    throw new Error("A note save must not wait for a model");
+  };
+  const { handleSaveNote } = loadBackgroundHelpers({
+    fetchImpl: providerMustNotRun,
+    initialStorage: {
+      digest_video123abc: {
+        transcript: [
+          { start: 80, text: "前一句。" },
+          { start: 90, text: "这是用户刚刚听到的重点。" },
+          { start: 96, text: "下一句。" },
+        ],
+      },
+    },
+  });
+
+  const result = await handleSaveNote(
+    "video123abc",
+    92,
+    "Test video",
+    "Test channel",
+  );
+
+  assert.equal(result.success, true);
+  assert.equal(providerCalls, 0);
+  assert.match(result.note.text, /用户刚刚听到的重点/);
+  assert.equal(result.note.rawText, "这是用户刚刚听到的重点。");
+});
+
 test("Bilibili transcript routing does not require Supadata", async () => {
   const fakeBiliApi = {
     parseBvid: (value) => value,
@@ -570,6 +656,63 @@ test("Bilibili transcript routing does not require Supadata", async () => {
   assert.equal(result.videoInfo.page, 2);
 });
 
+test("cached Bilibili transcripts are upgraded to the readable punctuation format", () => {
+  const { upgradeCachedBilibiliTranscript } = loadSidepanelHelpers();
+  const original = {
+    transcript: [
+      {
+        text: "这是旧缓存里一整段没有任何标点的中文字幕所以更新后也要立即变得好读",
+        start: 65,
+        duration: 30,
+      },
+    ],
+    transcriptText: "旧文本",
+    transcriptTimestamped: "旧时间文本",
+  };
+
+  const upgraded = upgradeCachedBilibiliTranscript(original);
+
+  assert.notEqual(upgraded, original);
+  assert.match(upgraded.transcript[0].text, /[，。！？]/);
+  assert.match(upgraded.transcriptTimestamped, /^\[1:05\]/);
+  assert.equal(upgraded.bilibiliTranscriptFormatVersion, 1);
+});
+
+test("YouTube AI transcription fallback is explicit and uses Supadata auto mode", async () => {
+  let requestedUrl = "";
+  const { handleFetchTranscript } = loadBackgroundHelpers({
+    settings: {
+      provider: "siliconflow",
+      aiApiKey: "test-key",
+      aiBaseUrl: "https://api.siliconflow.cn/v1",
+      aiModel: "Qwen/Qwen3-8B",
+      supadataApiKey: "test-supadata-key",
+      youtubeTranscriptMode: "auto",
+    },
+    fetchImpl: async (url) => {
+      requestedUrl = String(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          content: [
+            { text: "Generated transcript.", offset: 0, duration: 1000, lang: "en" },
+          ],
+          lang: "en",
+          availableLangs: ["en"],
+        }),
+      };
+    },
+  });
+
+  const result = await handleFetchTranscript("video123abc", {
+    platform: "youtube",
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(new URL(requestedUrl).searchParams.get("mode"), "auto");
+});
+
 test("Bilibili login-only subtitles return a distinct action message", async () => {
   const fakeBiliApi = {
     parseBvid: (value) => value,
@@ -608,6 +751,34 @@ test("Bilibili selected notes preserve the part and timestamp deep link", async 
     result.note.timestampedUrl,
     "https://www.bilibili.com/video/BV1GJ411x7h7?p=2&t=95",
   );
+});
+
+test("timed-note transcript failures keep their actionable provider reason", async () => {
+  const fakeBiliApi = {
+    parseBvid: (value) => value,
+    fetchVideoInfo: async (bvid) => ({ bvid, aid: 1, cid: 2, page: 1 }),
+    fetchSubtitleTracks: async () => ({ tracks: [], needLogin: true }),
+  };
+  const { handleSaveNote } = loadBackgroundHelpers({
+    biliApiImpl: fakeBiliApi,
+  });
+
+  const result = await handleSaveNote(
+    "bilibili:BV1GJ411x7h7:p1",
+    30,
+    "测试视频",
+    "测试 UP",
+    "",
+    {
+      platform: "bilibili",
+      sourceVideoId: "BV1GJ411x7h7",
+      page: 1,
+    },
+  );
+
+  assert.equal(result.success, false);
+  assert.equal(result.error, "BILIBILI_LOGIN_REQUIRED");
+  assert.match(result.message, /登录/);
 });
 
 test("semantic segmentation rebuilds sentences across caption boundaries", () => {
@@ -749,7 +920,15 @@ test("background rejects unsupported language fallthrough and malformed batches"
   assert.match(source, /\["transcriptBatch", "interfaceBatch"\]/);
   assert.throws(
     () => validateTranscriptBatchRequest({ segments: [] }),
-    /1 to 4 segments/,
+    /1 to 8 segments/,
+  );
+  assert.doesNotThrow(() =>
+    validateTranscriptBatchRequest({
+      segments: Array.from({ length: 8 }, (_, index) => ({
+        id: `segment-${index}`,
+        text: `Source sentence ${index}.`,
+      })),
+    }),
   );
   assert.throws(
     () =>
@@ -850,11 +1029,11 @@ test("Overview enables SiliconFlow SSE and assembles streamed JSON content", asy
   );
   assert.match(
     analysisFunction,
-    /requestAiCompletion\(\{[\s\S]*?maxTokens:\s*isBilibili\s*\?\s*2048\s*:\s*4096/,
+    /requestAiCompletion\(\{[\s\S]*?maxTokens:\s*isBilibili\s*\?\s*1536\s*:\s*4096/,
   );
   assert.match(
     analysisFunction,
-    /requestAiCompletion\(\{[\s\S]*?thinkingBudget:\s*isBilibili\s*\?\s*256\s*:\s*1024/,
+    /requestAiCompletion\(\{[\s\S]*?thinkingBudget:\s*isBilibili\s*\?\s*128\s*:\s*1024/,
   );
 });
 
@@ -916,7 +1095,7 @@ test("Bilibili overview request stays within the fast-path budget", async () => 
     0,
   );
   assert.ok(
-    promptChars <= 40_000,
+    promptChars <= 32_000,
     "Bilibili overview prompt should be compact enough for a fast request; got " +
       promptChars +
       " characters",
@@ -925,8 +1104,8 @@ test("Bilibili overview request stays within the fast-path budget", async () => 
     request.messages.map((message) => message.content).join("\n"),
     /\[119:58\]/,
   );
-  assert.ok(request.max_tokens <= 2048);
-  assert.ok((request.thinking_budget || 0) <= 256);
+  assert.ok(request.max_tokens <= 1536);
+  assert.ok((request.thinking_budget || 0) <= 128);
 });
 
 test("Bilibili overview hard-caps unusually large individual cues", () => {
@@ -935,7 +1114,7 @@ test("Bilibili overview hard-caps unusually large individual cues", () => {
     "[0:00] " + "开".repeat(40_000) + "\n[99:59] " + "尾".repeat(40_000),
   );
 
-  assert.ok(compacted.length <= 32_000);
+  assert.ok(compacted.length <= 24_000);
   assert.match(compacted, /^\[0:00\]/);
   assert.match(compacted, /\[99:59\]/);
 });
@@ -1179,7 +1358,7 @@ test("SiliconFlow retries one empty transcript JSON response without response_fo
   assert.equal(requests.length, 2);
   assert.deepEqual(requests[0].response_format, { type: "json_object" });
   assert.equal(Object.hasOwn(requests[1], "response_format"), false);
-  assert.equal(requests[0].max_tokens, 1536);
+  assert.equal(requests[0].max_tokens, 3072);
 });
 
 test("interface batches use the dedicated Overview and Notes translation prompt", async () => {

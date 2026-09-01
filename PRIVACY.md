@@ -11,15 +11,15 @@ Depending on the site and feature, the extension handles:
 - the active YouTube video ID or Bilibili BV number and part number;
 - video title, creator or channel name, description, duration, and playback time;
 - subtitle text, timestamps, detected language, and whether a Bilibili track is AI-generated;
-- generated chapters, quotes, translations, explanations, and timestamped notes;
-- Supadata and SiliconFlow API keys plus the selected SiliconFlow chat-model ID; and
-- local UI preferences, cache timestamps, and transcript reading positions.
+- generated chapters, quotes, translations, explanations, optional questions about selected text, and timestamped notes;
+- Supadata and SiliconFlow API keys, the YouTube no-caption handling preference, plus the selected SiliconFlow chat-model ID; and
+- interface and AI-output language preferences, cache timestamps, transcript reading positions, and local learning-record revision metadata.
 
 ## Network requests
 
 ### Supadata
 
-For YouTube only, 看完了 sends the canonical YouTube watch URL to `https://api.supadata.ai` with the user-supplied Supadata API key. It requests native captions and receives subtitle text and timestamps.
+For YouTube only, 看完了 sends the canonical YouTube watch URL to `https://api.supadata.ai` with the user-supplied Supadata API key. By default it requests native captions and receives subtitle text and timestamps. If the user explicitly enables the no-caption AI fallback, the request uses Supadata's automatic mode, which may generate a transcript from the video when native captions are unavailable. Generated transcription can take longer and consume Supadata credits according to video duration.
 
 No Supadata request is made for Bilibili videos.
 
@@ -37,8 +37,7 @@ For AI features, 看完了 sends relevant subtitle text and video context direct
 
 - video title, creator, description, and duration;
 - timestamped transcript sections;
-- text selected for explanation;
-- note context; and
+- text selected for explanation and the optional question entered by the user; and
 - content selected for Chinese translation.
 
 For a long Bilibili overview, adjacent short caption cues are grouped before transmission. If the grouped transcript still exceeds the input limit, the extension sends evenly spaced timestamped sections across the video and preserves the beginning and end instead of sending every cue.
@@ -46,6 +45,8 @@ For a long Bilibili overview, adjacent short caption cues are grouped before tra
 When the user clicks **Load models**, Settings sends the SiliconFlow API key to `GET /v1/models?type=text&sub_type=chat`. That request does not contain a video URL, subtitle, or note.
 
 The 看完了 developer does not proxy or receive Supadata, Bilibili, or SiliconFlow requests.
+
+Timestamped notes are assembled and saved locally from the available caption cues. Saving a note does not wait for or send that note to SiliconFlow.
 
 ### GitHub release checks
 
@@ -58,19 +59,28 @@ This request does not contain Supadata or SiliconFlow API keys, video URLs, vide
 Chrome local extension storage contains:
 
 - Supadata and SiliconFlow settings and API keys;
+- the YouTube native-only or AI-fallback transcript preference;
 - the selected SiliconFlow chat-model ID;
 - cached transcripts, translations, overviews, and video metadata;
-- saved notes and timestamped links; and
-- UI and reading-position preferences.
+- saved notes and timestamped links;
+- saved selection questions and AI answers;
+- UI, output-language, and reading-position preferences;
+- stable learning-record revision fingerprints; and
 - public update metadata, the last check time, and a dismissed-version preference.
 
 YouTube keeps its historical raw video ID as the cache key. Bilibili uses a key containing the BV number and part number.
 
 Content scripts cannot read local extension storage because the background service worker restricts access to trusted extension contexts.
 
+## Learning-record exports
+
+The Notes tab can assemble the current source metadata, overview, key excerpts, saved notes, and selection Q&A into a copyable Agent prompt or downloadable Markdown/JSON file. This assembly happens locally in the extension. The complete transcript is excluded unless the user explicitly enables **Include full transcript**.
+
+看完了 does not automatically upload, sync, or send a learning record to Hermes or any other Agent. After copying or downloading, the user controls where that data goes. External tools that receive an exported record apply their own privacy and retention policies.
+
 ## Retention and deletion
 
-Digest cache entries expire after 30 days, and the extension keeps at most 20 cached videos. Notes remain until individually deleted or until all local data is cleared.
+Digest cache entries expire after 30 days, and the extension keeps at most 20 cached videos. Notes and saved selection Q&A are each capped at 100 entries. Notes can be deleted individually; saved selection Q&A and learning-record revision metadata are removed when all extension data is reset. Learning-record revision metadata is capped at 100 sources.
 
 Settings provides controls to clear cached digests or reset all 看完了 data. Uninstalling the extension also removes its Chrome extension storage. Clearing local data does not delete information already processed or retained by Supadata, Bilibili, or SiliconFlow.
 
@@ -81,7 +91,7 @@ Settings provides controls to clear cached digests or reset all 看完了 data. 
 - `tabs`: identify and message the active supported-video tab.
 - `scripting`: read canonical YouTube player metadata.
 - YouTube host access: interact with the active YouTube page.
-- Supadata host access: retrieve YouTube native captions.
+- Supadata host access: retrieve YouTube native captions and, only after explicit opt-in, request generated transcription when captions are unavailable.
 - SiliconFlow host access: list models and perform configured AI requests.
 - Bilibili host access: interact with Bilibili playback pages and retrieve metadata and subtitle tracks.
 - `*.hdslb.com` host access: download the selected Bilibili subtitle JSON.

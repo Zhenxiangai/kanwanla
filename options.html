@@ -20,6 +20,15 @@
             <button
               class="language-option"
               type="button"
+              data-language="auto"
+              aria-pressed="false"
+              data-i18n="automatic"
+            >
+              自动
+            </button>
+            <button
+              class="language-option"
+              type="button"
               data-language="en"
               aria-pressed="false"
             >
@@ -43,7 +52,7 @@
 
       <form id="settingsForm">
         <section class="card">
-          <h2 data-i18n="transcriptProvider">字幕服务</h2>
+          <h2 data-i18n="transcriptProvider">YouTube 字幕服务</h2>
           <label for="supadataApiKey" data-i18n="supadataApiKeyLabel"
             >Supadata API 密钥</label
           >
@@ -61,7 +70,7 @@
               >可选。仅用于获取带时间戳的 YouTube 字幕；B 站使用自己的字幕来源。</span
             >
             <a
-              href="https://dash.supadata.ai/auth/sign-up"
+              href="https://supadata.ai/?ref=xiang"
               target="_blank"
               rel="noreferrer"
               data-i18n="supadataLink"
@@ -70,10 +79,46 @@
               >。Supadata 会在引导流程中生成密钥。</span
             >
           </p>
+
+          <label
+            for="youtubeTranscriptMode"
+            data-i18n="youtubeTranscriptModeLabel"
+            >没有原生字幕时</label
+          >
+          <select id="youtubeTranscriptMode" name="youtubeTranscriptMode">
+            <option value="native" data-i18n="youtubeTranscriptModeNative">
+              仅使用原生字幕（更快、更省额度）
+            </option>
+            <option value="auto" data-i18n="youtubeTranscriptModeAuto">
+              使用 Supadata AI 转写作为后备
+            </option>
+          </select>
+          <p class="help" data-i18n="youtubeTranscriptModeHelp">
+            AI 转写需要用户主动开启，等待时间更长，Supadata 会按视频时长消耗生成式转写额度。
+          </p>
         </section>
 
         <section class="card">
-          <h2 data-i18n="aiProvider">AI 服务</h2>
+          <h2 data-i18n="bilibiliTranscriptProvider">B 站字幕服务</h2>
+          <div
+            class="provider-summary"
+            aria-label="B 站字幕来源"
+            data-i18n-aria-label="bilibiliProviderSummaryLabel"
+          >
+            <span class="provider-name" data-i18n="bilibiliProviderName"
+              >B 站官方字幕</span
+            >
+            <span class="provider-badge" data-i18n="bilibiliProviderBadge"
+              >无需 API 密钥</span
+            >
+          </div>
+          <p class="help" data-i18n="bilibiliTranscriptHelp">
+            直接读取 B 站官方字幕轨；部分视频需要先登录 B 站账号。
+          </p>
+        </section>
+
+        <section class="card">
+          <h2 data-i18n="aiProvider">AI 功能服务（YouTube / B 站通用）</h2>
           <div
             class="provider-summary"
             aria-label="支持的 AI 服务"
@@ -107,13 +152,6 @@
               rel="noreferrer noopener"
               data-i18n="siliconflowSignupLink"
               >注册硅基流动账号</a
-            ><span data-i18n="siliconflowLinkSeparator">，已有账号可</span
-            ><a
-              href="https://cloud.siliconflow.cn/account/ak"
-              target="_blank"
-              rel="noreferrer noopener"
-              data-i18n="siliconflowLink"
-              >管理 API 密钥</a
             ><span data-i18n="siliconflowHelpSuffix">。</span>
           </p>
 
@@ -142,6 +180,23 @@
             默认使用 DeepSeek V4 Flash。填写密钥后仍可加载并选择其他可用模型，也可以手动填写准确的模型 ID。
           </p>
           <span id="modelStatus" role="status" aria-live="polite"></span>
+
+          <label for="outputLanguage" data-i18n="outputLanguageLabel"
+            >AI 输出语言</label
+          >
+          <select id="outputLanguage" name="outputLanguage">
+            <option value="interface" data-i18n="outputLanguageInterface">
+              跟随界面语言
+            </option>
+            <option value="zh-CN" data-i18n="outputLanguageChinese">中文</option>
+            <option value="en" data-i18n="outputLanguageEnglish">English</option>
+            <option value="source" data-i18n="outputLanguageSource">
+              原视频语言
+            </option>
+          </select>
+          <p class="help" data-i18n="outputLanguageHelp">
+            仅控制概览和解释的输出；字幕的原文、中文、双语仍在侧栏单独选择。
+          </p>
 
           <div class="privacy-note" data-i18n="privacyNote">
             使用 AI 功能时，硅基流动及你选择的模型会收到字幕和相关视频上下文。

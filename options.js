@@ -2,38 +2,58 @@ const YTD_OPTIONS = (() => {
   const LANGUAGE_STORAGE_KEY = "ytd_options_language";
   const PREVIEW_STORAGE_PREFIX = "youtubeDigestPreview:";
   const SUPPORTED_LANGUAGES = new Set(["en", "zh-CN"]);
+  const SUPPORTED_LANGUAGE_PREFERENCES = new Set(["en", "zh-CN", "auto"]);
 
   const COPY = {
     en: {
       pageTitle: "KanWanLe Settings",
       languageGroupLabel: "Interface language",
+      automatic: "Auto",
       heading: "Bring your own API keys",
       lede:
         "Keys stay in this browser profile and are sent only to Supadata and SiliconFlow. This open-source extension has no developer server or analytics.",
-      transcriptProvider: "Transcript provider",
+      transcriptProvider: "YouTube transcript service",
       supadataApiKeyLabel: "Supadata API key",
       supadataApiKeyPlaceholder: "Paste your Supadata key",
       supadataHelp:
-        "Optional. Used only to fetch timestamped YouTube subtitles; Bilibili uses its own caption source. ",
+        "Optional. Used only to fetch timestamped YouTube subtitles. ",
       supadataLink: "Create a Supadata account and key",
       supadataHelpSuffix:
         ". Supadata generates the key during onboarding.",
-      aiProvider: "AI provider",
+      youtubeTranscriptModeLabel: "When native captions are unavailable",
+      youtubeTranscriptModeNative:
+        "Use native captions only (faster, lower credit use)",
+      youtubeTranscriptModeAuto:
+        "Use Supadata AI transcription as fallback",
+      youtubeTranscriptModeHelp:
+        "AI transcription is opt-in. It takes longer and Supadata charges generated-transcript credits by video duration.",
+      bilibiliTranscriptProvider: "Bilibili transcript service",
+      bilibiliProviderSummaryLabel: "Bilibili caption source",
+      bilibiliProviderName: "Official Bilibili captions",
+      bilibiliProviderBadge: "No API key",
+      bilibiliTranscriptHelp:
+        "Uses official Bilibili caption tracks. Some videos require you to be signed in to Bilibili.",
+      aiProvider: "AI features (YouTube and Bilibili)",
       providerSummaryLabel: "Supported AI provider",
       providerBadge: "Supported in this version",
       siliconflowApiKeyLabel: "SiliconFlow API key",
       siliconflowApiKeyPlaceholder: "Paste your SiliconFlow key",
       siliconflowHelp:
-        "Used for overviews, explanations, translation, note polishing, and loading the models available to your account. ",
+        "Used for overviews, explanations, translation, and loading the models available to your account. Notes are saved locally without model processing. ",
       siliconflowSignupLink: "Create a SiliconFlow account",
-      siliconflowLinkSeparator: "; existing users can ",
-      siliconflowLink: "manage API keys",
       siliconflowHelpSuffix: ".",
       aiModelLabel: "AI model",
       aiModelPlaceholder: "DeepSeek V4 Flash (default; changeable)",
       loadModels: "Load models",
       aiModelHelp:
         "DeepSeek V4 Flash is selected by default. After entering your key, you can still load and choose another available model or enter an exact model ID manually.",
+      outputLanguageLabel: "AI output language",
+      outputLanguageInterface: "Follow interface language",
+      outputLanguageChinese: "Chinese",
+      outputLanguageEnglish: "English",
+      outputLanguageSource: "Original video language",
+      outputLanguageHelp:
+        "Controls overviews and explanations only. Transcript display remains a separate setting in the side panel.",
       privacyNote:
         "When you use AI features, SiliconFlow and your selected model receive the transcript and relevant video context. Review SiliconFlow's terms and model pricing before saving.",
       saveSettings: "Save settings",
@@ -98,31 +118,48 @@ const YTD_OPTIONS = (() => {
     "zh-CN": {
       pageTitle: "看完了设置",
       languageGroupLabel: "界面语言",
+      automatic: "自动",
       heading: "使用你自己的 API 密钥",
       lede:
         "密钥仅保存在当前浏览器个人资料中，只会发送给 Supadata 和硅基流动。本开源扩展没有开发者服务器，也不使用分析服务。",
-      transcriptProvider: "字幕服务",
+      transcriptProvider: "YouTube 字幕服务",
       supadataApiKeyLabel: "Supadata API 密钥",
       supadataApiKeyPlaceholder: "粘贴 Supadata API 密钥",
-      supadataHelp: "可选。仅用于获取带时间戳的 YouTube 字幕；B 站使用自己的字幕来源。",
+      supadataHelp: "可选。仅用于获取带时间戳的 YouTube 字幕。",
       supadataLink: "创建 Supadata 账号并获取密钥",
       supadataHelpSuffix: "。Supadata 会在引导流程中生成密钥。",
-      aiProvider: "AI 服务",
+      youtubeTranscriptModeLabel: "没有原生字幕时",
+      youtubeTranscriptModeNative: "仅使用原生字幕（更快、更省额度）",
+      youtubeTranscriptModeAuto: "使用 Supadata AI 转写作为后备",
+      youtubeTranscriptModeHelp:
+        "AI 转写需要用户主动开启，等待时间更长，Supadata 会按视频时长消耗生成式转写额度。",
+      bilibiliTranscriptProvider: "B 站字幕服务",
+      bilibiliProviderSummaryLabel: "B 站字幕来源",
+      bilibiliProviderName: "B 站官方字幕",
+      bilibiliProviderBadge: "无需 API 密钥",
+      bilibiliTranscriptHelp:
+        "直接读取 B 站官方字幕轨；部分视频需要先登录 B 站账号。",
+      aiProvider: "AI 功能服务（YouTube / B 站通用）",
       providerSummaryLabel: "支持的 AI 服务",
       providerBadge: "当前版本支持",
       siliconflowApiKeyLabel: "硅基流动 API 密钥",
       siliconflowApiKeyPlaceholder: "粘贴硅基流动 API 密钥",
       siliconflowHelp:
-        "用于生成概览、解释内容、翻译字幕、润色笔记，以及读取当前账号可用的模型列表。",
+        "用于生成概览、解释内容、翻译字幕，以及读取当前账号可用的模型列表。笔记直接在浏览器内保存，不经过模型处理。",
       siliconflowSignupLink: "注册硅基流动账号",
-      siliconflowLinkSeparator: "，已有账号可",
-      siliconflowLink: "管理 API 密钥",
       siliconflowHelpSuffix: "。",
       aiModelLabel: "AI 模型",
       aiModelPlaceholder: "DeepSeek V4 Flash（默认，可更换）",
       loadModels: "加载模型",
       aiModelHelp:
         "默认使用 DeepSeek V4 Flash。填写密钥后仍可加载并选择其他可用模型，也可以手动填写准确的模型 ID。",
+      outputLanguageLabel: "AI 输出语言",
+      outputLanguageInterface: "跟随界面语言",
+      outputLanguageChinese: "中文",
+      outputLanguageEnglish: "English",
+      outputLanguageSource: "原视频语言",
+      outputLanguageHelp:
+        "仅控制概览和解释的输出；字幕的原文、中文、双语仍在侧栏单独选择。",
       privacyNote:
         "使用 AI 功能时，硅基流动及你选择的模型会收到字幕和相关视频上下文。保存前请查看硅基流动的服务条款和模型价格。",
       saveSettings: "保存设置",
@@ -180,6 +217,20 @@ const YTD_OPTIONS = (() => {
 
   function normalizeLanguage(language) {
     return SUPPORTED_LANGUAGES.has(language) ? language : "zh-CN";
+  }
+
+  function normalizeLanguagePreference(language) {
+    return SUPPORTED_LANGUAGE_PREFERENCES.has(language)
+      ? language
+      : "zh-CN";
+  }
+
+  function resolveLanguagePreference(preference, browserLanguage = "") {
+    const normalized = normalizeLanguagePreference(preference);
+    if (normalized !== "auto") return normalized;
+    return String(browserLanguage).toLowerCase().startsWith("zh")
+      ? "zh-CN"
+      : "en";
   }
 
   function translate(language, key, params = {}) {
@@ -292,17 +343,17 @@ const YTD_OPTIONS = (() => {
 
   async function readPreferredLanguage(storage) {
     const stored = await storage.get(LANGUAGE_STORAGE_KEY);
-    return normalizeLanguage(stored[LANGUAGE_STORAGE_KEY]);
+    return normalizeLanguagePreference(stored[LANGUAGE_STORAGE_KEY]);
   }
 
   async function persistPreferredLanguage(storage, language) {
-    const normalizedLanguage = normalizeLanguage(language);
+    const normalizedLanguage = normalizeLanguagePreference(language);
     await storage.set({ [LANGUAGE_STORAGE_KEY]: normalizedLanguage });
     return normalizedLanguage;
   }
 
   function updateLanguageButtonState(buttons, language) {
-    const normalizedLanguage = normalizeLanguage(language);
+    const normalizedLanguage = normalizeLanguagePreference(language);
     for (const button of buttons) {
       button.setAttribute(
         "aria-pressed",
@@ -430,9 +481,13 @@ const YTD_OPTIONS = (() => {
     const form = doc.getElementById("settingsForm");
     const aiApiKeyInput = doc.getElementById("aiApiKey");
     const aiModelInput = doc.getElementById("aiModel");
+    const outputLanguageInput = doc.getElementById("outputLanguage");
     const aiModelOptions = doc.getElementById("aiModelOptions");
     const loadModelsBtn = doc.getElementById("loadModelsBtn");
     const supadataApiKeyInput = doc.getElementById("supadataApiKey");
+    const youtubeTranscriptModeInput = doc.getElementById(
+      "youtubeTranscriptMode",
+    );
     const customizationPrompt = doc.getElementById("customizationPrompt");
     const copyCustomizationPromptBtn = doc.getElementById(
       "copyCustomizationPromptBtn",
@@ -447,6 +502,7 @@ const YTD_OPTIONS = (() => {
     // The static HTML is Chinese, so there is no English flash before the
     // stored choice is applied. English remains available as an explicit opt-in.
     let currentLanguage = "zh-CN";
+    let currentLanguagePreference = "zh-CN";
 
     function renderStatus(element) {
       const state = statusStates.get(element);
@@ -460,7 +516,14 @@ const YTD_OPTIONS = (() => {
       renderStatus(element);
     }
 
-    function applyLanguage(language) {
+    function applyLanguage(languagePreference) {
+      const normalizedPreference = normalizeLanguagePreference(
+        languagePreference,
+      );
+      const language = resolveLanguagePreference(
+        normalizedPreference,
+        root.navigator?.language,
+      );
       const nextDraft = switchPromptDraft(
         promptDrafts,
         currentLanguage,
@@ -468,6 +531,7 @@ const YTD_OPTIONS = (() => {
         customizationPrompt.value,
       );
       currentLanguage = nextDraft.language;
+      currentLanguagePreference = normalizedPreference;
       doc.documentElement.lang = currentLanguage;
       doc.title = translate(currentLanguage, "pageTitle");
 
@@ -500,7 +564,7 @@ const YTD_OPTIONS = (() => {
         customizationPrompt,
         nextDraft.prompt,
       );
-      updateLanguageButtonState(languageButtons, currentLanguage);
+      updateLanguageButtonState(languageButtons, currentLanguagePreference);
       for (const element of statusStates.keys()) renderStatus(element);
     }
 
@@ -514,7 +578,9 @@ const YTD_OPTIONS = (() => {
 
         aiApiKeyInput.value = settings.aiApiKey;
         aiModelInput.value = settings.aiModel;
+        outputLanguageInput.value = settings.outputLanguage;
         supadataApiKeyInput.value = settings.supadataApiKey;
+        youtubeTranscriptModeInput.value = settings.youtubeTranscriptMode;
         if (migration.migrated) {
           await storage.set({ [settingsApi.STORAGE_KEY]: settings });
           setStatus(saveStatus, "migrationWarning");
@@ -541,7 +607,9 @@ const YTD_OPTIONS = (() => {
         provider: settingsApi.DEFAULTS.provider,
         aiApiKey: aiApiKeyInput.value,
         aiModel: aiModelInput.value,
+        outputLanguage: outputLanguageInput.value,
         supadataApiKey: supadataApiKeyInput.value,
+        youtubeTranscriptMode: youtubeTranscriptModeInput.value,
       });
 
       if (!settings.aiApiKey) {
@@ -627,7 +695,7 @@ const YTD_OPTIONS = (() => {
       if (!confirmed) return;
 
       await storage.clear();
-      await persistPreferredLanguage(storage, currentLanguage);
+      await persistPreferredLanguage(storage, currentLanguagePreference);
       await loadSettings();
       setStatus(dataStatus, "allDataDeleted");
     }
@@ -648,6 +716,12 @@ const YTD_OPTIONS = (() => {
         const language = button.dataset.language;
         applyLanguage(language);
         await persistPreferredLanguage(storage, language);
+        await root.chrome?.runtime
+          ?.sendMessage?.({
+            action: "languageChanged",
+            preference: normalizeLanguagePreference(language),
+          })
+          ?.catch?.(() => {});
       });
     }
 
@@ -668,6 +742,8 @@ const YTD_OPTIONS = (() => {
     normalizeModelList,
     populateModelOptions,
     normalizeLanguage,
+    normalizeLanguagePreference,
+    resolveLanguagePreference,
     persistPreferredLanguage,
     readPreferredLanguage,
     translate,

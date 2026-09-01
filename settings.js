@@ -11,7 +11,9 @@ var YTD_SETTINGS = (() => {
     aiApiKey: "",
     aiBaseUrl: "https://api.siliconflow.cn/v1",
     aiModel: "deepseek-ai/DeepSeek-V4-Flash",
+    outputLanguage: "interface",
     supadataApiKey: "",
+    youtubeTranscriptMode: "native",
   });
 
   function isCurrentProvider(input) {
@@ -46,10 +48,17 @@ var YTD_SETTINGS = (() => {
       // New installs and empty/invalid legacy values use the fast default.
       // A valid user-selected model always wins.
       aiModel: selectedModel || DEFAULTS.aiModel,
+      outputLanguage: ["interface", "zh-CN", "en", "source"].includes(
+        input.outputLanguage,
+      )
+        ? input.outputLanguage
+        : DEFAULTS.outputLanguage,
       supadataApiKey:
         typeof input.supadataApiKey === "string"
           ? input.supadataApiKey.trim()
           : "",
+      youtubeTranscriptMode:
+        input.youtubeTranscriptMode === "auto" ? "auto" : "native",
     };
   }
 

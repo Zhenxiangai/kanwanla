@@ -28,10 +28,13 @@ let currentChannelName = "";
 let currentVideoDescription = "";
 let currentVideoDuration = 0;
 let isAnalysisLoading = false; // Track if analysis is in progress
+let currentAnalysisRequestId = null;
 let activeVideoTabId = null;
 let currentConfigStatus = null;
 let errorAction = null;
 let currentUpdateStatus = null;
+let interfaceLanguagePreference = "zh-CN";
+let interfaceLanguage = "zh-CN";
 
 // --- Translation state ---
 // The universal language control supports original content, Chinese, and an
@@ -49,9 +52,13 @@ let interfaceTranslationInFlight = new Set();
 let interfaceTranslationFailures = new Set();
 let currentNotes = [];
 let currentNotesFilterVideoId = null;
+let sidepanelNoteCaptureController = null;
+let currentLearningSessionId = null;
+const LEARNING_RECORD_REVISIONS_KEY = "kanwanle_learning_record_revisions";
 const TRANSLATION_MESSAGE_TIMEOUT_MS = 195_000;
 const ANALYSIS_MESSAGE_TIMEOUT_MS = 195_000;
-const TRANSLATION_BATCH_SIZE = 3;
+const TRANSLATION_BATCH_SIZE = 8;
+const BILIBILI_TRANSCRIPT_FORMAT_VERSION = 1;
 
 /**
  * Bound one Chrome runtime request without assuming the service worker will
@@ -400,6 +407,7 @@ function groupTranscriptEntries(entries, limits = TRANSCRIPT_SEGMENT_LIMITS) {
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await loadInterfaceLanguage();
   setTranscriptModeButtons("zh");
   setupEventListeners();
   void loadUpdateStatus();
@@ -434,7 +442,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     loadNotes(filterAll ? null : currentVideoId);
     sendResponse({ success: true });
   }
+  if (message.action === "showPanelTab" && message.tab === "notes") {
+    switchTab("notes");
+    const filterAll = document
+      .getElementById("notesFilterAll")
+      ?.classList.contains("active");
+    loadNotes(filterAll ? null : currentVideoId);
+    sendResponse({ success: true });
+  }
+  if (message.action === "languageChanged") {
+    applyInterfaceLanguage(message.preference);
+    sendResponse({ success: true });
+  }
+  if (message.action === "analysisProgress") {
+    if (
+      KANWANLE_ANALYSIS_PROGRESS.shouldApplyProgressEvent(
+        message,
+        currentAnalysisRequestId,
+      )
+    ) {
+      renderAnalysisProgress(message);
+    }
+    sendResponse({ success: true });
+  }
   return false;
+});
+
+chrome.storage?.onChanged?.addListener((changes, areaName) => {
+  if (
+    areaName === "local" &&
+    changes[KANWANLE_I18N.LANGUAGE_STORAGE_KEY]
+  ) {
+    applyInterfaceLanguage(
+      changes[KANWANLE_I18N.LANGUAGE_STORAGE_KEY].newValue,
+    );
+  }
 });
 
 // ============================================================
@@ -604,6 +646,26 @@ function setupEventListeners() {
     setNotesFilter(true);
     loadNotes(null); // Load all notes
   });
+  document
+    .getElementById("saveCurrentNoteBtn")
+    ?.addEventListener("click", saveCurrentNoteFromPanel);
+  document
+    .getElementById("learningExport")
+    ?.addEventListener("toggle", (event) => {
+      if (event.currentTarget.open) void updateLearningRecordPreview();
+    });
+  document
+    .getElementById("includeTranscriptInRecord")
+    ?.addEventListener("change", () => void updateLearningRecordPreview());
+  document
+    .getElementById("copyAgentPromptBtn")
+    ?.addEventListener("click", copyCurrentLearningRecordForAgent);
+  document
+    .getElementById("downloadLearningMarkdownBtn")
+    ?.addEventListener("click", downloadCurrentLearningMarkdown);
+  document
+    .getElementById("downloadLearningJsonBtn")
+    ?.addEventListener("click", downloadCurrentLearningJson);
 }
 
 function setNotesFilter(showAll) {
@@ -716,6 +778,60 @@ function currentVideoMessageContext() {
   };
 }
 
+function uiText(key, params = {}) {
+  return KANWANLE_I18N.translate(interfaceLanguage, key, params);
+}
+
+function applyInterfaceLanguage(preference) {
+  interfaceLanguagePreference = KANWANLE_I18N.normalizePreference(preference);
+  interfaceLanguage = KANWANLE_I18N.applyDocument(
+    document,
+    interfaceLanguagePreference,
+    KANWANLE_I18N.browserLanguage(chrome, navigator),
+  );
+}
+
+async function loadInterfaceLanguage() {
+  try {
+    const stored = await chrome.storage.local.get(
+      KANWANLE_I18N.LANGUAGE_STORAGE_KEY,
+    );
+    applyInterfaceLanguage(
+      stored[KANWANLE_I18N.LANGUAGE_STORAGE_KEY],
+    );
+  } catch (_error) {
+    applyInterfaceLanguage("zh-CN");
+  }
+}
+
+function showPanelNoteFeedback(result) {
+  return KANWANLE_NOTES.renderFeedback(document, result, {
+    id: "kanwanle-panel-note-feedback",
+    language: interfaceLanguage,
+    onOpenNotes: () => switchTab("notes"),
+  });
+}
+
+function getSidepanelNoteCaptureController() {
+  if (!sidepanelNoteCaptureController) {
+    sidepanelNoteCaptureController = KANWANLE_NOTES.createCaptureController({
+      save: (payload) => chrome.runtime.sendMessage(payload),
+      onStateChange(state) {
+        if (state.status === "saved") {
+          showPanelNoteFeedback({ success: true, note: state.note });
+        } else if (state.status === "error") {
+          showPanelNoteFeedback({
+            success: false,
+            error: state.error,
+            message: state.message,
+          });
+        }
+      },
+    });
+  }
+  return sidepanelNoteCaptureController;
+}
+
 // ============================================================
 // DIGEST PIPELINE
 // ============================================================
@@ -736,6 +852,13 @@ async function startDigest(videoRef, videoUrl) {
 
   // Every video change invalidates observer work and in-flight translations.
   if (videoChanged) {
+    currentLearningSessionId = KANWANLE_LEARNING_RECORDS.createSessionId({
+      platform: videoRef.platform,
+      videoId: videoRef.sourceVideoId,
+      page: videoRef.page,
+    });
+    currentAnalysisRequestId = null;
+    document.getElementById("analysisProgress")?.setAttribute("hidden", "");
     translationGeneration += 1;
     if (transcriptScrollObserver) transcriptScrollObserver.disconnect();
     transcriptScrollObserver = null;
@@ -1188,12 +1311,13 @@ async function saveQuoteAsNote(quote, btn) {
   btn.disabled = true;
 
   try {
-    const result = await chrome.runtime.sendMessage({
+    const result = await getSidepanelNoteCaptureController().capture({
       action: "saveNote",
       videoId: currentVideoId,
       timestamp: quote.timestampSeconds,
       videoTitle: currentVideoTitle,
       channelName: currentChannelName,
+      selectedText: String(quote.quote || "").slice(0, 3000),
       ...currentVideoMessageContext(),
     });
 
@@ -1203,8 +1327,6 @@ async function saveQuoteAsNote(quote, btn) {
         btn.textContent = originalText;
         btn.disabled = false;
       }, 1500);
-      // Refresh notes list if on Notes tab
-      loadNotes(currentVideoId);
     } else {
       console.error("[看完了] Save quote as note failed:", result.error);
       btn.textContent = "失败";
@@ -1716,6 +1838,17 @@ async function triggerAnalysis() {
     return;
 
   isAnalysisLoading = true;
+  currentAnalysisRequestId = `analysis_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+  renderAnalysisProgress({
+    requestId: currentAnalysisRequestId,
+    stage: "preparing",
+    elapsedMs: 0,
+    activityCount: 0,
+    phaseProgress: 12,
+    terminal: false,
+  });
 
   // Show loading indicators in the Overview tab
   const chapterList = document.getElementById("chapterList");
@@ -1738,6 +1871,7 @@ async function triggerAnalysis() {
         videoDescription: currentVideoDescription,
         videoDuration: currentVideoDuration,
         platform: currentVideoRef?.platform,
+        requestId: currentAnalysisRequestId,
       },
       ANALYSIS_MESSAGE_TIMEOUT_MS,
       "概览请求等待超过 195 秒，请重试。",
@@ -1753,6 +1887,7 @@ async function triggerAnalysis() {
     }
 
     currentAnalysis = analysisResult.analysis;
+    if (analysisResult.timing) renderAnalysisProgress(analysisResult.timing);
     renderAnalysisResults(currentAnalysis);
     highlightMomentsOnPage(currentAnalysis.keyMoments);
 
@@ -1767,6 +1902,36 @@ async function triggerAnalysis() {
   }
 
   isAnalysisLoading = false;
+}
+
+function renderAnalysisProgress(event) {
+  if (!event || event.requestId !== currentAnalysisRequestId) return;
+  const container = document.getElementById("analysisProgress");
+  const stage = document.getElementById("analysisProgressStage");
+  const elapsed = document.getElementById("analysisProgressElapsed");
+  const fill = document.getElementById("analysisProgressFill");
+  const activity = document.getElementById("analysisProgressActivity");
+  if (!container) return;
+
+  const stageKeys = {
+    preparing: "analysisPreparing",
+    requesting: "analysisRequesting",
+    streaming: "analysisStreaming",
+    parsing: "analysisParsing",
+    done: "analysisDone",
+    error: "analysisError",
+  };
+  container.hidden = false;
+  if (stage) stage.textContent = uiText(stageKeys[event.stage] || "analysisPreparing");
+  if (elapsed) elapsed.textContent = `${(Math.max(0, Number(event.elapsedMs) || 0) / 1000).toFixed(1)} 秒`;
+  if (fill) {
+    fill.style.width = `${Math.max(0, Math.min(100, Number(event.phaseProgress) || 0))}%`;
+  }
+  if (activity) {
+    activity.textContent = event.activityCount
+      ? `已收到 ${event.activityCount} 个实时数据片段；模型未提供精确剩余量。`
+      : "进度按真实处理阶段显示，不估算模型剩余时间。";
+  }
 }
 
 // ============================================================
@@ -1893,8 +2058,12 @@ async function copyToClipboardWithFeedback(text, buttonId) {
   }
 }
 
-function downloadTextFile(text, filename) {
-  const blob = new Blob([text], { type: "text/plain" });
+function downloadTextFile(
+  text,
+  filename,
+  mimeType = "text/plain;charset=utf-8",
+) {
+  const blob = new Blob([text], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1903,12 +2072,179 @@ function downloadTextFile(text, filename) {
   URL.revokeObjectURL(url);
 }
 
+function setLearningExportStatus(message) {
+  const status = document.getElementById("learningExportStatus");
+  if (status) status.textContent = message;
+}
+
+async function buildCurrentLearningRecord({ persistRevision = true } = {}) {
+  if (!currentVideoRef || !currentVideoId) {
+    throw new Error("请先打开并载入一个 YouTube 或 B 站视频。");
+  }
+  const includeTranscript = Boolean(
+    document.getElementById("includeTranscriptInRecord")?.checked,
+  );
+  const [notesResult, stored, language] = await Promise.all([
+    chrome.runtime.sendMessage({
+      action: "getNotes",
+      videoId: currentVideoId,
+    }),
+    chrome.storage.local.get([
+      "kanwanle_annotations",
+      LEARNING_RECORD_REVISIONS_KEY,
+    ]),
+    chrome.runtime.sendMessage({ action: "getLanguagePreferences" }),
+  ]);
+  const annotations = (
+    Array.isArray(stored.kanwanle_annotations)
+      ? stored.kanwanle_annotations
+      : []
+  ).filter(
+    (annotation) =>
+      annotation.videoId === currentVideoId ||
+      (annotation.sourceVideoId &&
+        annotation.sourceVideoId === currentVideoRef.sourceVideoId),
+  );
+  const baseInput = {
+    source: {
+      platform: currentVideoRef.platform,
+      videoId: currentVideoRef.sourceVideoId,
+      page: currentVideoRef.page,
+      title: currentVideoTitle,
+      author: currentChannelName,
+      url: currentVideoUrl,
+      duration: currentVideoDuration,
+      sourceLanguage: currentTranscriptLanguage,
+    },
+    preferences: {
+      interfaceLanguage,
+      outputLanguage: language?.outputLanguage || "interface",
+      transcriptDisplayMode: currentTranscriptMode,
+    },
+    overview: currentAnalysis || {},
+    notes: notesResult?.success ? notesResult.notes : [],
+    annotations,
+    transcript: currentTranscript,
+    sessionId:
+      currentLearningSessionId ||
+      KANWANLE_LEARNING_RECORDS.createSessionId({
+        platform: currentVideoRef.platform,
+        videoId: currentVideoRef.sourceVideoId,
+        page: currentVideoRef.page,
+      }),
+    revision: 1,
+    extensionVersion: chrome.runtime.getManifest?.().version || "",
+  };
+  const provisional = KANWANLE_LEARNING_RECORDS.buildLearningRecord(
+    baseInput,
+    { includeTranscript },
+  );
+  const fingerprint =
+    KANWANLE_LEARNING_RECORDS.fingerprintRecord(provisional);
+  const revisionState =
+    stored[LEARNING_RECORD_REVISIONS_KEY] &&
+    typeof stored[LEARNING_RECORD_REVISIONS_KEY] === "object"
+      ? stored[LEARNING_RECORD_REVISIONS_KEY]
+      : {};
+  const previous = revisionState[provisional.recordId];
+  const revision =
+    previous?.fingerprint === fingerprint
+      ? Math.max(1, Number(previous.revision) || 1)
+      : previous
+        ? Math.max(1, Number(previous.revision) || 1) + 1
+        : 1;
+  const record = KANWANLE_LEARNING_RECORDS.buildLearningRecord(
+    { ...baseInput, revision },
+    { includeTranscript },
+  );
+  if (persistRevision) {
+    revisionState[record.recordId] = { revision, fingerprint };
+    const boundedRevisionState = Object.fromEntries(
+      Object.entries(revisionState).slice(-100),
+    );
+    await chrome.storage.local.set({
+      [LEARNING_RECORD_REVISIONS_KEY]: boundedRevisionState,
+    });
+  }
+  return record;
+}
+
+async function updateLearningRecordPreview() {
+  const preview = document.getElementById("learningRecordPreview");
+  if (!preview) return;
+  try {
+    const record = await buildCurrentLearningRecord({
+      persistRevision: false,
+    });
+    preview.textContent = [
+      `${record.overview.chapters.length} 个章节`,
+      `${record.overview.keyQuotes.length} 条重点摘录`,
+      `${record.notes.length} 条笔记`,
+      `${record.annotations.length} 条划线问答`,
+      record.transcript
+        ? `${record.transcript.length} 条字幕（已选择包含）`
+        : "完整字幕未包含",
+    ].join(" · ");
+    setLearningExportStatus("");
+  } catch (error) {
+    preview.textContent = error.message;
+  }
+}
+
+async function copyCurrentLearningRecordForAgent() {
+  setLearningExportStatus("正在整理学习记录…");
+  try {
+    const record = await buildCurrentLearningRecord();
+    await navigator.clipboard.writeText(
+      KANWANLE_LEARNING_RECORDS.toAgentPrompt(record),
+    );
+    setLearningExportStatus(
+      `已复制给 Agent（${record.recordId}，修订 ${record.revision}）。`,
+    );
+  } catch (error) {
+    setLearningExportStatus(`复制失败：${error.message}`);
+  }
+}
+
+async function downloadCurrentLearningMarkdown() {
+  setLearningExportStatus("正在生成 Markdown…");
+  try {
+    const record = await buildCurrentLearningRecord();
+    downloadTextFile(
+      KANWANLE_LEARNING_RECORDS.toMarkdown(record),
+      `${sanitizeFilename(record.source.title)}-learning-record.md`,
+      "text/markdown;charset=utf-8",
+    );
+    setLearningExportStatus("Markdown 已下载。");
+  } catch (error) {
+    setLearningExportStatus(`下载失败：${error.message}`);
+  }
+}
+
+async function downloadCurrentLearningJson() {
+  setLearningExportStatus("正在生成 JSON…");
+  try {
+    const record = await buildCurrentLearningRecord();
+    downloadTextFile(
+      KANWANLE_LEARNING_RECORDS.toJson(record),
+      `${sanitizeFilename(record.source.title)}-learning-record.json`,
+      "application/json;charset=utf-8",
+    );
+    setLearningExportStatus("JSON 已下载。");
+  } catch (error) {
+    setLearningExportStatus(`下载失败：${error.message}`);
+  }
+}
+
 function sanitizeFilename(str) {
-  return (str || "untitled")
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .substring(0, 50)
-    .toLowerCase();
+  return (
+    String(str || "untitled")
+      .normalize("NFKC")
+      .replace(/[^\p{L}\p{N}\s-]/gu, "")
+      .replace(/\s+/g, "-")
+      .substring(0, 50)
+      .toLowerCase() || "untitled"
+  );
 }
 
 // ============================================================
@@ -1950,8 +2286,8 @@ function setupExplainFeature() {
   tooltip.setAttribute("role", "toolbar");
   tooltip.setAttribute("aria-label", "所选字幕操作");
   tooltip.innerHTML = `
-    <button class="explain-btn" type="button">解释</button>
-    <button class="selection-note-btn" type="button">笔记</button>
+    <button class="explain-btn" type="button">${uiText("explain")}</button>
+    <button class="selection-note-btn" type="button">${uiText("notes")}</button>
   `;
   tooltip.style.display = "none";
   document.body.appendChild(tooltip);
@@ -2033,7 +2369,7 @@ function setupExplainFeature() {
       if (!selectedText) return;
 
       tooltip.style.display = "none";
-      await showExplanation(selectedText);
+      await showExplanation(selectedText, selectedTimestamp);
     });
 
   // Save the exact selected words at the first selected transcript row. This
@@ -2051,7 +2387,7 @@ function setupExplainFeature() {
       button.disabled = true;
 
       try {
-        const result = await chrome.runtime.sendMessage({
+        const result = await getSidepanelNoteCaptureController().capture({
           action: "saveNote",
           videoId: currentVideoId,
           timestamp: selectedTimestamp,
@@ -2062,11 +2398,15 @@ function setupExplainFeature() {
         });
 
         if (!result?.success) {
-          throw new Error(result?.error || "无法保存笔记");
+          button.textContent = "失败";
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.disabled = false;
+          }, 1500);
+          return;
         }
 
         button.textContent = "已保存";
-        loadNotes(currentVideoId);
         setTimeout(() => {
           tooltip.style.display = "none";
           button.textContent = originalText;
@@ -2086,7 +2426,8 @@ function setupExplainFeature() {
 /**
  * Shows the explanation modal and fetches it from the configured AI provider.
  */
-async function showExplanation(selectedText) {
+async function showExplanation(selectedText, selectedTimestamp = 0) {
+  document.getElementById("explainModal")?.remove();
   // Create modal
   const modal = document.createElement("div");
   modal.id = "explainModal";
@@ -2094,15 +2435,17 @@ async function showExplanation(selectedText) {
   modal.innerHTML = `
     <div class="explain-modal">
       <div class="explain-modal-header">
-        <div class="explain-modal-title">解释</div>
-        <button class="explain-modal-close" id="closeExplain">关闭</button>
+        <div class="explain-modal-title">${uiText("explain")}</div>
+        <button class="explain-modal-close" id="closeExplain">${uiText("close")}</button>
       </div>
       <div class="explain-selected-text">"${escapeHtml(selectedText.substring(0, 200))}${selectedText.length > 200 ? "..." : ""}"</div>
+      <form class="explain-question-form" id="explainQuestionForm">
+        <label for="explainQuestion">${uiText("optionalQuestion")}</label>
+        <textarea id="explainQuestion" maxlength="500" rows="3" placeholder="${uiText("questionPlaceholder")}"></textarea>
+        <button class="explain-submit" id="submitExplain" type="submit">${uiText("analyzeSelection")}</button>
+      </form>
       <div class="explain-modal-content" id="explanationContent">
-        <div class="explain-loading">
-          <div class="loading-bar"></div>
-          <span>正在分析…</span>
-        </div>
+        <div class="explain-ready-hint">${uiText("explanationReadyHint")}</div>
       </div>
     </div>
   `;
@@ -2117,28 +2460,51 @@ async function showExplanation(selectedText) {
     if (e.target === modal) modal.remove();
   });
 
-  // Get some context around the selection from the transcript
-  const transcriptContext = getTranscriptContext(selectedText);
+  const form = modal.querySelector("#explainQuestionForm");
+  const questionInput = modal.querySelector("#explainQuestion");
+  const submitButton = modal.querySelector("#submitExplain");
+  const contentDiv = modal.querySelector("#explanationContent");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (submitButton.disabled) return;
+    submitButton.disabled = true;
+    submitButton.textContent = uiText("analyzing");
+    contentDiv.innerHTML = `
+      <div class="explain-loading">
+        <div class="loading-bar"></div>
+        <span>${uiText("analyzing")}</span>
+      </div>`;
 
-  // Fetch explanation
-  try {
-    const result = await chrome.runtime.sendMessage({
-      action: "explainSelection",
-      selectedText: selectedText,
-      transcriptContext: transcriptContext,
-      videoTitle: currentVideoTitle,
-    });
+    const transcriptContext = getTranscriptContext(selectedText);
+    try {
+      const result = await sendRuntimeMessageWithTimeout(
+        {
+          action: "explainSelection",
+          selectedText,
+          transcriptContext,
+          videoTitle: currentVideoTitle,
+          userQuestion: questionInput.value,
+          videoId: currentVideoId,
+          timestamp: selectedTimestamp,
+          ...currentVideoMessageContext(),
+        },
+        ANALYSIS_MESSAGE_TIMEOUT_MS,
+        "解释请求等待超时，请重试。",
+      );
 
-    const contentDiv = document.getElementById("explanationContent");
-    if (result.success) {
-      contentDiv.innerHTML = `<div class="explain-text">${escapeHtml(result.explanation).replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</div>`;
-    } else {
-      contentDiv.innerHTML = `<div class="explain-error">无法获取解释：${escapeHtml(result.error)}</div>`;
+      if (result.success) {
+        contentDiv.innerHTML = `<div class="explain-text">${escapeHtml(result.explanation).replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>")}</div>`;
+      } else {
+        contentDiv.innerHTML = `<div class="explain-error">${escapeHtml(result.message || result.error || "无法获取解释")}</div>`;
+      }
+    } catch (error) {
+      contentDiv.innerHTML = `<div class="explain-error">${escapeHtml(error.message)}</div>`;
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = uiText("analyzeSelection");
     }
-  } catch (error) {
-    const contentDiv = document.getElementById("explanationContent");
-    contentDiv.innerHTML = `<div class="explain-error">错误：${escapeHtml(error.message)}</div>`;
-  }
+  });
+  questionInput.focus();
 }
 
 /**
@@ -2200,6 +2566,12 @@ async function saveToCache(videoId) {
       paragraphCache: paragraphCacheForVideo,
       interfaceCache: interfaceCacheForVideo,
       timestamp: Date.now(),
+      ...(currentVideoRef?.platform === "bilibili"
+        ? {
+            bilibiliTranscriptFormatVersion:
+              BILIBILI_TRANSCRIPT_FORMAT_VERSION,
+          }
+        : {}),
     };
 
     await chrome.storage.local.set({ [`digest_${videoId}`]: cacheData });
@@ -2267,7 +2639,7 @@ async function loadFromCache(videoId) {
 
   try {
     const result = await chrome.storage.local.get(`digest_${videoId}`);
-    const cached = result[`digest_${videoId}`];
+    let cached = result[`digest_${videoId}`];
 
     if (!cached) return null;
 
@@ -2278,11 +2650,55 @@ async function loadFromCache(videoId) {
       return null;
     }
 
+    if (
+      videoId.startsWith("bilibili:") &&
+      cached.bilibiliTranscriptFormatVersion !==
+        BILIBILI_TRANSCRIPT_FORMAT_VERSION
+    ) {
+      const upgraded = upgradeCachedBilibiliTranscript(cached);
+      if (upgraded !== cached) {
+        cached = upgraded;
+        await chrome.storage.local.set({ [`digest_${videoId}`]: cached });
+      }
+    }
+
     return cached;
   } catch (error) {
     console.error("Cache load error:", error);
     return null;
   }
+}
+
+function upgradeCachedBilibiliTranscript(cached) {
+  if (
+    typeof BILI_API === "undefined" ||
+    typeof BILI_API.formatSubtitleCueText !== "function" ||
+    !Array.isArray(cached?.transcript)
+  ) {
+    return cached;
+  }
+  const transcript = cached.transcript.map((entry) => ({
+    ...entry,
+    text: BILI_API.formatSubtitleCueText(entry?.text, entry?.duration),
+  }));
+  const formatTimestamp = (value) => {
+    const wholeSeconds = Math.max(0, Math.floor(Number(value) || 0));
+    const hours = Math.floor(wholeSeconds / 3600);
+    const minutes = Math.floor((wholeSeconds % 3600) / 60);
+    const seconds = wholeSeconds % 60;
+    return hours
+      ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+      : `${minutes}:${String(seconds).padStart(2, "0")}`;
+  };
+  return {
+    ...cached,
+    transcript,
+    transcriptText: transcript.map((entry) => entry.text).join(" "),
+    transcriptTimestamped: transcript
+      .map((entry) => `[${formatTimestamp(entry.start)}] ${entry.text}`)
+      .join("\n"),
+    bilibiliTranscriptFormatVersion: BILIBILI_TRANSCRIPT_FORMAT_VERSION,
+  };
 }
 
 /**
@@ -2319,12 +2735,71 @@ async function loadNotes(videoId) {
   }
 }
 
+/** Saves the active player's current moment directly from the Notes tab. */
+async function saveCurrentNoteFromPanel() {
+  const button = document.getElementById("saveCurrentNoteBtn");
+  if (!button || !currentVideoId || !activeVideoTabId) {
+    showPanelNoteFeedback({
+      success: false,
+      error: "NO_ACTIVE_VIDEO",
+      message: "请先打开一个 YouTube 或 B 站视频。",
+    });
+    return;
+  }
+
+  const label = button.querySelector("[data-ui-i18n='saveCurrent']");
+  const originalText = label?.textContent || uiText("saveCurrent");
+  button.disabled = true;
+  if (label) label.textContent = uiText("saving");
+  try {
+    const timeResult = await chrome.runtime.sendMessage({
+      action: "relayToContent",
+      tabId: activeVideoTabId,
+      payload: { action: "getCurrentTime" },
+    });
+    if (!timeResult?.success || !timeResult.response) {
+      throw new Error("无法读取当前播放时间，请刷新视频页面后重试。");
+    }
+
+    const result = await getSidepanelNoteCaptureController().capture({
+      action: "saveNote",
+      videoId: currentVideoId,
+      timestamp: Math.max(
+        0,
+        Math.floor(Number(timeResult.response.currentTime) || 0) - 3,
+      ),
+      videoTitle: currentVideoTitle,
+      channelName: currentChannelName,
+      ...currentVideoMessageContext(),
+    });
+    if (label) {
+      label.textContent = result.success ? uiText("saved") : uiText("saveFailed");
+    }
+  } catch (error) {
+    showPanelNoteFeedback({
+      success: false,
+      error: "CURRENT_TIME_FAILED",
+      message: error.message,
+    });
+    if (label) label.textContent = uiText("saveFailed");
+  } finally {
+    setTimeout(() => {
+      if (!button.isConnected) return;
+      if (label) label.textContent = originalText;
+      button.disabled = false;
+    }, 1500);
+  }
+}
+
 /**
  * Renders the notes list in the Notes tab.
  */
 function renderNotes(notes, filteredVideoId) {
   const notesList = document.getElementById("notesList");
   const notesIntro = document.getElementById("notesIntro");
+  const notesCount = document.getElementById("notesCount");
+
+  if (notesCount) notesCount.textContent = String(notes?.length || 0);
 
   if (!notesList) return;
 
@@ -2333,8 +2808,8 @@ function renderNotes(notes, filteredVideoId) {
   if (!notes || notes.length === 0) {
     notesIntro.style.display = "block";
     notesIntro.textContent = filteredVideoId
-      ? "当前视频还没有笔记。将鼠标移到视频上并点击“笔记”即可保存。"
-      : "还没有已保存的笔记。将鼠标移到视频上并点击“笔记”即可保存。";
+      ? uiText("noNotesCurrent")
+      : uiText("noNotesAny");
     return;
   }
 
@@ -3173,4 +3648,5 @@ globalThis.__YTD_TRANSCRIPT_TESTING__ = {
   getNavigationUrl,
   renderSubtitleInlineMarkup,
   renderTranscriptSegmentContent,
+  upgradeCachedBilibiliTranscript,
 };

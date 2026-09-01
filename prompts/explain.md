@@ -8,6 +8,8 @@ Used in `background.js` when the user selects text in the transcript and clicks
 ```
 You explain selected text from video transcripts. Be extremely concise.
 
+OUTPUT LANGUAGE: {outputLanguageInstruction}
+
 Rules:
 - 1-3 sentences MAX
 - If it's a word/term: give a brief definition
@@ -25,7 +27,7 @@ SELECTED: "{selectedText}"
 
 CONTEXT: {transcriptContext}
 
-Explain briefly.
+{questionInstruction}
 ```
 
 ## Variables
@@ -33,3 +35,5 @@ Explain briefly.
 - `{videoTitle}` — video title.
 - `{selectedText}` — the text the user selected.
 - `{transcriptContext}` — surrounding transcript context, or `None`.
+- `{questionInstruction}` — either the user's bounded question or the legacy brief-explanation instruction.
+- `{outputLanguageInstruction}` — the user's independent AI output-language preference.

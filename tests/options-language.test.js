@@ -155,9 +155,14 @@ test("customization prompt switches languages and preserves technical values", (
 
   assert.match(html, /placeholder="粘贴 Supadata API 密钥"/);
   assert.match(html, /placeholder="粘贴硅基流动 API 密钥"/);
-  assert.match(html, /https:\/\/dash\.supadata\.ai\/auth\/sign-up/);
+  assert.match(html, /https:\/\/supadata\.ai\/\?ref=xiang/);
+  assert.doesNotMatch(html, /dash\.supadata\.ai\/auth\/sign-up/);
   assert.match(html, /https:\/\/cloud\.siliconflow\.cn\/i\/w3LDYnbF/);
-  assert.match(html, /https:\/\/cloud\.siliconflow\.cn\/account\/ak/);
+  assert.doesNotMatch(html, /https:\/\/cloud\.siliconflow\.cn\/account\/ak/);
+  assert.equal(options.translate("zh-CN", "transcriptProvider"), "YouTube 字幕服务");
+  assert.equal(options.translate("zh-CN", "bilibiliTranscriptProvider"), "B 站字幕服务");
+  assert.match(html, /data-i18n="bilibiliTranscriptProvider"/);
+  assert.match(html, /id="youtubeTranscriptMode"/);
   assert.match(
     html,
     /value="deepseek-ai\/DeepSeek-V4-Flash"/,

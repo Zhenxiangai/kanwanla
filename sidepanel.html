@@ -24,6 +24,7 @@
             type="button"
             title="打开看完了设置"
             aria-label="打开看完了设置"
+            data-ui-i18n="settings"
           >
             设置
           </button>
@@ -39,18 +40,21 @@
               type="button"
               data-transcript-mode="original"
               aria-pressed="false"
+              data-ui-i18n="original"
             >原文</button>
             <button
               class="transcript-mode-btn active"
               type="button"
               data-transcript-mode="zh"
               aria-pressed="true"
+              data-ui-i18n="chinese"
             >中文</button>
             <button
               class="transcript-mode-btn"
               type="button"
               data-transcript-mode="bilingual"
               aria-pressed="false"
+              data-ui-i18n="bilingual"
             >双语</button>
             <span
               class="translation-spinner"
@@ -63,9 +67,9 @@
 
       <!-- Tab navigation -->
       <div class="tabs" id="tabsNav" style="display: none">
-        <button class="tab active" data-tab="transcript">字幕</button>
-        <button class="tab" data-tab="overview">概览</button>
-        <button class="tab" data-tab="notes">笔记</button>
+        <button class="tab active" data-tab="transcript" data-ui-i18n="transcript">字幕</button>
+        <button class="tab" data-tab="overview" data-ui-i18n="overview">概览</button>
+        <button class="tab" data-tab="notes"><span data-ui-i18n="notes">笔记</span> <span class="notes-count" id="notesCount">0</span></button>
       </div>
     </div>
 
@@ -96,8 +100,8 @@
       <!-- WELCOME STATE -->
       <div id="welcomeState" class="welcome-container">
         <div class="welcome-icon" aria-hidden="true"></div>
-        <div class="welcome-title">准备生成摘要</div>
-        <div class="welcome-desc">
+        <div class="welcome-title" data-ui-i18n="readyTitle">准备生成摘要</div>
+        <div class="welcome-desc" data-ui-i18n="readyDescription">
           打开 YouTube 或 B 站视频，再点击页面里的“摘要”按钮即可开始。
         </div>
       </div>
@@ -106,8 +110,8 @@
       <div id="loadingState" style="display: none">
         <div class="loading-container">
           <div class="loading-bar"></div>
-          <div class="loading-text" id="loadingText">正在获取字幕</div>
-          <div class="loading-subtext" id="loadingSubtext">
+          <div class="loading-text" id="loadingText" data-ui-i18n="fetchingTranscript">正在获取字幕</div>
+          <div class="loading-subtext" id="loadingSubtext" data-ui-i18n="extractingTranscript">
             正在从视频中提取字幕…
           </div>
         </div>
@@ -117,11 +121,11 @@
       <div id="errorState" style="display: none">
         <div class="error-container">
           <div class="error-icon" aria-hidden="true">!</div>
-          <div class="error-title" id="errorTitle">出错了</div>
+          <div class="error-title" id="errorTitle" data-ui-i18n="errorTitle">出错了</div>
           <div class="error-message" id="errorMessage">
             操作未能完成。
           </div>
-          <button class="error-btn" id="errorBtn">重试</button>
+          <button class="error-btn" id="errorBtn" data-ui-i18n="retry">重试</button>
         </div>
       </div>
 
@@ -131,10 +135,10 @@
         <div class="tab-panel active" data-panel="transcript">
           <div class="section">
             <div class="section-header transcript-section-header">
-              <div class="section-title">完整字幕</div>
+              <div class="section-title" data-ui-i18n="fullTranscript">完整字幕</div>
               <div class="transcript-actions">
-                <button class="enhance-btn" id="copyTranscriptBtn">复制</button>
-                <button class="enhance-btn" id="exportTranscriptBtn">
+                <button class="enhance-btn" id="copyTranscriptBtn" data-ui-i18n="copy">复制</button>
+                <button class="enhance-btn" id="exportTranscriptBtn" data-ui-i18n="export">
                   导出
                 </button>
               </div>
@@ -154,6 +158,7 @@
                 id="transcriptSearchInput"
                 type="search"
                 placeholder="搜索词语或句子"
+                data-ui-i18n-placeholder="searchPlaceholder"
                 aria-label="搜索字幕"
                 aria-controls="transcriptList"
                 autocomplete="off"
@@ -206,8 +211,18 @@
         <!-- TAB: Overview (chapters + key quotes) - requires LLM -->
         <div class="tab-panel" data-panel="overview">
           <!-- Chapters -->
+          <div class="analysis-progress" id="analysisProgress" hidden>
+            <div class="analysis-progress-row">
+              <span id="analysisProgressStage">正在准备概览…</span>
+              <span id="analysisProgressElapsed">0.0 秒</span>
+            </div>
+            <div class="analysis-progress-track" aria-hidden="true">
+              <div class="analysis-progress-fill" id="analysisProgressFill"></div>
+            </div>
+            <div class="analysis-progress-activity" id="analysisProgressActivity"></div>
+          </div>
           <div class="section">
-            <div class="section-title">章节</div>
+            <div class="section-title" data-ui-i18n="chapters">章节</div>
             <ul class="chapter-list" id="chapterList">
               <li
                 class="chapter-item"
@@ -217,14 +232,14 @@
                   border-color: var(--border);
                 "
               >
-                章节将在这里显示
+                <span data-ui-i18n="chaptersPlaceholder">章节将在这里显示</span>
               </li>
             </ul>
           </div>
 
           <!-- Key Quotes -->
           <div class="section">
-            <div class="section-title">重点摘录</div>
+            <div class="section-title" data-ui-i18n="keyQuotes">重点摘录</div>
             <div id="quotesList">
               <div
                 class="quote-item"
@@ -234,7 +249,7 @@
                   cursor: default;
                 "
               >
-                <div class="quote-text" style="font-style: normal">
+                <div class="quote-text" style="font-style: normal" data-ui-i18n="quotesPlaceholder">
                   打开此标签页后将提取重点摘录…
                 </div>
               </div>
@@ -246,12 +261,13 @@
         <div class="tab-panel" data-panel="notes">
           <div class="section">
             <div class="section-header">
-              <div class="section-title">已保存笔记</div>
+              <div class="section-title" data-ui-i18n="savedNotes">已保存笔记</div>
               <div class="notes-filter">
                 <button
                   class="enhance-btn active"
                   id="notesFilterThis"
                   aria-pressed="true"
+                  data-ui-i18n="currentVideo"
                 >
                   当前视频
                 </button>
@@ -259,15 +275,40 @@
                   class="enhance-btn"
                   id="notesFilterAll"
                   aria-pressed="false"
+                  data-ui-i18n="allNotes"
                 >
                   全部笔记
                 </button>
               </div>
             </div>
-            <p class="notes-intro" id="notesIntro">
-              将鼠标移到视频上并点击“笔记”，即可保存带时间戳的笔记；也可在视频获得焦点时按 n 键。
+            <button class="notes-save-current" id="saveCurrentNoteBtn" type="button">
+              <span data-ui-i18n="saveCurrent">记录当前时间</span> <kbd>N</kbd>
+            </button>
+            <p class="notes-intro" id="notesIntro" data-ui-i18n="noteIntro">
+              点击上方按钮、视频上的“记笔记”，或按 N 键，即可保存当前时间点的字幕内容。
             </p>
             <div id="notesList"></div>
+            <details class="learning-export" id="learningExport">
+              <summary data-ui-i18n="learningRecord">本次学习记录</summary>
+              <div class="learning-export-body">
+                <p data-ui-i18n="learningRecordHelp">
+                  导出给其他 Agent 阅读。默认不包含完整字幕。
+                </p>
+                <div class="learning-record-preview" id="learningRecordPreview">
+                  将包含当前来源、概览、重点摘录、笔记和划线问答。
+                </div>
+                <label class="learning-transcript-optin">
+                  <input id="includeTranscriptInRecord" type="checkbox" />
+                  <span data-ui-i18n="includeTranscript">包含完整字幕（体积更大，也更敏感）</span>
+                </label>
+                <div class="learning-export-actions">
+                  <button id="copyAgentPromptBtn" type="button" data-ui-i18n="copyForAgent">复制给 Agent</button>
+                  <button id="downloadLearningMarkdownBtn" type="button" data-ui-i18n="downloadMarkdown">下载 Markdown</button>
+                  <button id="downloadLearningJsonBtn" type="button" data-ui-i18n="downloadJson">下载 JSON</button>
+                </div>
+                <div class="learning-export-status" id="learningExportStatus" role="status" aria-live="polite"></div>
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -278,6 +319,7 @@
       class="follow-playback-btn"
       id="followPlaybackBtn"
       style="display: none"
+      data-ui-i18n="followPlayback"
     >
       跟随播放
     </button>
@@ -285,6 +327,11 @@
     <script src="settings.js"></script>
     <script src="platforms.js"></script>
     <script src="updates.js"></script>
+    <script src="i18n.js"></script>
+    <script src="notes.js"></script>
+    <script src="analysis-progress.js"></script>
+    <script src="learning-records.js"></script>
+    <script src="lib/bili-api.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>

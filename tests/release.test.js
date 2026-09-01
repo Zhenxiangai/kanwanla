@@ -13,7 +13,7 @@ test("manifest identifies 看完了 and grants only its runtime hosts", () => {
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.minimum_chrome_version, "116");
   assert.equal(manifest.name, "看完了");
-  assert.equal(manifest.version, "2.0.0");
+  assert.equal(manifest.version, "2.1.1");
   assert.equal(packageJson.name, "kanwanle");
   assert.equal(packageJson.version, manifest.version);
   assert.equal(manifest.options_ui.page, "options.html");
@@ -67,6 +67,7 @@ test("published copy explains all transcript paths and upstream attribution", ()
     published,
     /https:\/\/cloud\.siliconflow\.cn\/i\/w3LDYnbF/,
   );
+  assert.match(published, /https:\/\/supadata\.ai\/\?ref=xiang/);
   assert.match(published, /api\.bilibili\.com/);
   assert.match(published, /hdslb\.com/);
   assert.match(published, /no local server/i);
@@ -90,6 +91,10 @@ test("release tooling includes platform and update modules", () => {
     "lib/bili-api.js",
     "transcripts.js",
     "updates.js",
+    "i18n.js",
+    "notes.js",
+    "analysis-progress.js",
+    "learning-records.js",
     "README.en.md",
   ]) {
     assert.match(check, new RegExp(file.replace(/[.*+?^$\{\}()|[\]\\]/g, "\\$&")));
@@ -120,6 +125,10 @@ test("runtime has no source-file credential dependency or retired provider endpo
     "settings.js",
     "platforms.js",
     "updates.js",
+    "i18n.js",
+    "notes.js",
+    "analysis-progress.js",
+    "learning-records.js",
     "lib/wbi.js",
     "lib/bili-api.js",
   ]

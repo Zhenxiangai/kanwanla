@@ -23,10 +23,14 @@ KanWanLe is a local, bring-your-own-key Chromium extension for Chrome and Edge. 
 - Faster long Bilibili overviews through cue grouping, bounded input, a smaller reasoning budget, and retryable timeout handling.
 - Platform-aware transcript caching, Chinese-caption passthrough, and independent multipart-video data.
 - Chinese-first release alerts with version numbers, concise notes, browser-store update requests, and a validated GitHub fallback for unpacked installs.
+- A Chinese-first interface with browser-following or fixed-English options, plus an independent AI output-language setting.
+- Reliable notes from the video button, `N` shortcut, and side panel, with the actual saved excerpt shown immediately.
+- Optional questions for selected-text explanations and honest Overview stage, elapsed-time, and streaming-activity progress.
+- Agent-ready session export as a copyable prompt, Markdown, or JSON, excluding the full transcript by default.
 
 ## Supported sites
 
-- **YouTube:** standard watch pages. Native captions are retrieved through Supadata.
+- **YouTube:** standard watch pages. Supadata retrieves native captions, with an explicitly enabled AI-transcription fallback for videos without them.
 - **Bilibili:** `/video/` and `/list/` playback pages, including multipart videos. Subtitle metadata and files are retrieved from Bilibili's official web APIs.
 
 YouTube keeps its historical cache and note identifiers. Every Bilibili part uses a namespaced cache key, so multipart videos remain independent.
@@ -37,10 +41,15 @@ YouTube keeps its historical cache and note identifiers. Every Bilibili part use
 - Click a transcript row, chapter, quote, or note to seek.
 - Switch between original, Chinese, and aligned bilingual views.
 - Display Chinese source captions directly without redundant translation requests.
+- Translate in larger semantic batches to reduce serial waits on long videos.
 - Generate chapters and key quotes only when Overview is opened.
-- Explain selected transcript text and save timestamped notes.
+- Explain selected transcript text, optionally with a question for a targeted answer.
+- Save timestamped notes from the video Note button, `N`, or the side panel and immediately see what was persisted.
+- See real Overview stages, elapsed time, and streaming activity without a fabricated remaining-time estimate.
 - Use DeepSeek V4 Flash by default, load another model available to a SiliconFlow account, or enter a model ID manually.
-- Cache transcripts, translations, analysis, reading position, and notes in browser-local extension storage.
+- Use Chinese by default, follow the browser, or choose English; configure AI output language independently.
+- Cache transcripts, translations, analysis, reading position, selection Q&A, and notes in browser-local extension storage.
+- Copy the current learning record for an Agent or download Markdown/JSON; the full transcript requires explicit opt-in.
 - Run entirely in the extension, without Whisper, a companion app, or a developer backend.
 
 ## Requirements
@@ -72,7 +81,7 @@ The automatic release check runs at most once every 24 hours. It reads only publ
 
 ### YouTube
 
-KanWanLe sends a canonical YouTube watch URL to Supadata's transcript endpoint with `mode=native`. It does not request generated transcription. If a video has no native caption track, the extension reports that no transcript is available.
+KanWanLe sends a canonical YouTube watch URL to Supadata's transcript endpoint. The default `mode=native` reads existing captions only and reports when none are available. Users may explicitly enable **Use Supadata AI transcription as fallback** in Settings; this selects `mode=auto`, which tries native captions before asking Supadata to generate a transcript. Generated transcription is slower and consumes Supadata credits by video duration, so it is never enabled by default.
 
 ### Bilibili
 
@@ -86,9 +95,11 @@ Bilibili API requests may include the browser's existing Bilibili cookies so tra
 
 Track preference is human Chinese, AI Chinese, then English. If no subtitle track is exposed by Bilibili, KanWanLe reports that no transcript is available; it does not create one from the media stream.
 
+For unpunctuated Chinese AI captions returned by Bilibili, KanWanLe conservatively adds comma, sentence, and paragraph boundaries in the browser. Existing punctuation is preserved, and this formatting does not send the caption text to another service.
+
 ## SiliconFlow
 
-If you do not have an account, use the [SiliconFlow signup link](https://cloud.siliconflow.cn/i/w3LDYnbF). Existing users can manage API keys from the link in extension Settings.
+If you do not have an account, use the [SiliconFlow signup link](https://cloud.siliconflow.cn/i/w3LDYnbF).
 
 The AI endpoint is fixed to `https://api.siliconflow.cn/v1`. Settings loads text-chat model suggestions from:
 
@@ -96,11 +107,21 @@ The AI endpoint is fixed to `https://api.siliconflow.cn/v1`. Settings loads text
 GET /v1/models?type=text&sub_type=chat
 ```
 
-The default model ID is `deepseek-ai/DeepSeek-V4-Flash`. A valid model selected or entered by the user is retained instead of being replaced by the default. The selected model is used for overviews, explanations, non-Chinese-to-Chinese translation, and optional note cleanup. Chinese source captions bypass translation.
+The default model ID is `deepseek-ai/DeepSeek-V4-Flash`. A valid model selected or entered by the user is retained instead of being replaced by the default. The selected model is used for overviews, explanations, and non-Chinese-to-Chinese translation. Chinese source captions bypass translation. Notes are persisted locally without waiting for a model.
 
-Overview generation uses SiliconFlow SSE streaming. For long Bilibili transcripts with many short cues, the extension first groups adjacent cues; if the result is still too large, it retains evenly spaced timestamped sections across the whole video while explicitly preserving the beginning and end. Bilibili overviews also use smaller reasoning and output budgets to reduce latency. Existing YouTube analysis budgets are unchanged. The side panel has a bounded watchdog so interrupted requests become retryable errors instead of remaining stuck.
+Overview generation uses SiliconFlow SSE streaming. For long Bilibili transcripts with many short cues, the extension first groups adjacent cues; if the result is still too large, it retains evenly spaced timestamped sections across the whole video while explicitly preserving the beginning and end. Bilibili overviews also use smaller input, reasoning, and output budgets to reduce latency. Existing YouTube analysis budgets are unchanged. The side panel reports actual preparation, request, generation, validation, and completion stages together with elapsed time and received stream chunks. It does not invent a countdown because the provider exposes no precise remaining-time signal. A bounded watchdog turns interrupted requests into retryable errors.
 
 Model availability, pricing, rate limits, and context limits vary. Review the current SiliconFlow console before selecting a model.
+
+## Supadata
+
+YouTube transcripts require your own Supadata API key. Use the [Supadata signup link](https://supadata.ai/?ref=xiang) to create an account and obtain a key. The key and no-caption preference stay in your current browser profile. Native-only mode is faster and uses fewer credits; the optional AI fallback can take longer and consumes generated-transcript credits by video duration.
+
+## Learning records and Agents
+
+Expand **Learning record** in the Notes tab to copy an Agent-ready prompt or download the same normalized record as Markdown or JSON. It includes the source, overview, key excerpts, saved notes, and selection Q&A. A stable `recordId` plus increasing `revision` lets an Agent update the same record idempotently.
+
+The full transcript is excluded by default and appears only after the user explicitly enables it. Assembly happens inside the extension. KanWanLe does not connect to Hermes, upload the record to a developer server, or send it to an Agent automatically.
 
 ## Bilibili limitations
 
@@ -111,7 +132,7 @@ Model availability, pricing, rate limits, and context limits vary. Review the cu
 
 ## Local data
 
-Settings, transcripts, translations, overviews, notes, reading positions, and the last update-check time stay in the current browser profile. Use **Clear cached digests** or **Reset extension data** in Settings when needed. See [PRIVACY.md](PRIVACY.md) for the complete data flow.
+Settings, language preferences, transcripts, translations, overviews, notes, selection Q&A, learning-record revision metadata, reading positions, and the last update-check time stay in the current browser profile. Use **Clear cached digests** or **Reset extension data** in Settings when needed. See [PRIVACY.md](PRIVACY.md) for the complete data flow.
 
 ## Development
 

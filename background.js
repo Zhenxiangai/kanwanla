@@ -18,6 +18,9 @@ importScripts(
   "platforms.js",
   "transcripts.js",
   "updates.js",
+  "i18n.js",
+  "notes.js",
+  "analysis-progress.js",
   "lib/wbi.js",
   "lib/bili-api.js",
 );
@@ -31,7 +34,7 @@ const AI_PROVIDER_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 // content at 2 MiB, but allow a bounded amount of discarded reasoning data.
 const AI_PROVIDER_MAX_STREAM_BYTES = 16 * 1024 * 1024;
 const BILIBILI_ANALYSIS_COMPACT_THRESHOLD_CHARS = 18_000;
-const BILIBILI_ANALYSIS_MAX_TRANSCRIPT_CHARS = 32_000;
+const BILIBILI_ANALYSIS_MAX_TRANSCRIPT_CHARS = 24_000;
 const BILIBILI_ANALYSIS_GROUP_WINDOW_SECONDS = 18;
 const BILIBILI_ANALYSIS_GROUP_MAX_TEXT_CHARS = 220;
 const debugLog = (...args) => {
@@ -54,6 +57,31 @@ chrome.storage.local
 async function getSettings() {
   const stored = await chrome.storage.local.get(YTD_SETTINGS.STORAGE_KEY);
   return YTD_SETTINGS.normalize(stored[YTD_SETTINGS.STORAGE_KEY]);
+}
+
+async function getLanguagePreferences() {
+  const stored = await chrome.storage.local.get(
+    KANWANLE_I18N.LANGUAGE_STORAGE_KEY,
+  );
+  const preference = KANWANLE_I18N.normalizePreference(
+    stored[KANWANLE_I18N.LANGUAGE_STORAGE_KEY],
+  );
+  const browserLanguage = KANWANLE_I18N.browserLanguage(chrome);
+  return {
+    preference,
+    interfaceLanguage: KANWANLE_I18N.resolveLanguage(
+      preference,
+      browserLanguage,
+    ),
+  };
+}
+
+async function getOutputLanguageInstruction(settings) {
+  const language = await getLanguagePreferences();
+  return KANWANLE_I18N.outputLanguageInstruction(
+    settings.outputLanguage,
+    language.interfaceLanguage,
+  );
 }
 
 const promptFileCache = new Map();
@@ -99,6 +127,7 @@ async function requestAiCompletion({
   responseFormat,
   stream = false,
   thinkingBudget,
+  onActivity,
 }) {
   const settings = await getSettings();
   if (!settings.aiApiKey) {
@@ -132,7 +161,7 @@ async function requestAiCompletion({
   const removedFallbacks = new Set();
   while (true) {
     try {
-      return await sendAiCompletionRequest(settings, body);
+      return await sendAiCompletionRequest(settings, body, onActivity);
     } catch (error) {
       if (
         body.response_format &&
@@ -175,7 +204,7 @@ function shouldRetryWithoutThinkingBudget(error) {
   );
 }
 
-async function sendAiCompletionRequest(settings, body) {
+async function sendAiCompletionRequest(settings, body, onProviderActivity) {
   const controller = new AbortController();
   let timeoutKind = "";
   let idleTimeoutId;
@@ -191,6 +220,12 @@ async function sendAiCompletionRequest(settings, body) {
       () => abortForTimeout("idle"),
       AI_PROVIDER_IDLE_TIMEOUT_MS,
     );
+  };
+  const reportProviderActivity = (kind) => {
+    resetIdleTimeout();
+    if (typeof onProviderActivity === "function") {
+      onProviderActivity(kind);
+    }
   };
 
   hardTimeoutId = setTimeout(
@@ -213,12 +248,12 @@ async function sendAiCompletionRequest(settings, body) {
     );
     // Receiving headers proves SiliconFlow is still making progress. SiliconFlow
     // may then send blank-line body chunks while a non-streaming request queues.
-    resetIdleTimeout();
+    reportProviderActivity("headers");
 
     if (body.stream && response.ok) {
       const text = await readBoundedAiStreamResponse(
         response,
-        resetIdleTimeout,
+        () => reportProviderActivity("chunk"),
       );
       if (!text.trim()) {
         const error = new Error("硅基流动返回了空响应。");
@@ -228,7 +263,10 @@ async function sendAiCompletionRequest(settings, body) {
       return { text, settings };
     }
 
-    const data = await readBoundedAiResponse(response, resetIdleTimeout);
+    const data = await readBoundedAiResponse(
+      response,
+      () => reportProviderActivity("chunk"),
+    );
     if (!response.ok) {
       const errorData = data && typeof data === "object" ? data : {};
       const error = new Error(
@@ -583,6 +621,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       message.videoDescription,
       message.videoDuration,
       message.platform,
+      { requestId: message.requestId },
     )
       .then(sendResponse)
       .catch((err) => sendResponse({ error: err.message }));
@@ -595,6 +634,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       message.selectedText,
       message.transcriptContext,
       message.videoTitle,
+      message.userQuestion,
+      {
+        videoId: message.videoId,
+        timestamp: message.timestamp,
+        platform: message.platform,
+        sourceVideoId: message.sourceVideoId,
+        page: message.page,
+        videoUrl: message.videoUrl,
+      },
     )
       .then(sendResponse)
       .catch((err) => sendResponse({ error: err.message }));
@@ -672,6 +720,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === "getLanguagePreferences") {
+    Promise.all([getLanguagePreferences(), getSettings()])
+      .then(([language, settings]) =>
+        sendResponse({
+          success: true,
+          ...language,
+          outputLanguage: settings.outputLanguage,
+        }),
+      )
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (message.action === "languageChanged") {
+    const preference = KANWANLE_I18N.normalizePreference(message.preference);
+    chrome.tabs
+      .query({})
+      .then((tabs) =>
+        Promise.allSettled(
+          tabs
+            .filter((tab) => YTD_PLATFORMS.isSupportedSiteUrl(tab.url))
+            .map((tab) =>
+              chrome.tabs.sendMessage(tab.id, {
+                action: "languageChanged",
+                preference,
+              }),
+            ),
+        ),
+      )
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
   if (message.action === "getUpdateStatus") {
     updateManager
       .getStatus()
@@ -720,6 +802,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === "openSidePanel") {
     const tabId = sender.tab?.id;
+    const panelFollowUp =
+      message.initialTab === "notes"
+        ? { action: "showPanelTab", tab: "notes" }
+        : { action: "startDigestFromButton" };
     debugLog("[看完了 BG] openSidePanel requested from tab:", tabId);
 
     // Re-enable the panel (it may have been disabled by auto-close) and open it.
@@ -735,10 +821,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.sidePanel
         .open({ tabId })
         .then(() => {
-          // Broadcast to side panel to start digest (in case it's already open)
+          // Open the requested surface after Chrome has mounted the panel.
           setTimeout(() => {
             chrome.runtime
-              .sendMessage({ action: "startDigestFromButton" })
+              .sendMessage(panelFollowUp)
               .catch(() => {});
           }, 300);
         })
@@ -756,12 +842,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               path: "sidepanel.html",
               enabled: true,
             });
-            chrome.sidePanel.open({ tabId: tabs[0].id }).catch((err) => {
-              console.error(
-                "[看完了 BG] openSidePanel fallback error:",
-                err,
-              );
-            });
+            chrome.sidePanel
+              .open({ tabId: tabs[0].id })
+              .then(() => {
+                setTimeout(() => {
+                  chrome.runtime.sendMessage(panelFollowUp).catch(() => {});
+                }, 300);
+              })
+              .catch((err) => {
+                console.error(
+                  "[看完了 BG] openSidePanel fallback error:",
+                  err,
+                );
+              });
           }
         });
     }
@@ -1017,8 +1110,12 @@ async function handleFetchYouTubeTranscript(videoId) {
     apiUrl.searchParams.set("url", canonicalVideoUrl);
     apiUrl.searchParams.set("text", "false"); // Get timestamped chunks, not plain text
     apiUrl.searchParams.set("lang", "en"); // Prefer English
-    // Caption-only product scope: never fall back to paid AI transcription.
-    apiUrl.searchParams.set("mode", "native");
+    // Native captions stay the safe default. Users can explicitly opt in to
+    // Supadata's generated-transcript fallback from the settings page.
+    apiUrl.searchParams.set(
+      "mode",
+      settings.youtubeTranscriptMode === "auto" ? "auto" : "native",
+    );
 
     // Make the API request
     const response = await fetch(apiUrl.toString(), {
@@ -1039,7 +1136,10 @@ async function handleFetchYouTubeTranscript(videoId) {
       return {
         success: false,
         error: "NO_TRANSCRIPT",
-        message: "此视频没有可用的原生字幕轨。",
+        message:
+          settings.youtubeTranscriptMode === "auto"
+            ? "Supadata 未能为此视频生成可用字幕。"
+            : "此视频没有可用的原生字幕轨。你可以在设置中明确开启“无字幕时使用 Supadata AI 转写”后重试。",
       };
     }
 
@@ -1143,7 +1243,7 @@ async function handleFetchYouTubeTranscript(videoId) {
  * @returns {Object} - Same format as handleFetchTranscript
  */
 async function pollTranscriptJob(jobId, supadataApiKey) {
-  const maxAttempts = 60; // Max 60 seconds of polling
+  const maxAttempts = 180; // Generated transcripts can take several minutes.
   const pollInterval = 1000; // Poll every 1 second
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -1396,10 +1496,23 @@ async function handleAnalyzeTranscript(
   videoDescription,
   videoDuration,
   platform = "youtube",
+  progressContext = {},
 ) {
+  const progress = progressContext.requestId
+    ? KANWANLE_ANALYSIS_PROGRESS.createProgressTracker({
+        requestId: progressContext.requestId,
+        emit: (event) => {
+          chrome.runtime
+            .sendMessage({ action: "analysisProgress", ...event })
+            .catch(() => {});
+        },
+      })
+    : null;
+  progress?.update("preparing");
   try {
     const settings = await getSettings();
     if (!settings.aiApiKey) {
+      progress?.finish("error", { code: "NO_AI_KEY" });
       return {
         success: false,
         error: "NO_AI_KEY",
@@ -1457,6 +1570,8 @@ async function handleAnalyzeTranscript(
       chapterGuidance: isBilibili
         ? "Use 5-12 concise chapters and never exceed 12 chapters."
         : "Use concise natural chapters and avoid unnecessary micro-chapters.",
+      outputLanguageInstruction:
+        await getOutputLanguageInstruction(settings),
     };
     const systemPrompt = await loadPromptSection(
       "analysis.md",
@@ -1470,29 +1585,39 @@ async function handleAnalyzeTranscript(
     );
 
     debugLog("[看完了] Requesting video analysis", settings.aiModel);
+    progress?.update("requesting");
     const { text: responseText } = await requestAiCompletion({
       stream: true,
-      thinkingBudget: isBilibili ? 256 : 1024,
-      maxTokens: isBilibili ? 2048 : 4096,
+      thinkingBudget: isBilibili ? 128 : 1024,
+      maxTokens: isBilibili ? 1536 : 4096,
       responseFormat: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
+      onActivity: (kind) => {
+        if (kind === "chunk") progress?.activity();
+      },
     });
 
     // Parse the JSON, tolerating trailing commas / stray prose
+    progress?.update("parsing");
     let analysis = parseLooseJson(responseText);
 
     // Treat every model response as untrusted data. Rebuild the supported
     // schema and derive display timestamps from validated numeric seconds.
     analysis = validateAndFixTimestamps(analysis, maxTimestampSeconds);
+    progress?.finish("done");
 
     return {
       success: true,
       analysis: analysis,
+      timing: progress?.snapshot(),
     };
   } catch (error) {
+    progress?.finish("error", {
+      code: error.code || "ANALYSIS_FAILED",
+    });
     console.error("Analysis error:", error);
     if (error.status === 401 || error.status === 403) {
       return {
@@ -1724,85 +1849,30 @@ async function handleSaveNote(
         videoRef,
       );
       if (!transcriptResult.success) {
-        return { success: false, error: "无法获取字幕" };
+        return {
+          success: false,
+          error: transcriptResult.error || "NO_TRANSCRIPT",
+          message:
+            transcriptResult.message ||
+            "此视频没有可用字幕，暂时无法记录当前时间。",
+        };
       }
       transcript = transcriptResult.transcript;
     }
 
-    // Find the transcript line at the current timestamp
-    // Look for the line that contains this timestamp (or the closest one before)
-    let matchedLine = null;
-    let matchedIndex = 0;
-    let contextLines = [];
-    let beforeLine = null; // a few sentences before
-    let afterLine = null; // a few sentences after
-
-    for (let i = 0; i < transcript.length; i++) {
-      const line = transcript[i];
-      if (
-        line.start <= safeTimestamp &&
-        (!transcript[i + 1] || transcript[i + 1].start > safeTimestamp)
-      ) {
-        matchedLine = line;
-        matchedIndex = i;
-
-        // Build a buffer of 2 lines before and 4 lines after the target.
-        // This gives the model enough text to find a natural sentence boundary
-        // and complete a thought that spans multiple short caption chunks.
-        const beforeLines = [];
-        for (let j = 1; j <= 2 && i - j >= 0; j++) {
-          beforeLines.unshift(transcript[i - j].text);
-        }
-        if (beforeLines.length > 0) {
-          beforeLine = beforeLines.join(" ");
-        }
-
-        const afterLines = [];
-        for (let j = 1; j <= 4 && i + j < transcript.length; j++) {
-          afterLines.push(transcript[i + j].text);
-        }
-        if (afterLines.length > 0) {
-          afterLine = afterLines.join(" ");
-        }
-
-        // Get broader context (8 lines before and 12 lines after) for understanding
-        const startIdx = Math.max(0, i - 8);
-        const endIdx = Math.min(transcript.length - 1, i + 12);
-        for (let j = startIdx; j <= endIdx; j++) {
-          contextLines.push(transcript[j].text);
-        }
-        break;
-      }
-    }
-
-    if (!matchedLine) {
-      // Fallback: use the last line if timestamp is beyond transcript
-      matchedLine = transcript[transcript.length - 1];
-      matchedIndex = transcript.length - 1;
-
-      // Get buffer sentence (only before, since we're at the end)
-      const beforeLines = [];
-      for (let j = 1; j <= 2 && matchedIndex - j >= 0; j++) {
-        beforeLines.unshift(transcript[matchedIndex - j].text);
-      }
-      if (beforeLines.length > 0) {
-        beforeLine = beforeLines.join(" ");
-      }
-
-      const startIdx = Math.max(0, matchedIndex - 8);
-      for (let j = startIdx; j <= matchedIndex; j++) {
-        contextLines.push(transcript[j].text);
-      }
-    }
-
-    // Clean up the text with the configured SiliconFlow model.
-    const cleanedText = await cleanupNoteText(
-      matchedLine.text,
-      beforeLine,
-      afterLine,
-      contextLines.join(" "),
-      videoTitle,
+    // Build the note synchronously from local caption cues. A note is a user
+    // action and must be durable immediately; it must never wait for a model.
+    const excerpt = KANWANLE_NOTES.buildTimedExcerpt(
+      transcript,
+      safeTimestamp,
     );
+    if (!excerpt) {
+      return {
+        success: false,
+        error: "EMPTY_TRANSCRIPT",
+        message: "此视频没有可用字幕，暂时无法记录当前时间。",
+      };
+    }
 
     // Format timestamp as MM:SS
     const minutes = Math.floor(safeTimestamp / 60);
@@ -1826,8 +1896,8 @@ async function handleSaveNote(
       platform: videoRef.platform,
       sourceVideoId: videoRef.sourceVideoId,
       page: videoRef.page,
-      text: cleanedText,
-      rawText: matchedLine.text,
+      text: excerpt.text,
+      rawText: excerpt.rawText,
       createdAt: Date.now(),
     };
 
@@ -1977,6 +2047,8 @@ async function handleExplainSelection(
   selectedText,
   transcriptContext,
   videoTitle,
+  userQuestion = "",
+  context = {},
 ) {
   try {
     const settings = await getSettings();
@@ -1988,10 +2060,31 @@ async function handleExplainSelection(
       };
     }
 
+    const safeSelectedText = String(selectedText || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 3000);
+    if (!safeSelectedText) {
+      return {
+        success: false,
+        error: "EMPTY_SELECTION",
+        message: "请先选择需要分析的字幕内容。",
+      };
+    }
+    const safeContext = String(transcriptContext || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 4000);
+    const safeQuestion = normalizeSelectionQuestion(userQuestion);
     const variables = {
       videoTitle: videoTitle || "Unknown",
-      selectedText,
-      transcriptContext: transcriptContext || "None",
+      selectedText: safeSelectedText,
+      transcriptContext: safeContext || "None",
+      questionInstruction: safeQuestion
+        ? `USER QUESTION: ${safeQuestion}\nAnswer this question directly using the selected text and context.`
+        : "No specific question was provided. Explain the selected text briefly, as before.",
+      outputLanguageInstruction:
+        await getOutputLanguageInstruction(settings),
     };
     const systemPrompt = await loadPromptSection(
       "explain.md",
@@ -2013,9 +2106,27 @@ async function handleExplainSelection(
       ],
     });
 
+    const annotation = {
+      id: `annotation_${Date.now()}`,
+      type: "selection-explanation",
+      videoId: String(context.videoId || "").slice(0, 300),
+      platform: context.platform === "bilibili" ? "bilibili" : "youtube",
+      sourceVideoId: String(context.sourceVideoId || "").slice(0, 100),
+      page: Math.max(1, Math.floor(Number(context.page) || 1)),
+      videoUrl: String(context.videoUrl || "").slice(0, 2000),
+      videoTitle: String(videoTitle || "").slice(0, 500),
+      timestampSeconds: Math.max(0, Math.floor(Number(context.timestamp) || 0)),
+      selectedText: safeSelectedText,
+      userQuestion: safeQuestion,
+      aiAnswer: explanation.trim().slice(0, 6000),
+      createdAt: Date.now(),
+    };
+    await saveLearningAnnotation(annotation).catch(() => {});
+
     return {
       success: true,
-      explanation: explanation.trim(),
+      explanation: annotation.aiAnswer,
+      annotation,
     };
   } catch (error) {
     console.error("Explain selection error:", error);
@@ -2024,6 +2135,23 @@ async function handleExplainSelection(
       error: error.message || "Failed to explain selection",
     };
   }
+}
+
+function normalizeSelectionQuestion(value) {
+  return typeof value === "string"
+    ? value.replace(/\s+/g, " ").trim().slice(0, 500)
+    : "";
+}
+
+async function saveLearningAnnotation(annotation) {
+  const result = await chrome.storage.local.get("kanwanle_annotations");
+  const annotations = Array.isArray(result.kanwanle_annotations)
+    ? result.kanwanle_annotations
+    : [];
+  annotations.unshift(annotation);
+  await chrome.storage.local.set({
+    kanwanle_annotations: annotations.slice(0, 100),
+  });
 }
 
 // ============================================================
@@ -2055,8 +2183,8 @@ async function getTranslationBaseRules(targetLanguage) {
 
 function validateTranscriptBatchRequest(content) {
   const segments = content?.segments;
-  if (!Array.isArray(segments) || segments.length < 1 || segments.length > 4) {
-    throw new Error("Transcript translation requires 1 to 4 segments");
+  if (!Array.isArray(segments) || segments.length < 1 || segments.length > 8) {
+    throw new Error("Transcript translation requires 1 to 8 segments");
   }
 
   const seenIds = new Set();
@@ -2174,7 +2302,7 @@ async function handleTranslateContent(
     const userContent = JSON.stringify({ segments: sourceSegments });
     const translationOptions = {
       temperature: 0.2,
-      maxTokens: 1536,
+      maxTokens: 3072,
       responseFormat: { type: "json_object" },
     };
     let result = await callAiTranslation(
@@ -2256,6 +2384,8 @@ globalThis.__YTD_TRANSLATION_TESTING__ = {
   handleFetchTranscript,
   handleFetchBilibiliTranscript,
   handleSaveNote,
+  handleExplainSelection,
+  normalizeSelectionQuestion,
   noteVideoRef,
   handleTranslateContent,
   closePanelForTab,

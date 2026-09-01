@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "看完了",
-  "version": "2.0.0",
+  "version": "2.1.1",
   "minimum_chrome_version": "116",
   "description": "将 YouTube 和 B 站视频转化为带字幕、翻译、AI 概览和笔记的学习资料。",
   "permissions": [
@@ -40,7 +40,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["content.js"],
+      "js": ["i18n.js", "notes.js", "content.js"],
       "run_at": "document_idle"
     },
     {
@@ -48,7 +48,7 @@
         "https://www.bilibili.com/video/*",
         "https://www.bilibili.com/list/*"
       ],
-      "js": ["bilibili-content.js"],
+      "js": ["i18n.js", "notes.js", "bilibili-content.js"],
       "run_at": "document_idle"
     }
   ],

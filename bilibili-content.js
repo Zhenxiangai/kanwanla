@@ -16,6 +16,34 @@
   const SETTLE_DELAY_MS = 1200;
   const PLAYER_WAIT_TIMEOUT_MS = 15000;
   const PLAYER_POLL_MS = 200;
+  let interfaceLanguage = "zh-CN";
+
+  const uiText = (key) =>
+    KANWANLE_I18N.translate(interfaceLanguage, key);
+
+  function applyLanguage(preference) {
+    interfaceLanguage = KANWANLE_I18N.resolveLanguage(
+      preference,
+      KANWANLE_I18N.browserLanguage(chrome, navigator),
+    );
+    const digestButton = document.getElementById(DIGEST_BUTTON_ID);
+    if (digestButton) digestButton.textContent = uiText("digest");
+    const noteLabel = document
+      .getElementById(NOTE_BUTTON_ID)
+      ?.querySelector(`.${NOTE_LABEL_CLASS}`);
+    if (noteLabel) noteLabel.textContent = `${uiText("noteCapture")} N`;
+  }
+
+  async function loadLanguage() {
+    try {
+      const result = await chrome.runtime.sendMessage({
+        action: "getLanguagePreferences",
+      });
+      if (result?.success) applyLanguage(result.preference);
+    } catch (_error) {
+      applyLanguage("zh-CN");
+    }
+  }
 
   const TOOLBAR_SELECTORS = [
     ".video-toolbar-left",
@@ -126,16 +154,16 @@
     if (!button) return;
     button.textContent = text;
     setTimeout(() => {
-      if (button.isConnected) button.textContent = "摘要";
+      if (button.isConnected) button.textContent = uiText("digest");
     }, 2200);
   }
 
   async function openSidePanel() {
     try {
       const result = await chrome.runtime.sendMessage({ action: "openSidePanel" });
-      if (!result?.success) flashDigestButton("请点击扩展图标");
+      if (!result?.success) flashDigestButton(uiText("clickExtensionIcon"));
     } catch {
-      flashDigestButton("请点击扩展图标");
+      flashDigestButton(uiText("clickExtensionIcon"));
     }
   }
 
@@ -144,7 +172,7 @@
     const button = document.createElement("button");
     button.id = DIGEST_BUTTON_ID;
     button.type = "button";
-    button.textContent = "摘要";
+    button.textContent = uiText("digest");
     button.title = "打开视频摘要侧边栏";
     button.addEventListener("click", (event) => {
       event.preventDefault();
@@ -194,13 +222,33 @@
     const button = document.createElement("button");
     button.id = NOTE_BUTTON_ID;
     button.type = "button";
-    button.title = "在当前时间点记笔记（快捷键 n）";
+    button.title = "在当前时间点记笔记（快捷键 N）";
     const label = document.createElement("span");
     label.className = NOTE_LABEL_CLASS;
-    label.textContent = "笔记";
-    button.append(createNoteIcon(), label);
-    styleButton(button, true);
-    button.style.background = "rgba(0,0,0,.58)";
+    label.textContent = uiText("noteCapture");
+    const shortcut = document.createElement("kbd");
+    shortcut.textContent = "N";
+    shortcut.style.cssText = `margin-left:1px;padding:1px 6px;
+      border:1px solid rgba(255,255,255,.55);border-radius:5px;
+      font:700 10px/1.45 system-ui;background:rgba(255,255,255,.12);`;
+    button.append(createNoteIcon(), label, shortcut);
+    button.style.cssText = `display:inline-flex;align-items:center;gap:7px;
+      padding:9px 16px;border:none;border-radius:999px;
+      background:#c8674f;color:#fff;cursor:pointer;white-space:nowrap;
+      font:600 13px/1.4 system-ui,-apple-system,"Roboto",sans-serif;
+      letter-spacing:.2px;opacity:.92;pointer-events:auto;
+      box-shadow:0 4px 14px rgba(0,0,0,.3);
+      transition:opacity .18s ease,transform .18s ease,background .18s ease,box-shadow .18s ease;`;
+    button.addEventListener("mouseenter", () => {
+      button.style.background = "#b25742";
+      button.style.boxShadow = "0 6px 18px rgba(0,0,0,.35)";
+      button.style.transform = "translateY(-1px)";
+    });
+    button.addEventListener("mouseleave", () => {
+      button.style.background = "#c8674f";
+      button.style.boxShadow = "0 4px 14px rgba(0,0,0,.3)";
+      button.style.transform = "translateY(0)";
+    });
     button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -219,7 +267,7 @@
     injectNoteButton();
   }
 
-  let noteInFlight = false;
+  let noteCaptureController = null;
 
   function flashNoteButton(text) {
     const button = document.getElementById(NOTE_BUTTON_ID);
@@ -227,36 +275,70 @@
     if (!label) return;
     label.textContent = text;
     setTimeout(() => {
-      if (button.isConnected) label.textContent = "笔记";
+      if (button.isConnected) label.textContent = uiText("noteCapture");
     }, 1800);
+  }
+
+  function showNoteFeedback(result) {
+    return KANWANLE_NOTES.renderFeedback(document, result, {
+      id: "kanwanle-bilibili-note-feedback",
+      language: interfaceLanguage,
+      onOpenNotes: () =>
+        chrome.runtime.sendMessage({
+          action: "openSidePanel",
+          initialTab: "notes",
+        }),
+    });
+  }
+
+  function getNoteCaptureController() {
+    if (!noteCaptureController) {
+      noteCaptureController = KANWANLE_NOTES.createCaptureController({
+        save: (payload) => chrome.runtime.sendMessage(payload),
+        onStateChange(state) {
+          if (state.status === "saving") {
+            flashNoteButton(uiText("saving"));
+          } else if (state.status === "saved") {
+            flashNoteButton(uiText("saved"));
+            showNoteFeedback({ success: true, note: state.note });
+          } else {
+            flashNoteButton(uiText("saveFailed"));
+            showNoteFeedback({
+              success: false,
+              error: state.error,
+              message: state.message,
+            });
+          }
+        },
+      });
+    }
+    return noteCaptureController;
   }
 
   async function saveNoteAtCurrentTime() {
     const video = videoElement();
     const bvid = currentBvid();
     const storageId = currentStorageId();
-    if (!video || !bvid || !storageId || noteInFlight) return;
-    const info = readVideoInfo();
-    noteInFlight = true;
-    flashNoteButton("保存中…");
-    try {
-      const result = await chrome.runtime.sendMessage({
-        action: "saveNote",
-        videoId: storageId,
-        platform: "bilibili",
-        sourceVideoId: bvid,
-        page: currentPage(),
-        videoUrl: location.href,
-        timestamp: Math.max(0, Math.floor(video.currentTime || 0) - 3),
-        videoTitle: info.title,
-        channelName: info.channelName,
+    if (!video || !bvid || !storageId) {
+      showNoteFeedback({
+        success: false,
+        error: "NO_PLAYER",
+        message: "没有找到当前 B 站视频播放器，请刷新页面后重试。",
       });
-      flashNoteButton(result?.success ? "已保存" : "保存失败");
-    } catch {
-      flashNoteButton("保存失败");
-    } finally {
-      noteInFlight = false;
+      return;
     }
+    const info = readVideoInfo();
+    await getNoteCaptureController().capture({
+      action: "saveNote",
+      videoId: storageId,
+      platform: "bilibili",
+      sourceVideoId: bvid,
+      page: currentPage(),
+      videoUrl: location.href,
+      timestamp: Math.max(0, Math.floor(video.currentTime || 0) - 3),
+      videoTitle: info.title,
+      channelName: info.channelName,
+    });
   }
 
   function isTypingTarget(target) {
@@ -306,7 +388,13 @@
       return false;
     }
     if (message?.action === "showNoteSavedFeedback") {
-      flashNoteButton("已保存");
+      flashNoteButton(uiText("saved"));
+      showNoteFeedback({ success: true, note: message.note });
+      sendResponse({ success: true });
+      return false;
+    }
+    if (message?.action === "languageChanged") {
+      applyLanguage(message.preference);
       sendResponse({ success: true });
       return false;
     }
@@ -330,6 +418,7 @@
 
   async function init() {
     document.addEventListener("keydown", handleKeydown);
+    await loadLanguage();
     await whenWindowLoaded();
     await whenPlayerMounted();
     await delay(SETTLE_DELAY_MS);

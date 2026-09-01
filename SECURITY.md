@@ -13,7 +13,7 @@ Do not put API keys, access tokens, cookies, or private transcripts in:
 - source files or configuration examples;
 - commits, issues, pull requests, or chat messages;
 - screenshots, recordings, logs, or packaged ZIP files; or
-- copied customization prompts.
+- copied customization prompts or learning-record exports.
 
 Revoke a key at its provider immediately if it may have been exposed.
 
@@ -36,6 +36,8 @@ Release builds should communicate only with the documented hosts:
 - `api.github.com` for public release metadata only.
 
 Release metadata is treated as untrusted input: responses are size-bounded, versions and repository URLs are validated, notes are converted to bounded plain text, and the UI renders them with `textContent` rather than HTML.
+
+Learning-record exports also treat video text, notes, and AI answers as untrusted study data. The Agent prompt wraps a bounded JSON record, escapes markup delimiters, and tells the receiving Agent not to execute instructions found inside the record. This reduces prompt-injection risk but does not replace reviewing sensitive content before sending it to another system. Full transcripts are excluded unless the user explicitly opts in.
 
 Unexpected network destinations, credential exposure, permission expansion, unsafe HTML rendering, or a release ZIP containing private files should be treated as security issues.
 

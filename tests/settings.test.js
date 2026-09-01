@@ -9,6 +9,12 @@ test("SiliconFlow defaults pin the China API endpoint and DeepSeek V4 Flash", ()
     "deepseek-ai/DeepSeek-V4-Flash",
   );
   assert.equal(settings.normalize({}).aiModel, settings.DEFAULTS.aiModel);
+  assert.equal(settings.DEFAULTS.youtubeTranscriptMode, "native");
+  assert.equal(settings.normalize({}).youtubeTranscriptMode, "native");
+  assert.equal(
+    settings.normalize({ youtubeTranscriptMode: "auto" }).youtubeTranscriptMode,
+    "auto",
+  );
   assert.equal(
     settings.normalize({ provider: "siliconflow", aiModel: "" }).aiModel,
     settings.DEFAULTS.aiModel,

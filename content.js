@@ -26,10 +26,38 @@ let ytdNoteButton = null;
 let ytdNoteButtonTimer = null;
 let ytdNoteKeyboardListenerAdded = false;
 let ytdNoteButtonRetryTimer = null;
+let ytdNoteCaptureController = null;
 let ytdDigestButton = null;
 let digestButtonObserver = null;
 let digestButtonReconcileTimer = null;
 let digestButtonResizeListenerAdded = false;
+let ytdInterfaceLanguage = "zh-CN";
+
+function contentText(key) {
+  return KANWANLE_I18N.translate(ytdInterfaceLanguage, key);
+}
+
+function applyContentLanguage(preference) {
+  ytdInterfaceLanguage = KANWANLE_I18N.resolveLanguage(
+    preference,
+    KANWANLE_I18N.browserLanguage(chrome, navigator),
+  );
+  const digestLabel = document.querySelector(".ytd-digest-label");
+  if (digestLabel) digestLabel.textContent = contentText("digest");
+  const noteLabel = ytdNoteButton?.querySelector("[data-note-label]");
+  if (noteLabel) noteLabel.textContent = contentText("noteCapture");
+}
+
+async function loadContentLanguage() {
+  try {
+    const result = await chrome.runtime.sendMessage({
+      action: "getLanguagePreferences",
+    });
+    if (result?.success) applyContentLanguage(result.preference);
+  } catch (_error) {
+    applyContentLanguage("zh-CN");
+  }
+}
 
 // ============================================================
 // INITIALIZATION
@@ -40,6 +68,7 @@ let digestButtonResizeListenerAdded = false;
  * We wait a bit for YouTube's UI to fully render.
  */
 function init() {
+  void loadContentLanguage();
   // Register the global "n" keyboard shortcut once
   if (!ytdNoteKeyboardListenerAdded) {
     document.addEventListener("keydown", handleNoteKeyboardShortcut);
@@ -163,6 +192,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
+  if (message.action === "languageChanged") {
+    applyContentLanguage(message.preference);
+    sendResponse({ success: true });
+    return false;
+  }
+
   // Unknown action - still send a response to prevent hanging
   debugLog("[看完了 Content] Unknown action:", message.action);
   sendResponse({ success: false, error: "Unknown action" });
@@ -232,7 +267,7 @@ function createDigestButton() {
   digestButton.id = "ytd-digest-button";
   digestButton.type = "button";
   digestButton.setAttribute("aria-label", "打开看完了");
-  digestButton.innerHTML = `<span class="ytd-digest-label">摘要</span>`;
+  digestButton.innerHTML = `<span class="ytd-digest-label">${contentText("digest")}</span>`;
 
   // Style the button — rounded pill in our terracotta accent, sized to sit
   // comfortably among YouTube's native action buttons.
@@ -442,8 +477,10 @@ function injectNoteButton() {
       <path d="M12 20h9"></path>
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
     </svg>
-    <span>笔记</span>
+    <span data-note-label>${contentText("noteCapture")}</span>
+    <kbd style="margin-left:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.55);border-radius:5px;font:700 10px/1.45 system-ui;background:rgba(255,255,255,.12);">N</kbd>
   `;
+  noteButton.title = "记录当前时间点（快捷键 N）";
 
   // Soft rounded pill in the terracotta accent, with a gentle shadow.
   // Start hidden; visibility is controlled by mouse activity.
@@ -465,8 +502,8 @@ function injectNoteButton() {
     letter-spacing: 0.2px;
     cursor: pointer;
     transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-    opacity: 0;
-    pointer-events: none;
+    opacity: 0.72;
+    pointer-events: auto;
     box-shadow: 0 4px 14px rgba(0,0,0,0.3);
   `;
 
@@ -523,8 +560,8 @@ function showNoteButton() {
 
 function hideNoteButton() {
   if (!ytdNoteButton) return;
-  ytdNoteButton.style.opacity = "0";
-  ytdNoteButton.style.pointerEvents = "none";
+  ytdNoteButton.style.opacity = "0.55";
+  ytdNoteButton.style.pointerEvents = "auto";
 }
 
 function resetNoteButtonTimer() {
@@ -573,125 +610,89 @@ async function saveCurrentNote() {
   const video = document.querySelector("video.html5-main-video");
   if (!video) {
     console.error("[看完了] No video element found");
-    return;
+    return showPageNoteFeedback({
+      success: false,
+      error: "NO_PLAYER",
+      message: "没有找到当前视频播放器，请刷新页面后重试。",
+    });
   }
 
   // Go back 3 seconds to capture what was just said (user reacts after hearing it)
   const currentTime = Math.max(0, Math.floor(video.currentTime) - 3);
   const videoInfo = extractVideoInfo();
   const videoId = new URLSearchParams(window.location.search).get("v");
-
-  const noteButton = ytdNoteButton;
-  const originalContent = noteButton ? noteButton.innerHTML : "";
-
-  if (noteButton) {
-    noteButton.innerHTML =
-      '<span style="letter-spacing: 0.2px;">SAVING...</span>';
-    noteButton.style.pointerEvents = "none";
-  }
-
-  try {
-    const result = await chrome.runtime.sendMessage({
-      action: "saveNote",
-      videoId: videoId,
-      timestamp: currentTime,
-      videoTitle: videoInfo.title,
-      channelName: videoInfo.channelName,
+  if (!videoId) {
+    return showPageNoteFeedback({
+      success: false,
+      error: "NO_VIDEO_ID",
+      message: "无法识别当前 YouTube 视频，请刷新页面后重试。",
     });
-
-    if (result.success) {
-      if (noteButton) {
-        noteButton.innerHTML =
-          '<span style="letter-spacing: 0.2px;">SAVED</span>';
-        noteButton.style.background = "#7c8b6f";
-      }
-      showNoteSavedToast(result.note);
-    } else {
-      if (noteButton) {
-        noteButton.innerHTML =
-          '<span style="letter-spacing: 0.2px;">ERROR</span>';
-      }
-      console.error("[看完了] Save note error:", result.error);
-    }
-  } catch (err) {
-    if (noteButton) {
-      noteButton.innerHTML =
-        '<span style="letter-spacing: 0.2px;">ERROR</span>';
-    }
-    console.error("[看完了] Save note exception:", err);
   }
 
-  setTimeout(() => {
-    if (noteButton) {
-      noteButton.innerHTML = originalContent;
-      noteButton.style.background = "#c8674f";
-      noteButton.style.pointerEvents = "auto";
-    }
-  }, 2000);
+  return getYouTubeNoteCaptureController().capture({
+    action: "saveNote",
+    videoId,
+    timestamp: currentTime,
+    videoTitle: videoInfo.title,
+    channelName: videoInfo.channelName,
+  });
 }
 
 /**
  * Shows a toast notification when a note is saved.
  */
 function showNoteSavedToast(note) {
-  // Remove existing toast
-  const existing = document.getElementById("ytd-note-toast");
-  if (existing) existing.remove();
+  return showPageNoteFeedback({ success: true, note });
+}
 
-  const toast = document.createElement("div");
-  toast.id = "ytd-note-toast";
-  toast.innerHTML = `
-    <div style="font-weight: 700; margin-bottom: 6px; color: #c8674f;">笔记已保存</div>
-    <div style="font-size: 12px; color: #6b6258; margin-bottom: 8px;">${escapeHtmlForContent(note.timestamp)} — ${escapeHtmlForContent(note.videoTitle)}</div>
-    <div style="font-size: 13px; line-height: 1.55; color: #2e2a24;">"${escapeHtmlForContent(note.text)}"</div>
-    <div style="margin-top: 10px; font-size: 11px;">
-      <a href="${escapeHtmlForContent(note.timestampedUrl)}" style="color: #c8674f; font-weight: 600; text-decoration: none;">复制链接</a>
-    </div>
-  `;
-
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 999999;
-    background: #ffffff;
-    border: 1px solid #ece5d9;
-    border-radius: 14px;
-    padding: 16px 20px;
-    max-width: 350px;
-    box-shadow: 0 12px 32px rgba(50, 42, 32, 0.2);
-    font-family: system-ui, -apple-system, "Roboto", sans-serif;
-    animation: ytdSlideIn 0.3s ease;
-  `;
-
-  // Add animation keyframes
-  const style = document.createElement("style");
-  style.textContent = `
-    @keyframes ytdSlideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Copy link handler
-  toast.querySelector("a").addEventListener("click", async (e) => {
-    e.preventDefault();
-    try {
-      await navigator.clipboard.writeText(note.timestampedUrl);
-      e.target.textContent = "已复制";
-    } catch (err) {
-      console.error("Copy failed:", err);
-    }
+function showPageNoteFeedback(result) {
+  return KANWANLE_NOTES.renderFeedback(document, result, {
+    id: "kanwanle-youtube-note-feedback",
+    language: ytdInterfaceLanguage,
+    onOpenNotes: () =>
+      chrome.runtime.sendMessage({
+        action: "openSidePanel",
+        initialTab: "notes",
+      }),
   });
+}
 
-  document.body.appendChild(toast);
+function setYouTubeNoteState(state) {
+  const button = ytdNoteButton;
+  const label = button?.querySelector("[data-note-label]");
+  if (state.status === "saving") {
+    if (label) label.textContent = contentText("saving");
+    if (button) button.style.pointerEvents = "none";
+    return;
+  }
 
-  // Auto-dismiss after 5 seconds
+  if (label) {
+    label.textContent =
+      state.status === "saved" ? contentText("saved") : contentText("saveFailed");
+  }
+  if (button) button.style.background = state.status === "saved" ? "#557a5b" : "#a94132";
+  showPageNoteFeedback(
+    state.status === "saved"
+      ? { success: true, note: state.note }
+      : { success: false, error: state.error, message: state.message },
+  );
   setTimeout(() => {
-    toast.style.animation = "ytdSlideIn 0.3s ease reverse";
-    setTimeout(() => toast.remove(), 300);
-  }, 5000);
+    if (!button?.isConnected) return;
+    const currentLabel = button.querySelector("[data-note-label]");
+    if (currentLabel) currentLabel.textContent = contentText("noteCapture");
+    button.style.background = "#c8674f";
+    button.style.pointerEvents = "auto";
+  }, 1800);
+}
+
+function getYouTubeNoteCaptureController() {
+  if (!ytdNoteCaptureController) {
+    ytdNoteCaptureController = KANWANLE_NOTES.createCaptureController({
+      save: (payload) => chrome.runtime.sendMessage(payload),
+      onStateChange: setYouTubeNoteState,
+    });
+  }
+  return ytdNoteCaptureController;
 }
 
 // ============================================================
@@ -780,12 +781,6 @@ function seekToTimestamp(seconds) {
   }
 }
 
-function escapeHtmlForContent(text) {
-  const div = document.createElement("div");
-  div.textContent = text || "";
-  return div.innerHTML;
-}
-
 // ============================================================
 // PAGE NAVIGATION DETECTION
 // ============================================================
@@ -828,7 +823,9 @@ document.addEventListener("yt-navigate-finish", () => {
   }
 
   // Remove any toasts
-  const existingToast = document.getElementById("ytd-note-toast");
+  const existingToast = document.getElementById(
+    "kanwanle-youtube-note-feedback",
+  );
   if (existingToast) existingToast.remove();
 
   // Re-inject buttons for the new video (with a small delay for YouTube to render)

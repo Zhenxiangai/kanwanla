@@ -20,12 +20,13 @@ var KANWANLE_UPDATES = (() => {
   const MAX_NOTE_CHARS = 180;
 
   const CURRENT_RELEASE = Object.freeze({
-    version: "2.0.0",
-    title: "看完了 2.0.0",
+    version: "2.1.1",
+    title: "看完了 2.1.1",
     notes: Object.freeze([
-      "项目正式更名为“看完了”，扩展界面与 GitHub 首页改为中文优先。",
-      "新增版本提醒、更新说明和一键更新入口；解压安装版会安全打开最新版下载页。",
-      "继续默认使用 DeepSeek V4 Flash，同时保留硅基流动模型选择和 B 站快速概览。",
+      "YouTube 新增无原生字幕时可选的 Supadata AI 转写后备，默认仍仅使用原生字幕。",
+      "字幕中文翻译批次从 3 段提升为 8 段，减少串行等待。",
+      "B 站记笔记按钮改为醒目胶囊样式，中文字幕增加本地标点整理。",
+      "设置页分开标注 YouTube、B 站和通用 AI 服务，并仅保留硅基流动注册链接。",
     ]),
   });
 
