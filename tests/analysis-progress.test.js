@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const {
+  analysisRequestIdForVideo,
   createProgressTracker,
   shouldApplyProgressEvent,
 } = require("../analysis-progress.js");
@@ -53,6 +54,32 @@ test("stale or terminal requests cannot update the active overview", () => {
   assert.equal(shouldApplyProgressEvent(null, "new"), false);
 });
 
+test("Overview request IDs stay stable across side panel lifecycles", () => {
+  assert.equal(
+    analysisRequestIdForVideo("youtube:video-a"),
+    analysisRequestIdForVideo("youtube:video-a"),
+  );
+  assert.notEqual(
+    analysisRequestIdForVideo("youtube:video-a"),
+    analysisRequestIdForVideo("youtube:video-b"),
+  );
+  assert.equal(analysisRequestIdForVideo(""), "");
+});
+
+test("opening a digest starts or reconnects Overview without visiting its tab", () => {
+  const panel = read("sidepanel.js");
+  const startDigest = panel.match(
+    /async function startDigest\(videoRef, videoUrl\) \{[\s\S]*?^}\n\n\/\/ ============================================================\n\/\/ RENDERING/m,
+  )?.[0];
+
+  assert.ok(startDigest, "Expected the real digest pipeline");
+  assert.doesNotMatch(startDigest, /DON'T run LLM analysis automatically/);
+  assert.ok(
+    (startDigest.match(/triggerAnalysis\(\)/g) || []).length >= 2,
+    "transcript-only cache and fresh transcripts must both start Overview",
+  );
+});
+
 test("overview UI includes a request-scoped stage progress surface", () => {
   const html = read("sidepanel.html");
   const panel = read("sidepanel.js");
@@ -60,5 +87,6 @@ test("overview UI includes a request-scoped stage progress surface", () => {
   assert.match(html, /id="analysisProgressFill"/);
   assert.match(panel, /currentAnalysisRequestId/);
   assert.match(panel, /message\.action === "analysisProgress"/);
-  assert.match(panel, /requestId:/);
+  assert.match(panel, /analysisRequestIdForVideo\(analysisVideoId\)/);
+  assert.match(panel, /requestId,/);
 });

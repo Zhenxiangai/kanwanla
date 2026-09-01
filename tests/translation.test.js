@@ -12,9 +12,11 @@ const updates = require("../updates.js");
 const notes = require("../notes.js");
 const i18n = require("../i18n.js");
 const brand = require("../brand.js");
+const analysisProgress = require("../analysis-progress.js");
 
 function loadSidepanelHelpers({
   sendMessage = () => Promise.resolve({}),
+  directUpdateManager = null,
   setTimeoutImpl = () => 0,
   clearTimeoutImpl = () => {},
   documentLike = null,
@@ -78,6 +80,12 @@ function loadSidepanelHelpers({
     YTD_SETTINGS: {},
     YTD_PLATFORMS: platforms,
     KANWANLA_BRAND: brand,
+    KANWANLA_UPDATES: {
+      ...updates,
+      createManager: directUpdateManager
+        ? () => directUpdateManager
+        : updates.createManager,
+    },
     KANWANLA_I18N: i18n,
     BILI_API: biliApi,
   };
@@ -101,6 +109,7 @@ function loadBackgroundHelpers({
     setPanelBehavior() {},
     setOptions: () => Promise.resolve(),
   },
+  runtimeSendMessage = () => Promise.resolve({ success: true }),
   initialStorage = {},
 } = {}) {
   const listeners = { addListener() {} };
@@ -141,7 +150,7 @@ function loadBackgroundHelpers({
         onMessage: listeners,
         openOptionsPage() {},
         getURL: (resourcePath) => `chrome-extension://test/${resourcePath}`,
-        sendMessage: () => Promise.resolve({ success: true }),
+        sendMessage: runtimeSendMessage,
       },
       tabs: {
         onUpdated: listeners,
@@ -162,6 +171,7 @@ function loadBackgroundHelpers({
     KANWANLA_UPDATES: updates,
     KANWANLA_NOTES: notes,
     KANWANLA_I18N: i18n,
+    KANWANLA_ANALYSIS_PROGRESS: analysisProgress,
     BILI_API: biliApiImpl,
   };
   sandbox.globalThis = sandbox;
@@ -308,6 +318,64 @@ test("one header click forces a fresh check and opens an available unpacked upda
   assert.equal(elements.headerUpdateBtn.dataset.state, "available");
   assert.equal(elements.headerUpdateBtn.textContent, "新版本 v2.1.2");
   assert.equal(attributes["aria-label"], "新版本 v2.1.2");
+});
+
+test("header update falls back to the side panel when a stale background reports an error", async () => {
+  const messages = [];
+  const directCalls = [];
+  const elements = {
+    headerUpdateBtn: {
+      dataset: {},
+      disabled: false,
+      setAttribute() {},
+    },
+    updateBanner: { hidden: true },
+    updatePrimaryBtn: { disabled: false },
+    updateStatus: {},
+  };
+  const documentLike = {
+    addEventListener() {},
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    getElementById: (id) => elements[id] || null,
+    createElement: () => ({ textContent: "" }),
+  };
+  const directUpdateManager = {
+    async checkNow() {
+      directCalls.push("checkNow");
+      return {
+        currentVersion: "2.2.1",
+        latestVersion: "2.2.2",
+        updateAvailable: true,
+        showUpdate: true,
+        notes: ["修复更新检查"],
+      };
+    },
+    async install() {
+      directCalls.push("install");
+      return { success: true, mode: "manual", opened: true };
+    },
+  };
+  const helpers = loadSidepanelHelpers({
+    documentLike,
+    directUpdateManager,
+    sendMessage: async (message) => {
+      messages.push(message.action);
+      if (message.action === "checkForUpdates") {
+        return { checkError: "暂时无法检查更新，请稍后再试。" };
+      }
+      if (message.action === "installUpdate") {
+        return { error: "旧后台没有可用版本。" };
+      }
+      return {};
+    },
+  });
+
+  await helpers.handleHeaderUpdateClick();
+
+  assert.deepEqual(messages, ["checkForUpdates", "installUpdate"]);
+  assert.deepEqual(directCalls, ["checkNow", "install"]);
+  assert.equal(elements.headerUpdateBtn.dataset.state, "available");
 });
 
 function createFakeTimers() {
@@ -512,7 +580,9 @@ test("Overview exits loading and shows a retryable error when its runtime messag
     currentVideoId: "test-video",
     currentVideoRef: { platform: "bilibili" },
     currentAnalysis: null,
+    currentAnalysisRequestId: null,
     isAnalysisLoading: false,
+    KANWANLA_ANALYSIS_PROGRESS: analysisProgress,
     ANALYSIS_MESSAGE_TIMEOUT_MS: 195_000,
     escapeHtml: (value) => String(value),
     renderAnalysisProgress() {},
@@ -1032,7 +1102,7 @@ test("all AI product requests use the selected SiliconFlow model and JSON behavi
   );
   assert.doesNotMatch(backgroundSource, /disableThinking/);
   for (const callPath of [
-    "handleAnalyzeTranscript",
+    "runAnalyzeTranscript",
     "cleanupNoteText",
     "handleExplainSelection",
     "callAiTranslation",
@@ -1076,7 +1146,7 @@ test("Overview enables SiliconFlow SSE and assembles streamed JSON content", asy
   assert.equal(requests[0].thinking_budget, 1024);
   assert.equal(result.text, '{"chapters":[],"keyQuotes":[]}');
   const analysisFunction = read("background.js").match(
-    /async function handleAnalyzeTranscript\([\s\S]*?^}\n/m,
+    /async function runAnalyzeTranscript\([\s\S]*?^}\n/m,
   )?.[0];
   assert.ok(analysisFunction);
   assert.match(
@@ -1162,6 +1232,74 @@ test("Bilibili overview request stays within the fast-path budget", async () => 
   );
   assert.ok(request.max_tokens <= 1536);
   assert.ok((request.thinking_budget || 0) <= 128);
+});
+
+test("reopened panels share one in-flight Overview request for the same video", async () => {
+  let releaseProvider;
+  const providerGate = new Promise((resolve) => {
+    releaseProvider = resolve;
+  });
+  let providerRequests = 0;
+  const progressMessages = [];
+  const helpers = loadBackgroundHelpers({
+    runtimeSendMessage: (message) => {
+      if (message.action === "analysisProgress") progressMessages.push(message);
+      return Promise.resolve({ success: true });
+    },
+    fetchImpl: async (url) => {
+      if (String(url).startsWith("chrome-extension://")) {
+        return {
+          ok: true,
+          text: async () => read("prompts/analysis.md"),
+        };
+      }
+      providerRequests += 1;
+      await providerGate;
+      const analysis = JSON.stringify({
+        chapters: [],
+        keyQuotes: [],
+        keyMoments: [],
+      });
+      return streamingResponse([
+        encode(
+          "data: " +
+            JSON.stringify({ choices: [{ delta: { content: analysis } }] }) +
+            "\n\n",
+        ),
+        encode("data: [DONE]\n\n"),
+      ]);
+    },
+  });
+
+  const args = [
+    "[0:00] 同一个视频的字幕",
+    "测试视频",
+    "测试频道",
+    "",
+    60,
+    "youtube",
+    { requestId: "analysis_youtube_video-1" },
+  ];
+  const firstPanel = helpers.handleAnalyzeTranscript(...args);
+  await new Promise((resolve) => setImmediate(resolve));
+  const requestsBeforeCompletion = providerRequests;
+  const progressCountBeforeReconnect = progressMessages.length;
+  const reopenedPanel = helpers.handleAnalyzeTranscript(...args);
+  assert.equal(progressMessages.length, progressCountBeforeReconnect + 1);
+  assert.equal(progressMessages.at(-1).requestId, args.at(-1).requestId);
+  releaseProvider();
+  const [firstResult, reopenedResult] = await Promise.all([
+    firstPanel,
+    reopenedPanel,
+  ]);
+
+  assert.equal(
+    requestsBeforeCompletion,
+    1,
+    "switching away and back must not restart the provider request",
+  );
+  assert.equal(firstResult.success, true);
+  assert.deepEqual(reopenedResult, firstResult);
 });
 
 test("Bilibili overview hard-caps unusually large individual cues", () => {

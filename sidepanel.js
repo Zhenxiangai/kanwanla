@@ -33,6 +33,7 @@ let activeVideoTabId = null;
 let currentConfigStatus = null;
 let errorAction = null;
 let currentUpdateStatus = null;
+let sidepanelUpdateManager = null;
 let interfaceLanguagePreference = "zh-CN";
 let interfaceLanguage = "zh-CN";
 
@@ -195,6 +196,61 @@ function renderUpdateBanner(status, doc = document) {
   banner.hidden = false;
 }
 
+function getSidepanelUpdateManager() {
+  if (!sidepanelUpdateManager) {
+    sidepanelUpdateManager = KANWANLA_UPDATES.createManager({
+      chromeApi: chrome,
+      fetchImpl: (...args) => globalThis.fetch(...args),
+    });
+  }
+  return sidepanelUpdateManager;
+}
+
+async function checkForUpdatesWithFallback() {
+  let backgroundError = null;
+  try {
+    const status = await sendRuntimeMessageWithTimeout(
+      { action: "checkForUpdates" },
+      20_000,
+      "更新检查超时，请稍后重试。",
+    );
+    if (status?.error) throw new Error(status.error);
+    if (!status?.checkError) return status;
+    backgroundError = new Error(status.checkError);
+  } catch (error) {
+    backgroundError = error;
+  }
+
+  try {
+    const status = await getSidepanelUpdateManager().checkNow();
+    if (status?.checkError) throw new Error(status.checkError);
+    return status;
+  } catch (error) {
+    throw error || backgroundError || new Error("暂时无法检查更新。");
+  }
+}
+
+async function installUpdateWithFallback() {
+  let backgroundError = null;
+  try {
+    const result = await sendRuntimeMessageWithTimeout(
+      { action: "installUpdate" },
+      20_000,
+      "更新请求超时，请稍后重试。",
+    );
+    if (result?.error) throw new Error(result.error);
+    return result;
+  } catch (error) {
+    backgroundError = error;
+  }
+
+  try {
+    return await getSidepanelUpdateManager().install();
+  } catch (error) {
+    throw error || backgroundError || new Error("暂时无法打开更新页面。");
+  }
+}
+
 async function loadUpdateStatus() {
   try {
     const status = await sendRuntimeMessageWithTimeout(
@@ -226,12 +282,7 @@ async function handleUpdatePrimaryClick() {
   primary.textContent = "正在检查…";
   if (statusText) statusText.textContent = "正在请求浏览器获取最新版。";
   try {
-    const result = await sendRuntimeMessageWithTimeout(
-      { action: "installUpdate" },
-      20_000,
-      "更新请求超时，请稍后重试。",
-    );
-    if (result?.error) throw new Error(result.error);
+    const result = await installUpdateWithFallback();
     if (result?.mode === "manual") {
       primary.disabled = false;
       primary.textContent = "再次打开下载页";
@@ -271,12 +322,7 @@ async function handleHeaderUpdateClick() {
   if (!currentUpdateStatus?.updateAvailable) {
     renderHeaderUpdateButton(currentUpdateStatus, document, "checking");
     try {
-      const status = await sendRuntimeMessageWithTimeout(
-        { action: "checkForUpdates" },
-        20_000,
-        "更新检查超时，请稍后重试。",
-      );
-      if (status?.error) throw new Error(status.error);
+      const status = await checkForUpdatesWithFallback();
       renderUpdateBanner(status);
       if (!status?.updateAvailable) {
         if (status?.checkError) throw new Error(status.checkError);
@@ -946,6 +992,7 @@ async function startDigest(videoRef, videoUrl) {
       page: videoRef.page,
     });
     currentAnalysisRequestId = null;
+    isAnalysisLoading = false;
     document.getElementById("analysisProgress")?.setAttribute("hidden", "");
     translationGeneration += 1;
     if (transcriptScrollObserver) transcriptScrollObserver.disconnect();
@@ -988,8 +1035,6 @@ async function startDigest(videoRef, videoUrl) {
     currentVideoDescription =
       currentVideoDescription || cached.videoDescription || "";
     currentVideoDuration = currentVideoDuration || cached.videoDuration || 0;
-    isAnalysisLoading = false;
-
     // Restore semantic-segment translations from persistent storage.
     if (cached.paragraphCache) {
       for (const [key, value] of Object.entries(cached.paragraphCache)) {
@@ -1028,6 +1073,9 @@ async function startDigest(videoRef, videoUrl) {
     // Setup explain feature
     setupExplainFeature();
     if (currentTranscriptMode !== "original") translateTranscript();
+    if (!currentAnalysis && currentTranscriptTimestamped) {
+      void triggerAnalysis();
+    }
     return;
   }
 
@@ -1040,8 +1088,6 @@ async function startDigest(videoRef, videoUrl) {
   currentTranscriptTimestamped = null;
   currentTranscriptLanguage = null;
   currentTranscriptSource = null;
-  isAnalysisLoading = false;
-
   if (currentVideoTitle || currentChannelName) {
     const videoInfo = document.getElementById("videoInfo");
     document.getElementById("videoTitle").textContent = currentVideoTitle;
@@ -1112,8 +1158,12 @@ async function startDigest(videoRef, videoUrl) {
   // Save transcript to cache (without analysis)
   await saveToCache(videoId);
 
-  // DON'T run LLM analysis automatically - wait for user to click Overview tab
-  // This saves tokens when user just wants to see the transcript
+  // Opening the digest starts Overview in parallel with reading the transcript.
+  // If the panel was reopened, the stable request ID reconnects to the existing
+  // background job instead of consuming another provider request.
+  if (currentVideoId === videoId && currentTranscriptTimestamped) {
+    void triggerAnalysis();
+  }
 }
 
 // ============================================================
@@ -1917,20 +1967,30 @@ function switchTab(tabName) {
   }
 }
 
-/**
- * Triggers the LLM analysis (lazy-loaded when user clicks Overview or Quotes tab).
- * This saves tokens by not running analysis until needed.
- */
+/** Starts or reconnects to the current video's background Overview job. */
 async function triggerAnalysis() {
   if (!currentTranscriptTimestamped || isAnalysisLoading || currentAnalysis)
     return;
 
+  const analysisVideoId = currentVideoId;
+  const requestId =
+    KANWANLA_ANALYSIS_PROGRESS.analysisRequestIdForVideo(analysisVideoId);
+  if (!requestId) return;
+
+  const request = {
+    action: "analyzeTranscript",
+    transcriptText: currentTranscriptTimestamped,
+    videoTitle: currentVideoTitle,
+    channelName: currentChannelName,
+    videoDescription: currentVideoDescription,
+    videoDuration: currentVideoDuration,
+    platform: currentVideoRef?.platform,
+    requestId,
+  };
   isAnalysisLoading = true;
-  currentAnalysisRequestId = `analysis_${Date.now()}_${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+  currentAnalysisRequestId = requestId;
   renderAnalysisProgress({
-    requestId: currentAnalysisRequestId,
+    requestId,
     stage: "preparing",
     elapsedMs: 0,
     activityCount: 0,
@@ -1951,26 +2011,23 @@ async function triggerAnalysis() {
 
   try {
     const analysisResult = await sendRuntimeMessageWithTimeout(
-      {
-        action: "analyzeTranscript",
-        transcriptText: currentTranscriptTimestamped,
-        videoTitle: currentVideoTitle,
-        channelName: currentChannelName,
-        videoDescription: currentVideoDescription,
-        videoDuration: currentVideoDuration,
-        platform: currentVideoRef?.platform,
-        requestId: currentAnalysisRequestId,
-      },
+      request,
       ANALYSIS_MESSAGE_TIMEOUT_MS,
       "概览请求等待超过 195 秒，请重试。",
     );
 
-    if (!analysisResult.success) {
+    if (
+      currentVideoId !== analysisVideoId ||
+      currentAnalysisRequestId !== requestId
+    ) {
+      return;
+    }
+
+    if (!analysisResult?.success) {
       if (chapterList)
-        chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">分析失败：${escapeHtml(analysisResult.error || "未知错误")}</li>`;
+        chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">分析失败：${escapeHtml(analysisResult?.error || "未知错误")}</li>`;
       if (quotesList)
-        quotesList.innerHTML = `<div class="quote-item" style="color: var(--accent); border-left-color: var(--accent);">分析失败：${escapeHtml(analysisResult.error || "未知错误")}</div>`;
-      isAnalysisLoading = false;
+        quotesList.innerHTML = `<div class="quote-item" style="color: var(--accent); border-left-color: var(--accent);">分析失败：${escapeHtml(analysisResult?.error || "未知错误")}</div>`;
       return;
     }
 
@@ -1980,16 +2037,27 @@ async function triggerAnalysis() {
     highlightMomentsOnPage(currentAnalysis.keyMoments);
 
     // Save to cache now that we have analysis
-    await saveToCache(currentVideoId);
+    await saveToCache(analysisVideoId);
   } catch (error) {
+    if (
+      currentVideoId !== analysisVideoId ||
+      currentAnalysisRequestId !== requestId
+    ) {
+      return;
+    }
     console.error("[看完啦 Panel] Analysis error:", error);
     if (chapterList)
       chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">错误：${escapeHtml(error.message)}</li>`;
     if (quotesList)
       quotesList.innerHTML = `<div class="quote-item" style="color: var(--accent); border-left-color: var(--accent);">错误：${escapeHtml(error.message)}</div>`;
+  } finally {
+    if (
+      currentVideoId === analysisVideoId &&
+      currentAnalysisRequestId === requestId
+    ) {
+      isAnalysisLoading = false;
+    }
   }
-
-  isAnalysisLoading = false;
 }
 
 function renderAnalysisProgress(event) {

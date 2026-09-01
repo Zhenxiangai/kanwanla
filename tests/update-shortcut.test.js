@@ -20,7 +20,11 @@ test("the panel header always exposes a one-click forced update control", () => 
   assert.match(js, /function handleHeaderUpdateClick\(/);
   assert.match(
     js,
-    /handleHeaderUpdateClick[\s\S]*action:\s*"checkForUpdates"[\s\S]*handleUpdatePrimaryClick/,
+    /function checkForUpdatesWithFallback\([\s\S]*action:\s*"checkForUpdates"/,
+  );
+  assert.match(
+    js,
+    /function handleHeaderUpdateClick\([\s\S]*checkForUpdatesWithFallback\(\)[\s\S]*handleUpdatePrimaryClick/,
   );
   assert.match(
     js,
@@ -28,4 +32,3 @@ test("the panel header always exposes a one-click forced update control", () => 
   );
   assert.match(css, /\.header-update-btn\[data-state="available"\]/);
 });
-

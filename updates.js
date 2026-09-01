@@ -47,13 +47,13 @@ var KANWANLA_UPDATES = (() => {
   const MAX_NOTE_CHARS = 180;
 
   const CURRENT_RELEASE = Object.freeze({
-    version: "2.2.2",
-    title: "看完啦 2.2.2",
+    version: "2.2.3",
+    title: "看完啦 2.2.3",
     notes: Object.freeze([
-      "首页功能对比只保留主上游 zarazhangrui/youtube-digest。",
-      "国内下载与更新地址统一切换到新的 kanwanla 仓库。",
-      "GitCode 自动同步 GitHub 当前版本，国内外下载内容保持一致。",
-      "GitCode 不可用时仍会自动回退 GitHub。",
+      "打开插件后，字幕就绪会自动开始生成概览。",
+      "生成中切换页面再返回，会续接原任务而不是从头开始。",
+      "同一视频的侧栏复用一次模型请求，并恢复最新真实进度。",
+      "旧后台更新检查异常时，侧栏可直接回退检查并打开新版。",
     ]),
   });
 

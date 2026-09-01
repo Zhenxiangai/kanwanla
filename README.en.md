@@ -17,14 +17,14 @@ For faster access from mainland China, releases are mirrored on [GitCode](https:
 
 ![KanWanLa demo](kanwanla-demo.png)
 
-## What changed in v2.2.2
+## What changed in v2.2.3
 
 | Change | Why it matters to users |
 | --- | --- |
-| The homepage comparison now shows only the main upstream project | New users can see exactly what this fork adds to `zarazhangrui/youtube-digest`. |
-| The domestic repository now uses the `kanwanla` path | The product name, download links, and update checks no longer mix old spellings. |
-| GitCode mirrors the current GitHub code | Mainland-China and GitHub users receive the same verified build. |
-| GitHub remains an automatic fallback | A temporary GitCode failure does not block update checks or video features. |
+| Opening the extension starts Overview automatically | Users can read the transcript while chapters and key quotes are generated in parallel. |
+| Reopening the same video reconnects to its existing job | Switching pages no longer restarts generation or sends a duplicate model request. |
+| The latest real processing stage is replayed | A reopened side panel resumes the same progress instead of showing a fresh start. |
+| Update checks can fall back directly inside the side panel | Chrome can still discover and open a trusted release when an older background worker is stale. |
 
 See the Chinese-first [version history](CHANGELOG.md) for earlier user-facing improvements.
 

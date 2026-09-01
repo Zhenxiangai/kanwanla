@@ -25,6 +25,11 @@
     return BASE_PROGRESS[stage] ?? 0;
   }
 
+  function analysisRequestIdForVideo(videoId) {
+    const stableVideoId = String(videoId || "").trim();
+    return stableVideoId ? `analysis:${stableVideoId.slice(0, 500)}` : "";
+  }
+
   function createProgressTracker({
     requestId,
     emit,
@@ -90,6 +95,7 @@
 
   return {
     BASE_PROGRESS,
+    analysisRequestIdForVideo,
     createProgressTracker,
     phaseProgress,
     shouldApplyProgressEvent,

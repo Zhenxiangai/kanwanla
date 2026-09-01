@@ -38,6 +38,8 @@ const BILIBILI_ANALYSIS_COMPACT_THRESHOLD_CHARS = 18_000;
 const BILIBILI_ANALYSIS_MAX_TRANSCRIPT_CHARS = 24_000;
 const BILIBILI_ANALYSIS_GROUP_WINDOW_SECONDS = 18;
 const BILIBILI_ANALYSIS_GROUP_MAX_TEXT_CHARS = 220;
+const ANALYSIS_JOB_RETENTION_MS = 10 * 60 * 1000;
+const analysisJobs = new Map();
 const debugLog = (...args) => {
   if (DEBUG) console.log(...args);
 };
@@ -1490,7 +1492,30 @@ function compactBilibiliAnalysisTranscript(transcriptText) {
  * @param {string} channelName - The channel name
  * @returns {Object} - { success, analysis } or { success: false, error }
  */
-async function handleAnalyzeTranscript(
+function broadcastAnalysisProgress(event) {
+  try {
+    const delivery = chrome.runtime.sendMessage({
+      action: "analysisProgress",
+      ...event,
+    });
+    delivery?.catch?.(() => {});
+  } catch (_error) {
+    // The panel may be closed while the background request keeps running.
+  }
+}
+
+function pruneAnalysisJobs(now = Date.now()) {
+  for (const [requestId, job] of analysisJobs.entries()) {
+    if (
+      job.completedAt &&
+      now - job.completedAt > ANALYSIS_JOB_RETENTION_MS
+    ) {
+      analysisJobs.delete(requestId);
+    }
+  }
+}
+
+async function runAnalyzeTranscript(
   transcriptText,
   videoTitle,
   channelName,
@@ -1502,11 +1527,7 @@ async function handleAnalyzeTranscript(
   const progress = progressContext.requestId
     ? KANWANLA_ANALYSIS_PROGRESS.createProgressTracker({
         requestId: progressContext.requestId,
-        emit: (event) => {
-          chrome.runtime
-            .sendMessage({ action: "analysisProgress", ...event })
-            .catch(() => {});
-        },
+        emit: progressContext.emitProgress || broadcastAnalysisProgress,
       })
     : null;
   progress?.update("preparing");
@@ -1639,6 +1660,85 @@ async function handleAnalyzeTranscript(
       error: error.message || "Failed to analyze transcript",
     };
   }
+}
+
+/**
+ * Reuses one provider request for every side panel attached to the same video.
+ * A successful result is retained briefly so a panel reopened just after the
+ * request completed can still receive and persist it. Failed jobs are removed
+ * immediately so the user's Retry action always starts a fresh request.
+ */
+async function handleAnalyzeTranscript(
+  transcriptText,
+  videoTitle,
+  channelName,
+  videoDescription,
+  videoDuration,
+  platform = "youtube",
+  progressContext = {},
+) {
+  const requestId = String(progressContext.requestId || "").trim();
+  if (!requestId) {
+    return runAnalyzeTranscript(
+      transcriptText,
+      videoTitle,
+      channelName,
+      videoDescription,
+      videoDuration,
+      platform,
+      progressContext,
+    );
+  }
+
+  pruneAnalysisJobs();
+  const existingJob = analysisJobs.get(requestId);
+  if (existingJob) {
+    if (existingJob.latestProgress) {
+      broadcastAnalysisProgress(existingJob.latestProgress);
+    }
+    return existingJob.promise;
+  }
+
+  const job = {
+    latestProgress: null,
+    completedAt: 0,
+    promise: null,
+  };
+  const emitProgress = (event) => {
+    job.latestProgress = event;
+    broadcastAnalysisProgress(event);
+  };
+
+  // Defer execution by one microtask so the registry is populated before the
+  // provider request begins and another panel has a chance to reconnect.
+  job.promise = Promise.resolve()
+    .then(() =>
+      runAnalyzeTranscript(
+        transcriptText,
+        videoTitle,
+        channelName,
+        videoDescription,
+        videoDuration,
+        platform,
+        { ...progressContext, requestId, emitProgress },
+      ),
+    )
+    .then(
+      (result) => {
+        if (result?.success) {
+          job.completedAt = Date.now();
+        } else {
+          analysisJobs.delete(requestId);
+        }
+        return result;
+      },
+      (error) => {
+        analysisJobs.delete(requestId);
+        throw error;
+      },
+    );
+  analysisJobs.set(requestId, job);
+  return job.promise;
 }
 
 /**
