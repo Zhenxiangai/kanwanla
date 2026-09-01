@@ -48,11 +48,11 @@ The 看完了 developer does not proxy or receive Supadata, Bilibili, or Silicon
 
 Timestamped notes are assembled and saved locally from the available caption cues. Saving a note does not wait for or send that note to SiliconFlow.
 
-### GitHub release checks
+### GitCode and GitHub release checks
 
-When the side panel opens, 看完了 may request public release metadata from `https://api.github.com/repos/Zhenxiangai/kanwanle/releases/latest`. A successful result is cached for 24 hours; a failed check is not retried for at least one hour. The response is reduced to the public version number, release title, short release notes, publication time, and validated GitHub release URL.
+When the side panel opens, 看完了 may request public release metadata from `https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanle/releases/latest`. If that request fails or returns invalid metadata, it falls back to `https://api.github.com/repos/Zhenxiangai/kanwanle/releases/latest`. A successful result is cached for 24 hours; a failed check is not retried for at least one hour. The response is reduced to the public version number, release title, short release notes, publication time, and a validated GitCode or GitHub release URL.
 
-This request does not contain Supadata or SiliconFlow API keys, video URLs, video identifiers, subtitles, notes, Bilibili cookies, or browser-account identifiers. GitHub still receives the ordinary network metadata associated with an HTTPS request, such as the user's IP address and browser networking information, under GitHub's own privacy policy. Update-check failure does not block video features.
+These requests do not contain Supadata or SiliconFlow API keys, video URLs, video identifiers, subtitles, notes, Bilibili cookies, or browser-account identifiers. GitCode or GitHub receives only the ordinary network metadata associated with an HTTPS request, such as the user's IP address and browser networking information, under that host's own privacy policy. Update-check failure does not block video features.
 
 ## Local storage
 
@@ -95,7 +95,8 @@ Settings provides controls to clear cached digests or reset all 看完了 data. 
 - SiliconFlow host access: list models and perform configured AI requests.
 - Bilibili host access: interact with Bilibili playback pages and retrieve metadata and subtitle tracks.
 - `*.hdslb.com` host access: download the selected Bilibili subtitle JSON.
-- GitHub API host access: check the current public release version and release notes.
+- GitCode API host access: check the preferred public release version and release notes.
+- GitHub API host access: provide a release-check fallback when GitCode is unavailable.
 
 看完了 does not use these permissions to monitor unrelated browsing.
 

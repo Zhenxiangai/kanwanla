@@ -2,54 +2,79 @@
 
 [中文](README.md) | [English](README.en.md)
 
-> 视频太长？看完了帮你划重点。
+<p align="center">
+  <strong>把 YouTube 和 B 站长视频，变成可以读、可以搜、可以记的学习资料。</strong>
+</p>
 
-**KanWanLe – AI Video Learning Assistant**
+<p align="center">
+  <a href="https://github.com/Zhenxiangai/kanwanle/releases/latest"><strong>下载最新版</strong></a>
+  ·
+  <a href="#3-分钟完成安装"><strong>安装教程</strong></a>
+  ·
+  <a href="#常见问题"><strong>常见问题</strong></a>
+  ·
+  <a href="https://gitcode.com/gcw_XQNnjJtX/kanwanle"><strong>国内代码镜像</strong></a>
+</p>
 
-把 YouTube 和 B 站视频变成便于深入学习的资料：带时间戳字幕、双语阅读、硅基流动生成的章节与金句、选中文字解释和视频笔记，都集中在同一个 Chrome 或 Edge 侧边栏中。
+> 完全不懂代码也可以使用。你只需要会下载 ZIP、打开浏览器扩展页面，并把自己的服务密钥粘贴到“设置”中。
 
-“看完了”是本地运行、自备 API Key 的 Chromium 扩展。它没有开发者服务器、账号系统、分析统计、广告或附带的 API 额度。
+## 它能帮你做什么
 
-> [!IMPORTANT]
-> 本项目基于 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 进行二次开发，并依据 MIT License 使用和发布。当前分支独立维护，完整保留原项目版权声明，并新增 B 站、硅基流动模型选择、Chrome 与 Edge 兼容及稳定性优化。
+| 你想做的事 | “看完了”会怎么帮你 |
+| --- | --- |
+| 看懂长视频 | 把字幕放到视频旁边，点击时间就能跳回对应画面。 |
+| 阅读外语视频 | 在原文、中文和双语对照之间切换。 |
+| 快速抓重点 | 用 AI 生成章节、重点摘录和带时间戳的概览。 |
+| 问清楚一句话 | 选中字幕后点击“解释”，还可以补充自己的问题。 |
+| 记下有用内容 | 点击“记笔记”或按键盘上的 `N`，保存当前时间和字幕。 |
+| 把学习内容交给 Agent | 一键复制学习记录，或下载 Markdown、JSON 文件。 |
 
-![看完了演示](YouTube%20Digest%20demo.png)
+这些内容默认保存在你自己的浏览器里。“看完了”没有开发者服务器、账号系统、广告或分析统计，也不要求安装本地 AI 软件。
 
-## 界面与功能展示
+## 看一眼实际效果
 
-以下截图来自 YouTube 实际使用界面。无需离开视频页，即可完成字幕阅读、AI 概览、重点摘录、划线提问和笔记沉淀。
+### B 站：边看视频，边读概览
+
+<p align="center">
+  <img src="docs/images/bilibili-overview.png" alt="B 站视频概览、章节、重点摘录与笔记功能" width="920"><br>
+  <sub>在 B 站播放页直接生成带时间戳的章节和重点摘录，视频上的“记笔记”按钮也会保留。</sub>
+</p>
+
+### YouTube：字幕、概览和笔记都在同一个侧边栏
 
 <table>
   <tr>
     <td width="33%" align="center" valign="top">
-      <strong>时间轴字幕与中文翻译</strong><br><br>
+      <strong>字幕与中文翻译</strong><br><br>
       <img src="docs/images/youtube-transcript-zh.png" alt="YouTube 时间轴字幕与中文翻译" width="280"><br>
-      <sub>逐句时间戳、原文/中文/双语切换、跟随播放与字幕搜索。</sub>
+      <sub>逐句时间戳、原文/中文/双语切换，并可跟随视频播放。</sub>
     </td>
     <td width="33%" align="center" valign="top">
-      <strong>AI 概览与真实进度</strong><br><br>
+      <strong>AI 概览与处理进度</strong><br><br>
       <img src="docs/images/youtube-overview-progress.png" alt="YouTube AI 概览与生成进度" width="280"><br>
-      <sub>生成章节和重点时显示处理阶段、已用时间与流式活动。</sub>
+      <sub>生成章节和重点时，会显示当前阶段、已用时间和处理活动。</sub>
     </td>
     <td width="33%" align="center" valign="top">
-      <strong>笔记管理与 Agent 导出</strong><br><br>
+      <strong>笔记与 Agent 导出</strong><br><br>
       <img src="docs/images/youtube-notes-agent-export.png" alt="YouTube 笔记管理与 Agent 导出" width="280"><br>
-      <sub>集中管理时间戳笔记，并复制给 Agent 或导出 Markdown、JSON。</sub>
+      <sub>统一管理笔记，并复制给 Agent 或下载 Markdown、JSON。</sub>
     </td>
   </tr>
 </table>
 
+### 重点摘录和划线提问
+
 <table>
   <tr>
     <td width="50%" align="center" valign="top">
-      <strong>重点摘录</strong><br><br>
+      <strong>自动整理重点</strong><br><br>
       <img src="docs/images/youtube-key-highlights.png" alt="YouTube AI 重点摘录" width="300"><br>
-      <sub>保留可跳转时间戳，一键复制，或直接沉淀为视频笔记。</sub>
+      <sub>每条重点都有时间，可以跳回视频、复制文字或保存为笔记。</sub>
     </td>
     <td width="50%" align="center" valign="top">
-      <strong>划线解释与针对性提问</strong><br><br>
+      <strong>针对选中文字继续追问</strong><br><br>
       <img src="docs/images/youtube-selection-explain.png" alt="YouTube 划线解释与自定义问题" width="300"><br>
-      <sub>选中文字后可补充自己的疑问，让 AI 结合视频上下文分析。</sub>
+      <sub>不只让 AI 解释原文，还可以输入自己的疑问，让回答更有针对性。</sub>
     </td>
   </tr>
 </table>
@@ -57,142 +82,158 @@
 <table>
   <tr>
     <td width="50%" align="center" valign="top">
-      <strong>笔记保存反馈</strong><br><br>
+      <strong>保存后马上看到结果</strong><br><br>
       <img src="docs/images/youtube-note-saved.png" alt="YouTube 笔记保存反馈" width="330"><br>
-      <sub>保存后立即显示真实摘录和时间链接，不再只有模糊提示。</sub>
+      <sub>弹窗会显示真正保存的内容和时间链接。</sub>
     </td>
     <td width="50%" align="center" valign="top">
-      <strong>字幕选区快捷操作</strong><br><br>
+      <strong>选中文字直接操作</strong><br><br>
       <img src="docs/images/youtube-selection-actions.png" alt="YouTube 字幕选区解释与笔记操作" width="330"><br>
-      <sub>选中字幕时直接出现“解释”和“笔记”，减少操作路径。</sub>
+      <sub>选中字幕后，直接点击“解释”或“笔记”。</sub>
     </td>
   </tr>
 </table>
 
-## 这个版本增加了什么
+## 3 分钟完成安装
 
-- 支持 B 站普通视频和多 P 视频，字幕来自 B 站官方网页接口。
-- AI 服务改为硅基流动，默认使用 DeepSeek V4 Flash，也可读取账号可用模型或手动填写模型 ID。
-- 在 Chrome 和 Edge 中支持 YouTube 与 B 站。
-- 为 B 站长视频概览增加字幕碎片合并、受限输入、较小推理预算和可重试超时机制。
-- 增加平台隔离的字幕缓存、中文字幕直出和多 P 独立数据。
-- 增加中文更新提醒：显示版本号与主要改动，商店安装版可请求浏览器更新，GitHub 解压版会打开经过校验的最新版下载页。
-- 侧栏内容顶端始终显示**检查更新**；点击会跳过自动检查缓存，发现新版后直接进入更新流程。
-- 界面默认使用中文，也可选择跟随浏览器或固定英文；AI 输出语言可单独设置。
-- 修复视频按钮、`N` 快捷键和侧边栏笔记保存，保存后会显示真实笔记内容与时间链接。
-- 划线解释可追加自己的问题；概览显示真实处理阶段、耗时和流式数据活动。
-- 可把本次学习导出为 Agent 提示词、Markdown 或 JSON，默认不包含完整字幕。
+目前使用的是“手动安装版”。第一次操作多几步，后面就可以一直使用。
 
-## 支持的网站
+1. 点击页面上方的[下载最新版](https://github.com/Zhenxiangai/kanwanle/releases/latest)。
+2. 在发行版页面下载名称类似 `kanwanle-v版本号.zip` 的文件。
+3. 找到下载好的 ZIP，双击或右键解压。请把解压后的文件夹放在一个长期不移动的位置。
+4. 打开浏览器扩展页面：
+   - Chrome：在地址栏输入 `chrome://extensions`
+   - Edge：在地址栏输入 `edge://extensions`
+5. 打开右上角或左侧的**开发者模式**。
+6. 点击**加载已解压的扩展程序**，选择刚才解压的文件夹。正确的文件夹里面能看到 `manifest.json`。
+7. 回到已经打开的 YouTube 或 B 站视频页面，刷新一次。
 
-- **YouTube：**普通视频播放页；原生字幕通过 Supadata 获取，也可明确开启无字幕时的 Supadata AI 转写后备。
-- **B 站：**`/video/` 和 `/list/` 播放页，包括多 P 视频；视频信息和字幕直接从 B 站官方网页接口读取。
+如果浏览器侧栏标题仍然显示 “Video Digest”，说明选到了旧文件夹。请重新选择包含 `manifest.json`、扩展名称为“看完了”的新文件夹。
 
-升级后会继续使用原来的 YouTube 缓存和笔记标识。B 站每个分 P 使用独立的命名空间缓存键。
+## 第一次使用：设置自己的服务
 
-## 功能
+### API 密钥是什么
 
-- 在播放器旁阅读可点击跳转的字幕，并自动跟随播放位置。
-- 点击字幕、章节、金句或笔记跳到对应时间。
-- 随时切换原文、中文或对照双语视图。
-- 原字幕是中文时直接显示，避免没有必要的“中译中”请求。
-- 中文翻译按更大的语义批次处理，减少长视频逐段等待次数。
-- 只有打开“概览”时才生成章节和金句。
-- 解释选中的字幕内容，也可附加自己的问题，让 AI 针对性回答。
-- 点击视频上的“记笔记”、按 `N` 或使用侧边栏按钮，立即保存带时间戳笔记并显示保存结果。
-- 概览生成时显示真实阶段、已用时间和流式片段活动，不虚构剩余时间。
-- 默认使用 DeepSeek V4 Flash；仍可从硅基流动加载账号可用模型，或手动填写其他模型 ID。
-- 默认中文界面，可选择跟随浏览器或英文；AI 输出语言与界面语言可独立设置。
-- 把字幕、翻译、分析、阅读位置、划线问答和笔记保存在浏览器扩展的本地存储中。
-- 将当前学习记录复制给 Agent，或下载为 Markdown、JSON；完整字幕必须由用户明确勾选才会包含。
-- 完全在浏览器扩展内运行，不需要 Whisper、伴随应用、本地服务或开发者后端。
+可以把 API 密钥理解成你自己的“服务通行证”。它不是本项目提供的，也不要发给别人。请只把密钥粘贴到扩展的“设置”页面。
 
-## 使用条件
+| 想使用的功能 | 需要准备什么 |
+| --- | --- |
+| 保存笔记 | 什么都不用，直接使用。 |
+| 读取 B 站字幕 | 不需要 API 密钥；少数字幕需要先在同一个浏览器中登录 B 站。 |
+| 生成概览、翻译或解释 | 需要自己的硅基流动 API 密钥。 |
+| 读取 YouTube 字幕 | 需要自己的 Supadata API 密钥。 |
 
-- Chrome 或 Edge 116 或更高版本。
-- 使用 AI 功能需要硅基流动 API Key；默认模型为 DeepSeek V4 Flash，也可自行更换。
-- 获取 YouTube 字幕需要 Supadata API Key。
-- 某些 B 站字幕只对登录用户可见，此时需在同一个浏览器个人资料中登录 B 站。
+1. 没有硅基流动账号：点击[注册硅基流动](https://cloud.siliconflow.cn/i/w3LDYnbF)，创建密钥后粘贴到设置页。
+2. 没有 Supadata 账号：点击[注册 Supadata](https://supadata.ai/?ref=xiang)，创建密钥后粘贴到设置页。
+3. AI 模型看不懂时，不用修改。默认的 `deepseek-ai/DeepSeek-V4-Flash` 可以直接使用，也可以以后再换。
+4. 点击**保存设置**，回到视频页面刷新一次。
 
-不要把 API Key 发到聊天中，也不要写进源码、截图、日志或提交记录。请只在扩展的“设置”页面中自行填写。
+<p align="center">
+  <img src="docs/images/settings-ai-services.png" alt="字幕服务、硅基流动 API 与 AI 模型设置" width="720"><br>
+  <sub>设置页已经把 YouTube 字幕、B 站字幕和 AI 服务分开说明。</sub>
+</p>
 
-## 安装
+## 平时怎么用
 
-1. 从 [GitHub 最新发行版](https://github.com/Zhenxiangai/kanwanle/releases/latest) 下载 ZIP，并解压到长期不移动的文件夹。
-2. Chrome 打开 `chrome://extensions`；Edge 打开 `edge://extensions`。
-3. 开启**开发者模式**，点击**加载已解压的扩展程序**。
-4. 选择包含 `manifest.json` 的项目文件夹。
-5. 打开“看完了”设置，填写自己的 API Key 并保存；可继续使用默认的 DeepSeek V4 Flash，也可加载其他硅基流动模型。
-6. 刷新此前已经打开的 YouTube 或 B 站页面。
+1. 打开一个 YouTube 或 B 站视频。
+2. 点击视频附近的**摘要**按钮，或打开浏览器侧边栏中的“看完了”。
+3. 在侧边栏上方选择：
+   - **字幕**：阅读、搜索、翻译和跳转时间。
+   - **概览**：生成章节和重点摘录。
+   - **笔记**：查看已保存内容，并导出本次学习记录。
+4. 想记下当前内容时，点击**记笔记**，或直接按键盘上的 `N`。
+5. 想问 AI 时，先选中一段字幕，再点击**解释**。
+
+## 把学习记录交给 Agent
+
+打开**笔记 → 本次学习记录**，可以：
+
+- 点击**复制给 Agent**，得到一段可以直接粘贴给 Hermes、Codex 或其他 Agent 的提示词。
+- 点击**下载 Markdown**，保存成普通笔记文件。
+- 点击**下载 JSON**，交给其他程序继续处理。
+- 根据需要勾选**包含完整字幕**。默认不包含完整字幕，文件会更小，也更注意隐私。
+
+<p align="center">
+  <img src="docs/images/settings-agent-customization.png" alt="可编辑并复制给 Agent 的扩展开发提示词" width="760"><br>
+  <sub>设置页还提供一段可编辑的开发提示词，方便让 Agent 在清楚安全边界的前提下继续修改项目。</sub>
+</p>
 
 ## 如何更新
 
-- 侧栏内容顶端始终显示**检查更新**。点击会立即联网检查，不受 24 小时自动检查缓存影响；如果发现新版，按钮会显示**新版本 vX**，同一次点击继续进入更新流程。收起下方详细更新说明不会隐藏这个入口。
-- **GitHub 解压安装版：**浏览器不允许扩展安全覆盖自己的源码目录。点击更新会打开[最新发行版](https://github.com/Zhenxiangai/kanwanle/releases/latest)；解压并覆盖原文件后，在扩展管理页点击**重新加载**，再刷新视频页面。
-- **未来的商店安装版：**浏览器仍负责安全安装更新；按钮只请求浏览器检查对应商店并在下载完成后应用。当前项目尚未发布到 Chrome Web Store 或 Edge Add-ons。
+1. 在“看完了”侧栏顶部点击**检查更新**。
+2. 如果出现**新版本 vX**，点击它会打开最新发行版页面。
+3. 下载新的 ZIP 并解压。
+4. 把新文件复制到原来的扩展文件夹中，选择覆盖同名文件。
+5. 回到 `chrome://extensions` 或 `edge://extensions`，在“看完了”卡片上点击**重新加载**。
+6. 刷新视频页面。
 
-版本检查最多每 24 小时自动请求一次 GitHub Releases API，只读取公开的版本号、发行说明和下载页地址，不会发送 API Key、视频地址、字幕、笔记或账号数据。网络失败不会影响字幕和摘要功能。
+浏览器不允许手动安装的扩展自己覆盖本地文件，所以现在还不能做到真正的一键安装更新。顶部按钮负责提醒并带你打开正确的下载页。
 
-## 字幕来源
+## 常见问题
 
-### YouTube
+### YouTube 提示“未找到字幕”
 
-“看完了”会把规范化的 YouTube 视频链接发送到 Supadata 字幕接口。默认使用 `mode=native`，只读取已有字幕；如果视频没有原生字幕，会明确提示。用户可在设置中主动选择“无字幕时使用 Supadata AI 转写”，此时改用 `mode=auto`，先尝试原生字幕，再由 Supadata 生成转写。生成式转写更慢，并会按视频时长消耗 Supadata 额度，所以不会默认开启。
+这个视频可能没有原生字幕。打开“设置”，把“没有原生字幕时”改为使用 Supadata AI 转写后备，然后重试。AI 转写通常更慢，并可能按视频时长消耗 Supadata 额度。
 
-### B 站
+### B 站提示没有字幕
 
-“看完了”依次执行：
+先确认你已经在同一个浏览器中登录 B 站，然后刷新视频。有些视频本身没有提供字幕，这种情况插件也无法读取。
 
-1. 调用 `api.bilibili.com/x/web-interface/view`，把 BV 号和当前分 P 解析成 aid、cid。
-2. 使用 B 站 WBI 签名调用 `api.bilibili.com/x/player/wbi/v2`，获取字幕轨列表。
-3. 从 B 站的 `hdslb.com` 地址下载选中的字幕 JSON。
+### 翻译或概览为什么比较慢
 
-调用 B 站 API 时，浏览器可能附带当前个人资料中已有的 B 站 Cookie，以便列出登录用户可见的字幕轨。下载字幕文件时不会附带 Cookie。扩展不申请 Chrome 的 `cookies` 权限，也不会自行读取或保存 Cookie 内容。
+速度会受到视频长度、字幕数量、当前网络和所选模型影响。侧边栏会显示正在准备、等待模型或生成内容。完全没有变化时，可以点击重试。
 
-字幕选择顺序为：人工中文、AI 中文、英文。如果 B 站没有提供字幕轨，“看完了”会提示没有可用字幕，不会从媒体流生成字幕。
+### 我不会选择 AI 模型
 
-对于 B 站返回的无标点中文 AI 字幕，扩展会在浏览器内保守补充逗号、句号和段落边界，改善整篇阅读排版；已有标点会保留，字幕内容不会因此发送给其他服务。
+保持默认的 DeepSeek V4 Flash 即可。模型列表是给有特殊需要的用户准备的。
 
-## 硅基流动
+### “摘要”或“记笔记”按钮没有出现
 
-没有账号时，可通过[硅基流动注册链接](https://cloud.siliconflow.cn/i/w3LDYnbF)创建账号。
+先刷新视频页面。如果仍未出现，请到浏览器扩展页面，在“看完了”卡片上点击**重新加载**，再回到视频页面刷新。
 
-AI 接口固定为 `https://api.siliconflow.cn/v1`。“设置”页面通过下面的接口加载文本对话模型：
+### API 密钥会上传到项目作者那里吗
 
-```text
-GET /v1/models?type=text&sub_type=chat
-```
+不会。密钥保存在当前浏览器个人资料中，只在使用对应功能时发送给 Supadata 或硅基流动。不要把密钥写进源码、截图、聊天、日志或 GitHub 提交。
 
-默认模型 ID 为 `deepseek-ai/DeepSeek-V4-Flash`。用户从列表选择或手动填写的有效模型会被保留，不会被默认值覆盖。所选模型用于生成概览、解释以及把非中文字幕翻译成中文；中文字幕会跳过翻译。笔记在浏览器内直接保存，不等待模型处理。
+### 只看 B 站，需要 Supadata 吗
 
-概览生成使用硅基流动 SSE 流式输出。对于碎片较多的 B 站长字幕，扩展会先按短时间窗口合并相邻字幕；如果仍然过长，会均匀保留覆盖全片的时间片段，并明确保留首尾内容。B 站概览还使用更小的输入、推理和输出预算，以减少等待时间。YouTube 的现有分析预算保持不变。侧边栏显示准备、等待模型、生成、校验和完成等真实阶段，以及已用时间和收到的数据片段数；因为模型不提供准确剩余量，所以不会伪造倒计时。超时请求会变成可重试错误，不会永久卡住。
+不需要。Supadata 只负责 YouTube 字幕。B 站字幕直接来自 B 站。
 
-模型可用性、价格、限流和上下文长度可能变化，请以当前硅基流动控制台为准。
+## 支持范围
 
-## Supadata
+- Chrome 或 Edge 116 及更高版本。
+- YouTube 普通视频播放页。
+- B 站 `/video/` 和 `/list/` 播放页，包括多 P 视频。
+- B 站只读取平台提供的字幕轨，不会从视频声音中重新生成字幕。
+- YouTube 可选择 Supadata 的 AI 转写后备，但需要用户主动开启。
 
-YouTube 字幕需要用户自己的 Supadata API 密钥。可通过 [Supadata 注册入口](https://supadata.ai/?ref=xiang)创建账号并获取密钥；密钥和无字幕处理偏好只保存在当前浏览器个人资料中。默认原生字幕模式更快、更省额度；可选的 AI 转写后备可能需要更长等待时间，并按视频时长消耗生成式转写额度。
+## 数据和隐私
 
-## 本次学习记录与 Agent
+- 设置、字幕缓存、翻译、概览、笔记、划线问答和阅读位置都保存在当前浏览器个人资料中。
+- 项目没有开发者后端、账号系统、广告或分析统计。
+- 完整字幕不会自动复制给 Agent，必须由你明确勾选。
+- 更新检查只读取 GitCode 或 GitHub 上公开的版本号和发行说明；不会发送视频、字幕、笔记或 API 密钥。
+- 需要清除数据时，可在设置页使用**清除缓存的摘要**或**重置扩展数据**。
 
-在“笔记”页展开**本次学习记录**，可以复制一段可直接交给 Agent 的提示词，也可以下载同一份规范化数据的 Markdown 或 JSON。记录包含视频来源、概览、重点摘录、已保存笔记和划线问答，并使用稳定的 `recordId` 与递增 `revision`，方便 Agent 幂等更新同一条学习记录。
+更完整的数据说明请看 [PRIVACY.md](PRIVACY.md)，安全问题请看 [SECURITY.md](SECURITY.md)。
 
-为减少无意外发，完整字幕默认不包含在记录中；只有明确勾选“包含完整字幕”后才会导出。所有整理都在扩展内完成，“看完了”不会自动连接 Hermes、上传到开发者服务器或替用户发送给任何 Agent。
+<details>
+<summary><strong>给开发者：技术实现与本地验证</strong></summary>
 
-## B 站限制
+### 字幕来源
 
-- 只支持 B 站接口提供的字幕轨。
-- 某些 AI 字幕需要登录 B 站后才能读取。
-- B 站风控可能临时拒绝请求，请正常打开视频、稍等片刻再重试。
-- 如果播放器结构变化，扩展会退回到浮动的“摘要”和“笔记”按钮。
+- YouTube：把规范化视频链接发送到 Supadata。默认只读取已有字幕；用户明确开启后，才使用 AI 转写后备。
+- Bilibili：通过 `api.bilibili.com/x/web-interface/view` 获取视频信息，通过 `api.bilibili.com/x/player/wbi/v2` 获取字幕列表，再从 `hdslb.com` 下载字幕 JSON。
 
-## 本地数据
+### AI 服务
 
-设置、语言偏好、字幕、翻译、概览、笔记、划线问答、学习记录修订信息、阅读位置和更新检查时间都保存在当前浏览器个人资料中。需要时可在“设置”中使用**清除缓存的摘要**或**重置扩展数据**。完整数据流见 [PRIVACY.md](PRIVACY.md)。
+- 接口：`https://api.siliconflow.cn/v1`
+- 默认模型：`deepseek-ai/DeepSeek-V4-Flash`
+- 用户仍可加载账号可用模型，或手动填写模型 ID。
 
-## 开发与验证
+### 本地开发
 
-本项目使用原生 HTML、CSS 和 JavaScript，不需要构建步骤。
+项目使用原生 HTML、CSS 和 JavaScript，不需要构建前端，也不需要本地服务。
 
 ```bash
 npm test
@@ -200,12 +241,17 @@ npm run check
 npm run package
 ```
 
-打包命令会检查发布白名单、JavaScript 语法、测试、本地文件引用和常见密钥特征，再在 `dist/` 中生成 `kanwanle-v<版本>.zip`。
+打包后会生成 `dist/kanwanle-v<版本>.zip`。提交改动前请同时检查 Chrome、Edge、YouTube 和 B 站。
 
-## 致谢与授权
+</details>
 
-“看完了”基于 Zara Zhang 创建的 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二次开发，并依据 MIT License 使用。当前项目由 [Zhenxiangai/kanwanle](https://github.com/Zhenxiangai/kanwanle) 独立维护；本版本的问题请提交到当前仓库，不要打扰上游项目。
+<details>
+<summary><strong>开源来源与授权</strong></summary>
 
-B 站 WBI 签名、字幕接口流程和避免干扰页面 hydration 的按钮注入策略参考并改编自 [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest)，同样依据 MIT License 使用。
+“看完了”由 [Zhenxiangai/kanwanle](https://github.com/Zhenxiangai/kanwanle) 独立维护，基于 Zara Zhang 的 [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest) 二次开发，并依据 MIT License 使用和发布。
 
-原项目及改编代码的版权声明已保留在 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和对应源文件中。本项目继续使用 [MIT License](LICENSE)。
+B 站字幕接入与按钮注入方案参考并改编自 [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest)，同样依据 MIT License 使用。
+
+原项目及改编代码的版权声明保留在 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和对应源文件中。欢迎阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 后参与改进。
+
+</details>

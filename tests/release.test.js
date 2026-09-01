@@ -13,7 +13,7 @@ test("manifest identifies 看完了 and grants only its runtime hosts", () => {
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.minimum_chrome_version, "116");
   assert.equal(manifest.name, "看完了");
-  assert.equal(manifest.version, "2.1.2");
+  assert.equal(manifest.version, "2.1.3");
   assert.equal(packageJson.name, "kanwanle");
   assert.equal(packageJson.version, manifest.version);
   assert.equal(manifest.options_ui.page, "options.html");
@@ -29,6 +29,7 @@ test("manifest identifies 看完了 and grants only its runtime hosts", () => {
     "https://www.bilibili.com/*",
     "https://api.bilibili.com/*",
     "https://*.hdslb.com/*",
+    "https://api.gitcode.com/*",
     "https://api.github.com/*",
   ]);
 
@@ -144,7 +145,7 @@ test("runtime has no source-file credential dependency or retired provider endpo
   assert.doesNotMatch(runtime, /xiaoe|小鹅通/i);
 });
 
-test("update UI uses browser updates with a validated GitHub fallback", () => {
+test("update UI uses browser updates with validated GitCode-first fallback", () => {
   const manifest = JSON.parse(read("manifest.json"));
   const background = read("background.js");
   const updates = read("updates.js");
@@ -153,6 +154,7 @@ test("update UI uses browser updates with a validated GitHub fallback", () => {
   const panelJs = read("sidepanel.js");
   const privacy = read("PRIVACY.md");
 
+  assert.ok(manifest.host_permissions.includes("https://api.gitcode.com/*"));
   assert.ok(manifest.host_permissions.includes("https://api.github.com/*"));
   assert.match(updateRuntime, /runtime\.requestUpdateCheck/);
   assert.match(updateRuntime, /runtime\.onUpdateAvailable/);
@@ -161,6 +163,7 @@ test("update UI uses browser updates with a validated GitHub fallback", () => {
   assert.match(panelHtml, /id="updateBanner"/);
   assert.match(panelHtml, /<script src="updates\.js"><\/script>/);
   assert.match(panelJs, /textContent/);
+  assert.match(privacy, /api\.gitcode\.com/);
   assert.match(privacy, /api\.github\.com/);
   assert.doesNotMatch(panelJs, /updateNotes[\s\S]{0,200}innerHTML/);
 });

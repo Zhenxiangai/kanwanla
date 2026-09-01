@@ -13,6 +13,8 @@ KanWanLe is a local, bring-your-own-key Chromium extension for Chrome and Edge. 
 > [!IMPORTANT]
 > KanWanLe is a derivative work based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), used under the MIT License. This independently maintained fork preserves the upstream copyright notice and adds Bilibili support, SiliconFlow model selection, Chrome and Edge compatibility, and reliability improvements.
 
+For faster access from mainland China, releases are mirrored on [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanle). [GitHub](https://github.com/Zhenxiangai/kanwanle) remains the primary source repository, issue tracker, and fallback download host.
+
 ![KanWanLe demo](YouTube%20Digest%20demo.png)
 
 ## Interface and feature showcase
@@ -69,6 +71,29 @@ These screenshots come from real use on YouTube. Read transcripts, generate an A
   </tr>
 </table>
 
+### Service configuration and cross-platform experience
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <strong>Transcript services and AI model selection</strong><br><br>
+      <img src="docs/images/settings-ai-services.png" alt="Transcript services, SiliconFlow API, and AI model settings" width="400"><br>
+      <sub>Supadata serves YouTube while Bilibili uses official captions. SiliconFlow defaults to DeepSeek V4 Flash while preserving model and output-language choices.</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <strong>An editable development prompt for Agents</strong><br><br>
+      <img src="docs/images/settings-agent-customization.png" alt="Editable extension development prompt for an Agent" width="440"><br>
+      <sub>Edit and copy a project-aware prompt with explicit safety boundaries to add another AI service or continue development with an Agent.</sub>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <strong>Full Bilibili side-panel experience</strong><br><br>
+  <img src="docs/images/bilibili-overview.png" alt="Bilibili video overview, chapters, key highlights, and notes" width="900"><br>
+  <sub>Open KanWanLe directly on a Bilibili video to generate timestamped chapters and highlights with the same notes, language, and update controls.</sub>
+</p>
+
 ## What this fork adds
 
 - Bilibili video and multipart-video support using Bilibili's official web APIs.
@@ -76,7 +101,7 @@ These screenshots come from real use on YouTube. Read transcripts, generate an A
 - Tested Chrome and Edge support for both supported video platforms.
 - Faster long Bilibili overviews through cue grouping, bounded input, a smaller reasoning budget, and retryable timeout handling.
 - Platform-aware transcript caching, Chinese-caption passthrough, and independent multipart-video data.
-- Chinese-first release alerts with version numbers, concise notes, browser-store update requests, and a validated GitHub fallback for unpacked installs.
+- Chinese-first release alerts with version numbers, concise notes, GitCode-first downloads, and an automatic GitHub fallback.
 - An always-visible **Check updates** control in the panel header that bypasses the automatic-check cache and continues directly into the update flow when a release is found.
 - A Chinese-first interface with browser-following or fixed-English options, plus an independent AI output-language setting.
 - Reliable notes from the video button, `N` shortcut, and side panel, with the actual saved excerpt shown immediately.
@@ -118,7 +143,7 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 
 ## Install
 
-1. Download the ZIP from the [latest GitHub release](https://github.com/Zhenxiangai/kanwanle/releases/latest) and extract it to a permanent folder.
+1. Download the latest ZIP from [GitCode Releases](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases). If GitCode is temporarily unavailable, use the [GitHub fallback release](https://github.com/Zhenxiangai/kanwanle/releases/latest). Extract it to a permanent folder.
 2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
 3. Enable **Developer mode** and click **Load unpacked**.
 4. Select the folder containing `manifest.json`.
@@ -128,10 +153,10 @@ Never put API keys in chat, source files, screenshots, logs, or commits. Enter t
 ## Updates
 
 - **Check updates** is always visible at the top of the panel content. Clicking it performs an immediate network check instead of waiting for the 24-hour automatic-check cache. If a release is found, the control changes to **New vX** and the same click continues into the update flow. Dismissing detailed release notes does not hide this control.
-- **GitHub unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens the validated [latest release](https://github.com/Zhenxiangai/kanwanle/releases/latest). Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
+- **Unpacked install:** extensions cannot safely overwrite their own source directory. Updating opens a validated [GitCode release](https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases), with GitHub used only if GitCode is unavailable. Extract it over the existing folder, click **Reload** on the extension card, and refresh the video page.
 - **A future store install:** the browser remains responsible for installing updates. The control only asks the browser to check its corresponding store and apply a downloaded update. KanWanLe is not currently listed in Chrome Web Store or Edge Add-ons.
 
-The automatic release check runs at most once every 24 hours. It reads only public version and release-note metadata from GitHub and never sends API keys, video URLs, transcripts, notes, or account data. A failed check does not block any video feature.
+The automatic release check runs at most once every 24 hours. It reads public metadata from GitCode first and falls back to GitHub if necessary. It never sends API keys, video URLs, transcripts, notes, or account data. A failed check does not block any video feature.
 
 ## Transcript sources
 
@@ -204,7 +229,7 @@ The package command validates the release allowlist, JavaScript syntax, tests, l
 
 ## Attribution
 
-KanWanLe is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. It is independently maintained at [Zhenxiangai/kanwanle](https://github.com/Zhenxiangai/kanwanle); issues about this version should be reported here rather than to the upstream project.
+KanWanLe is based on [zarazhangrui/youtube-digest](https://github.com/zarazhangrui/youtube-digest), created by Zara Zhang and used under the MIT License. It is independently maintained at [Zhenxiangai/kanwanle](https://github.com/Zhenxiangai/kanwanle) and mirrored to [GitCode](https://gitcode.com/gcw_XQNnjJtX/kanwanle); issues about this version should be reported here rather than to the upstream project.
 
 The Bilibili WBI signer, subtitle API flow, and hydration-safe page injection strategy are adapted from [biuworks/bilibili-digest](https://github.com/biuworks/bilibili-digest), also used under the MIT License.
 

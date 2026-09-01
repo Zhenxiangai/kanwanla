@@ -50,6 +50,28 @@ test("GitHub release metadata is reduced to validated plain text", () => {
   assert.ok(release.notes[2].length <= updates.MAX_NOTE_CHARS);
 });
 
+test("GitCode release metadata produces a validated domestic release URL", () => {
+  const release = updates.normalizeRelease(
+    {
+      tag_name: "v2.1.0",
+      name: "看完了 2.1.0",
+      created_at: "2026-09-02T16:00:00+08:00",
+      prerelease: false,
+      release_status: "latest",
+      body: "- 新增国内镜像更新\n- GitHub 自动兜底",
+    },
+    "gitcode",
+  );
+
+  assert.deepEqual(release, {
+    version: "2.1.0",
+    title: "看完了 2.1.0",
+    notes: ["新增国内镜像更新", "GitHub 自动兜底"],
+    url: "https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases/v2.1.0",
+    publishedAt: "2026-09-02T08:00:00.000Z",
+  });
+});
+
 test("foreign, draft, prerelease, and malformed releases are rejected", () => {
   const valid = {
     tag_name: "v2.1.0",
@@ -196,18 +218,29 @@ function githubRelease(version = "2.1.0") {
   };
 }
 
-test("browser manager caches GitHub checks and marks a new release", async () => {
+function gitcodeRelease(version = "2.1.0") {
+  return {
+    tag_name: `v${version}`,
+    name: `看完了 ${version}`,
+    created_at: "2026-09-02T16:00:00+08:00",
+    prerelease: false,
+    release_status: "latest",
+    body: "- 新增国内镜像更新\n- 优化 B 站概览",
+  };
+}
+
+test("browser manager caches GitCode checks and marks a new release", async () => {
   const browser = createChromeMock();
-  let fetchCount = 0;
+  const requestedUrls = [];
   const manager = updates.createManager({
     chromeApi: browser.chromeApi,
     now: () => 1_800_000_000_000,
-    fetchImpl: async () => {
-      fetchCount += 1;
+    fetchImpl: async (url) => {
+      requestedUrls.push(url);
       return {
         ok: true,
         headers: { get: () => null },
-        text: async () => JSON.stringify(githubRelease()),
+        text: async () => JSON.stringify(gitcodeRelease()),
       };
     },
   });
@@ -217,8 +250,45 @@ test("browser manager caches GitHub checks and marks a new release", async () =>
 
   assert.equal(first.updateAvailable, true);
   assert.equal(cached.latestVersion, "2.1.0");
-  assert.equal(fetchCount, 1);
+  assert.deepEqual(requestedUrls, [updates.RELEASE_SOURCES[0].apiUrl]);
   assert.ok(browser.badgeTexts.includes("新"));
+});
+
+test("GitHub is queried only when the GitCode update source fails", async () => {
+  const browser = createChromeMock();
+  const requestedUrls = [];
+  const manager = updates.createManager({
+    chromeApi: browser.chromeApi,
+    now: () => 1_800_000_000_000,
+    fetchImpl: async (url) => {
+      requestedUrls.push(url);
+      if (url === updates.RELEASE_SOURCES[0].apiUrl) {
+        return {
+          ok: false,
+          status: 503,
+          headers: { get: () => null },
+          text: async () => "",
+        };
+      }
+      return {
+        ok: true,
+        headers: { get: () => null },
+        text: async () => JSON.stringify(githubRelease()),
+      };
+    },
+  });
+
+  const status = await manager.checkNow();
+
+  assert.equal(status.updateAvailable, true);
+  assert.equal(
+    status.releaseUrl,
+    "https://github.com/Zhenxiangai/kanwanle/releases/tag/v2.1.0",
+  );
+  assert.deepEqual(
+    requestedUrls,
+    updates.RELEASE_SOURCES.map((source) => source.apiUrl),
+  );
 });
 
 test("unpacked or unavailable store updates open the validated release", async () => {

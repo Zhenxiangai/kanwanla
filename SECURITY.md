@@ -33,6 +33,7 @@ Release builds should communicate only with the documented hosts:
 - `www.bilibili.com`;
 - `api.bilibili.com`; and
 - Bilibili subtitle hosts under `*.hdslb.com`; and
+- `api.gitcode.com` for the preferred public release metadata source; and
 - `api.github.com` for public release metadata only.
 
 Release metadata is treated as untrusted input: responses are size-bounded, versions and repository URLs are validated, notes are converted to bounded plain text, and the UI renders them with `textContent` rather than HTML.

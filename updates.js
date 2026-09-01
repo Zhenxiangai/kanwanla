@@ -1,15 +1,34 @@
 /**
  * Shared update metadata helpers for 看完了.
  *
- * This module knows how to compare extension versions and reduce an untrusted
- * GitHub Release response to a small plain-text record. Browser lifecycle,
- * storage, badges, and tabs stay in background.js.
+ * This module knows how to compare extension versions and reduce untrusted
+ * GitCode or GitHub Release responses to small plain-text records. Browser
+ * lifecycle, storage, badges, and tabs stay in background.js.
  */
 var KANWANLE_UPDATES = (() => {
   const REPOSITORY = "Zhenxiangai/kanwanle";
-  const RELEASE_API_URL =
-    "https://api.github.com/repos/Zhenxiangai/kanwanle/releases/latest";
-  const RELEASES_URL = "https://github.com/Zhenxiangai/kanwanle/releases/latest";
+  const GITCODE_REPOSITORY = "gcw_XQNnjJtX/kanwanle";
+  const RELEASE_SOURCES = Object.freeze([
+    Object.freeze({
+      id: "gitcode",
+      apiUrl:
+        "https://api.gitcode.com/api/v5/repos/gcw_XQNnjJtX/kanwanle/releases/latest",
+      releasesUrl: "https://gitcode.com/gcw_XQNnjJtX/kanwanle/releases",
+      headers: Object.freeze({ Accept: "application/json" }),
+    }),
+    Object.freeze({
+      id: "github",
+      apiUrl:
+        "https://api.github.com/repos/Zhenxiangai/kanwanle/releases/latest",
+      releasesUrl: "https://github.com/Zhenxiangai/kanwanle/releases/latest",
+      headers: Object.freeze({
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      }),
+    }),
+  ]);
+  const RELEASE_API_URL = RELEASE_SOURCES[0].apiUrl;
+  const RELEASES_URL = RELEASE_SOURCES[0].releasesUrl;
   const STORAGE_KEY = "kanwanle_update_state";
   const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
   const FAILED_CHECK_INTERVAL_MS = 60 * 60 * 1000;
@@ -20,13 +39,13 @@ var KANWANLE_UPDATES = (() => {
   const MAX_NOTE_CHARS = 180;
 
   const CURRENT_RELEASE = Object.freeze({
-    version: "2.1.2",
-    title: "看完了 2.1.2",
+    version: "2.1.3",
+    title: "看完了 2.1.3",
     notes: Object.freeze([
-      "侧栏内容顶端新增始终可见的“检查更新”按钮。",
-      "手动检查会跳过 24 小时缓存，发现新版后同一次点击直接进入更新流程。",
-      "即使收起详细更新说明，顶端仍会保留醒目的新版本入口。",
-      "GitHub 解压版打开已校验的发行页，未来商店版仍交由浏览器安全更新。",
+      "新增国内可访问的 GitCode 镜像与发行版下载。",
+      "版本检查优先访问 GitCode，失败时自动回退到 GitHub。",
+      "解压安装版会打开经过严格校验的 GitCode 发行页。",
+      "浏览器商店更新流程保持不变。",
     ]),
   });
 
@@ -106,18 +125,48 @@ var KANWANLE_UPDATES = (() => {
     );
   }
 
+  function releaseUrlForSource(sourceId, version) {
+    const normalized = normalizeVersion(version);
+    if (!normalized) return "";
+    if (sourceId === "gitcode") {
+      return `https://gitcode.com/${GITCODE_REPOSITORY}/releases/v${normalized}`;
+    }
+    if (sourceId === "github") {
+      return `https://github.com/${REPOSITORY}/releases/tag/v${normalized}`;
+    }
+    return "";
+  }
+
   function normalizeReleaseUrl(value, version) {
     try {
       const url = new URL(String(value || ""));
-      const expectedPrefix = `/${REPOSITORY}/releases/tag/`;
-      const tag = decodeURIComponent(url.pathname.slice(expectedPrefix.length));
+      const patterns = [
+        {
+          hostname: "gitcode.com",
+          prefix: `/${GITCODE_REPOSITORY}/releases/`,
+        },
+        {
+          hostname: "github.com",
+          prefix: `/${REPOSITORY}/releases/tag/`,
+        },
+      ];
+      const pattern = patterns.find(
+        (candidate) =>
+          url.hostname === candidate.hostname &&
+          url.pathname.startsWith(candidate.prefix),
+      );
+      const tag = pattern
+        ? decodeURIComponent(url.pathname.slice(pattern.prefix.length))
+        : "";
       if (
         url.protocol !== "https:" ||
-        url.hostname !== "github.com" ||
+        !pattern ||
         url.port ||
         url.username ||
         url.password ||
-        !url.pathname.startsWith(expectedPrefix) ||
+        url.search ||
+        url.hash ||
+        tag.includes("/") ||
         normalizeVersion(tag) !== normalizeVersion(version)
       ) {
         return "";
@@ -133,12 +182,22 @@ var KANWANLE_UPDATES = (() => {
     return Number.isFinite(time) ? new Date(time).toISOString() : "";
   }
 
-  function normalizeRelease(input) {
-    if (!input || typeof input !== "object" || input.draft || input.prerelease) {
+  function normalizeRelease(input, source = RELEASE_SOURCES[0]) {
+    if (
+      !input ||
+      typeof input !== "object" ||
+      input.draft ||
+      input.prerelease ||
+      input.release_status === "pre"
+    ) {
       return null;
     }
     const version = normalizeVersion(input.tag_name);
-    const url = normalizeReleaseUrl(input.html_url, version);
+    const sourceId = typeof source === "string" ? source : source?.id;
+    const url = normalizeReleaseUrl(
+      input.html_url || releaseUrlForSource(sourceId, version),
+      version,
+    );
     if (!version || !url) return null;
     return {
       version,
@@ -146,7 +205,7 @@ var KANWANLE_UPDATES = (() => {
         cleanPlainText(input.name, 100) || `看完了 ${version}`,
       notes: extractReleaseNotes(input.body),
       url,
-      publishedAt: normalizePublishedAt(input.published_at),
+      publishedAt: normalizePublishedAt(input.published_at || input.created_at),
     };
   }
 
@@ -236,7 +295,7 @@ var KANWANLE_UPDATES = (() => {
     if (!reader) {
       const text = await response.text();
       if (byteLength(text) > MAX_RESPONSE_BYTES) {
-        throw new Error("GitHub 更新响应过大。");
+        throw new Error("版本更新响应过大。");
       }
       return text;
     }
@@ -250,37 +309,37 @@ var KANWANLE_UPDATES = (() => {
       receivedBytes += value?.byteLength || 0;
       if (receivedBytes > MAX_RESPONSE_BYTES) {
         await Promise.resolve(reader.cancel()).catch(() => {});
-        throw new Error("GitHub 更新响应过大。");
+        throw new Error("版本更新响应过大。");
       }
       text += decoder.decode(value, { stream: true });
     }
     return text + decoder.decode();
   }
 
-  async function readReleaseResponse(response) {
+  async function readReleaseResponse(response, source = RELEASE_SOURCES[0]) {
     if (!response?.ok) {
-      throw new Error(`GitHub 更新检查失败（${response?.status || "网络错误"}）。`);
+      throw new Error(`版本更新检查失败（${response?.status || "网络错误"}）。`);
     }
     const declaredLength = Number(response.headers?.get?.("content-length"));
     if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
-      throw new Error("GitHub 更新响应过大。");
+      throw new Error("版本更新响应过大。");
     }
     const text = await readBoundedResponseText(response);
     let payload;
     try {
       payload = JSON.parse(text);
     } catch (_error) {
-      throw new Error("GitHub 更新响应格式无效。");
+      throw new Error("版本更新响应格式无效。");
     }
-    const release = normalizeRelease(payload);
-    if (!release) throw new Error("GitHub 更新信息无效。");
+    const release = normalizeRelease(payload, source);
+    if (!release) throw new Error("版本更新信息无效。");
     return release;
   }
 
   /**
    * Creates the browser-facing update service. Callers see five small actions;
-   * storage layout, GitHub validation, badge state, and store fallback remain
-   * hidden inside the module.
+   * storage layout, source fallback, URL validation, badge state, and store
+   * fallback remain hidden inside the module.
    */
   function createManager({
     chromeApi,
@@ -343,22 +402,31 @@ var KANWANLE_UPDATES = (() => {
       }
 
       try {
-        const signal =
-          typeof AbortSignal !== "undefined" &&
-          typeof AbortSignal.timeout === "function"
-            ? AbortSignal.timeout(CHECK_TIMEOUT_MS)
-            : undefined;
-        const response = await request(RELEASE_API_URL, {
-          method: "GET",
-          credentials: "omit",
-          cache: "no-store",
-          headers: {
-            Accept: "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-          },
-          ...(signal ? { signal } : {}),
-        });
-        const latestRelease = await readReleaseResponse(response);
+        let latestRelease = null;
+        let lastError = null;
+        for (const source of RELEASE_SOURCES) {
+          try {
+            const signal =
+              typeof AbortSignal !== "undefined" &&
+              typeof AbortSignal.timeout === "function"
+                ? AbortSignal.timeout(CHECK_TIMEOUT_MS)
+                : undefined;
+            const response = await request(source.apiUrl, {
+              method: "GET",
+              credentials: "omit",
+              cache: "no-store",
+              headers: source.headers,
+              ...(signal ? { signal } : {}),
+            });
+            latestRelease = await readReleaseResponse(response, source);
+            break;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        if (!latestRelease) {
+          throw lastError || new Error("没有可用的版本更新来源。");
+        }
         state = await writeState({
           ...state,
           latestRelease,
@@ -514,6 +582,8 @@ var KANWANLE_UPDATES = (() => {
 
   return {
     REPOSITORY,
+    GITCODE_REPOSITORY,
+    RELEASE_SOURCES,
     RELEASE_API_URL,
     RELEASES_URL,
     STORAGE_KEY,
