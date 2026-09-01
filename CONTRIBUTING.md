@@ -1,11 +1,11 @@
-# Contributing
+# 参与贡献 / Contributing
 
-Thanks for helping improve Video Digest.
+感谢你帮助改进“看完了”。以下规则同时适用于中文和英文贡献。
 
 Before opening a pull request:
 
 1. Keep the extension local and bring-your-own-key. Never commit API keys, cookies, private transcripts, logs, or browser-profile data.
-2. Preserve the upstream attribution and MIT copyright notices in README.md, README.zh-CN.md, LICENSE, and NOTICE.
+2. Preserve the upstream attribution and MIT copyright notices in README.md, README.en.md, README.zh-CN.md, LICENSE, and NOTICE.
 3. Keep permissions and network hosts limited to what the feature requires.
 4. Update the relevant tests and documentation.
 5. Run:

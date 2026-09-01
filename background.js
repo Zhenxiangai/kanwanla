@@ -17,6 +17,7 @@ importScripts(
   "settings.js",
   "platforms.js",
   "transcripts.js",
+  "updates.js",
   "lib/wbi.js",
   "lib/bili-api.js",
 );
@@ -37,12 +38,17 @@ const debugLog = (...args) => {
   if (DEBUG) console.log(...args);
 };
 
+const updateManager = KANWANLE_UPDATES.createManager({
+  chromeApi: chrome,
+  fetchImpl: (...args) => fetch(...args),
+});
+
 // Prevent all video-page content scripts from reading API keys or cached data.
 // Side panel, options, and service-worker contexts remain trusted.
 chrome.storage.local
   .setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" })
   .catch((error) =>
-    console.warn("[YouTube Digest] Could not restrict storage access:", error),
+    console.warn("[看完了] Could not restrict storage access:", error),
   );
 
 async function getSettings() {
@@ -97,14 +103,14 @@ async function requestAiCompletion({
   const settings = await getSettings();
   if (!settings.aiApiKey) {
     const error = new Error(
-      "尚未配置硅基流动 API 密钥，请打开 Video Digest 设置。",
+      "尚未配置硅基流动 API 密钥，请打开“看完了”设置。",
     );
     error.code = "NO_AI_KEY";
     throw error;
   }
   if (!settings.aiModel) {
     const error = new Error(
-      "尚未选择硅基流动模型，请打开 Video Digest 设置。",
+      "尚未选择硅基流动模型，请打开“看完了”设置。",
     );
     error.code = "NO_AI_MODEL";
     throw error;
@@ -460,15 +466,15 @@ chrome.action.onClicked.addListener((tab) => {
  */
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
-chrome.runtime.onInstalled.addListener(({ reason }) => {
-  if (reason === "install") chrome.runtime.openOptionsPage();
+updateManager.bindLifecycle({
+  onFirstInstall: () => chrome.runtime.openOptionsPage(),
 });
 
 /**
  * Keep the side panel scoped to supported video tabs only.
  *
  * Chrome side panels are "global" by default: once opened, the panel follows
- * you to every tab. Video Digest enables the panel only on supported video
+ * you to every tab. 看完了 enables the panel only on supported video
  * tabs and disables it everywhere else. Disabling
  * on a tab makes Chrome hide/close the panel for that tab, so it never lingers
  * on a new tab or some other website.
@@ -485,7 +491,7 @@ async function closePanelForTab(tabId, windowId) {
   if (typeof chrome.sidePanel.close !== "function") return;
 
   try {
-    // This closes the tab-specific panel used by YouTube Digest.
+    // This closes the tab-specific panel used by 看完了.
     await chrome.sidePanel.close({ tabId });
     return;
   } catch (error) {
@@ -666,6 +672,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === "getUpdateStatus") {
+    updateManager
+      .getStatus()
+      .then(sendResponse)
+      .catch((error) => sendResponse({ error: error.message }));
+    return true;
+  }
+
+  if (message.action === "checkForUpdates") {
+    updateManager
+      .checkNow()
+      .then(sendResponse)
+      .catch((error) => sendResponse({ error: error.message }));
+    return true;
+  }
+
+  if (message.action === "dismissUpdate") {
+    updateManager
+      .dismiss(message.version)
+      .then(sendResponse)
+      .catch((error) => sendResponse({ error: error.message }));
+    return true;
+  }
+
+  if (message.action === "acknowledgeUpdate") {
+    updateManager
+      .acknowledge()
+      .then(sendResponse)
+      .catch((error) => sendResponse({ error: error.message }));
+    return true;
+  }
+
+  if (message.action === "installUpdate") {
+    updateManager
+      .install()
+      .then(sendResponse)
+      .catch((error) => sendResponse({ error: error.message }));
+    return true;
+  }
+
   if (message.action === "openOptions") {
     chrome.runtime.openOptionsPage();
     sendResponse({ success: true });
@@ -674,7 +720,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === "openSidePanel") {
     const tabId = sender.tab?.id;
-    debugLog("[YouTube Digest BG] openSidePanel requested from tab:", tabId);
+    debugLog("[看完了 BG] openSidePanel requested from tab:", tabId);
 
     // Re-enable the panel (it may have been disabled by auto-close) and open it.
     // IMPORTANT: we call setOptions + open synchronously (no await between them)
@@ -697,7 +743,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }, 300);
         })
         .catch((err) => {
-          console.error("[YouTube Digest BG] openSidePanel error:", err);
+          console.error("[看完了 BG] openSidePanel error:", err);
         });
     } else {
       // Fallback: find the active tab
@@ -712,7 +758,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             });
             chrome.sidePanel.open({ tabId: tabs[0].id }).catch((err) => {
               console.error(
-                "[YouTube Digest BG] openSidePanel fallback error:",
+                "[看完了 BG] openSidePanel fallback error:",
                 err,
               );
             });
@@ -726,7 +772,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Relay messages from side panel to content script
   if (message.action === "relayToContent") {
-    debugLog("[YouTube Digest BG] Relay request:", message.payload?.action);
+    debugLog("[看完了 BG] Relay request:", message.payload?.action);
     (async () => {
       try {
         let tab = null;
@@ -744,7 +790,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         if (tab && videoRef) {
           debugLog(
-            "[YouTube Digest BG] Sending to tab:",
+            "[看完了 BG] Sending to tab:",
             tab.id,
             "URL:",
             tab.url,
@@ -779,17 +825,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
 
-          debugLog("[YouTube Digest BG] Got response from content:", response);
+          debugLog("[看完了 BG] Got response from content:", response);
           sendResponse({ success: true, response });
         } else {
-          debugLog("[Video Digest BG] No supported video tab found");
+          debugLog("[看完了 BG] No supported video tab found");
           sendResponse({
             success: false,
             error: "没有找到受支持的 YouTube 或 B 站视频标签页",
           });
         }
       } catch (err) {
-        console.error("[YouTube Digest BG] Relay error:", err.message);
+        console.error("[看完了 BG] Relay error:", err.message);
         sendResponse({ success: false, error: err.message });
       }
     })();
@@ -831,7 +877,7 @@ async function getPlayerVideoDetails(tabId) {
     });
     return results?.[0]?.result || null;
   } catch (e) {
-    console.warn("[YouTube Digest BG] Player details unavailable:", e.message);
+    console.warn("[看完了 BG] Player details unavailable:", e.message);
     return null;
   }
 }
@@ -959,7 +1005,7 @@ async function handleFetchYouTubeTranscript(videoId) {
       return {
         success: false,
         error: "NO_SUPADATA_KEY",
-        message: "尚未配置 Supadata API 密钥，请打开 Video Digest 设置。",
+        message: "尚未配置 Supadata API 密钥，请打开“看完了”设置。",
       };
     }
 
@@ -1003,7 +1049,7 @@ async function handleFetchYouTubeTranscript(videoId) {
         return {
           success: false,
           error: "INVALID_SUPADATA_KEY",
-          message: "Supadata API 密钥无效，请打开 Video Digest 设置检查。",
+          message: "Supadata API 密钥无效，请打开“看完了”设置检查。",
         };
       }
       if (response.status === 404) {
@@ -1358,7 +1404,7 @@ async function handleAnalyzeTranscript(
         success: false,
         error: "NO_AI_KEY",
         message:
-          "尚未配置硅基流动 API 密钥，请打开 Video Digest 设置。",
+          "尚未配置硅基流动 API 密钥，请打开“看完了”设置。",
       };
     }
 
@@ -1423,7 +1469,7 @@ async function handleAnalyzeTranscript(
       promptVariables,
     );
 
-    debugLog("[YouTube Digest] Requesting video analysis", settings.aiModel);
+    debugLog("[看完了] Requesting video analysis", settings.aiModel);
     const { text: responseText } = await requestAiCompletion({
       stream: true,
       thinkingBudget: isBilibili ? 256 : 1024,
@@ -1665,10 +1711,10 @@ async function handleSaveNote(
       const cached = await chrome.storage.local.get(`digest_${videoId}`);
       if (cached[`digest_${videoId}`]?.transcript) {
         transcript = cached[`digest_${videoId}`].transcript;
-        debugLog("[YouTube Digest] Using cached transcript for note");
+        debugLog("[看完了] Using cached transcript for note");
       }
     } catch (e) {
-      debugLog("[YouTube Digest] No cached transcript, fetching...");
+      debugLog("[看完了] No cached transcript, fetching...");
     }
 
     // If no cached transcript, fetch it
@@ -1793,7 +1839,7 @@ async function handleSaveNote(
 
     return { success: true, note };
   } catch (error) {
-    console.error("[YouTube Digest] Save note error:", error);
+    console.error("[看完了] Save note error:", error);
     return { success: false, error: error.message };
   }
 }
@@ -1816,7 +1862,7 @@ async function cleanupNoteText(
   }
 
   try {
-    debugLog("[YouTube Digest] Requesting note cleanup");
+    debugLog("[看完了] Requesting note cleanup");
     const variables = {
       videoTitle: videoTitle || "Unknown",
       fullContext,
@@ -1853,7 +1899,7 @@ async function cleanupNoteText(
       }
     } catch (parseError) {
       console.warn(
-        "[YouTube Digest] JSON parse failed for note, stripping preambles:",
+        "[看完了] JSON parse failed for note, stripping preambles:",
         parseError,
       );
       result = result.replace(
@@ -1871,7 +1917,7 @@ async function cleanupNoteText(
 
     return result.slice(0, 3000);
   } catch (e) {
-    console.error("[YouTube Digest] Cleanup error:", e);
+    console.error("[看完了] Cleanup error:", e);
   }
 
   // Return combined raw text if cleanup fails
@@ -1958,7 +2004,7 @@ async function handleExplainSelection(
       variables,
     );
 
-    debugLog("[YouTube Digest] Requesting selection explanation");
+    debugLog("[看完了] Requesting selection explanation");
     const { text: explanation } = await requestAiCompletion({
       maxTokens: 1024,
       messages: [
@@ -2157,7 +2203,7 @@ async function handleTranslateContent(
     }
     return { success: true, translatedContent: aligned };
   } catch (error) {
-    console.error("[YouTube Digest] Translation error:", error);
+    console.error("[看完了] Translation error:", error);
     return { success: false, error: error.message || "Translation failed" };
   }
 }

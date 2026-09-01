@@ -1,7 +1,7 @@
 /**
  * SIDE PANEL LOGIC
  *
- * Handles the UI for Video Digest: video detection, transcript analysis,
+ * Handles the UI for 看完了: video detection, transcript analysis,
  * rendering results, and export features.
  */
 
@@ -31,6 +31,7 @@ let isAnalysisLoading = false; // Track if analysis is in progress
 let activeVideoTabId = null;
 let currentConfigStatus = null;
 let errorAction = null;
+let currentUpdateStatus = null;
 
 // --- Translation state ---
 // The universal language control supports original content, Chinese, and an
@@ -84,6 +85,141 @@ function sendRuntimeMessageWithTimeout(message, timeoutMs, timeoutMessage) {
       (error) => finish(reject, error),
     );
   });
+}
+
+function replaceUpdateNotes(list, notes, doc = document) {
+  while (list?.firstChild) list.removeChild(list.firstChild);
+  if (!list) return;
+  for (const note of Array.isArray(notes) ? notes.slice(0, 4) : []) {
+    const item = doc.createElement("li");
+    item.textContent = String(note || "").trim();
+    if (item.textContent) list.appendChild(item);
+  }
+}
+
+function renderUpdateBanner(status, doc = document) {
+  const banner = doc.getElementById("updateBanner");
+  if (!banner) return;
+  currentUpdateStatus = status && typeof status === "object" ? status : null;
+  if (!currentUpdateStatus?.showUpdate) {
+    banner.hidden = true;
+    return;
+  }
+
+  const isReceipt = currentUpdateStatus.justUpdated === true;
+  const currentVersion = String(currentUpdateStatus.currentVersion || "");
+  const latestVersion = String(currentUpdateStatus.latestVersion || currentVersion);
+  const kicker = doc.getElementById("updateKicker");
+  const title = doc.getElementById("updateTitle");
+  const version = doc.getElementById("updateVersion");
+  const primary = doc.getElementById("updatePrimaryBtn");
+  const dismiss = doc.getElementById("updateDismissBtn");
+  const statusText = doc.getElementById("updateStatus");
+
+  if (kicker) kicker.textContent = isReceipt ? "更新完成" : "发现新版本";
+  if (title) {
+    title.textContent = isReceipt
+      ? `已更新到 v${currentVersion}`
+      : `看完了 v${latestVersion}`;
+  }
+  if (version) {
+    version.textContent = isReceipt
+      ? `上一版本已完成升级`
+      : `当前 v${currentVersion} · 最新 v${latestVersion}`;
+  }
+  replaceUpdateNotes(
+    doc.getElementById("updateNotes"),
+    currentUpdateStatus.notes,
+    doc,
+  );
+  if (primary) {
+    primary.disabled = false;
+    primary.textContent = isReceipt ? "知道了" : "立即更新";
+  }
+  if (dismiss) {
+    dismiss.hidden = isReceipt;
+    dismiss.textContent = "稍后";
+  }
+  if (statusText) statusText.textContent = "";
+  banner.hidden = false;
+}
+
+async function loadUpdateStatus() {
+  try {
+    const status = await sendRuntimeMessageWithTimeout(
+      { action: "getUpdateStatus" },
+      15_000,
+      "更新检查超时。",
+    );
+    if (!status?.error) renderUpdateBanner(status);
+  } catch (_error) {
+    // Update checks never block transcript or analysis features.
+  }
+}
+
+async function handleUpdatePrimaryClick() {
+  const primary = document.getElementById("updatePrimaryBtn");
+  const statusText = document.getElementById("updateStatus");
+  if (!primary || !currentUpdateStatus) return;
+
+  primary.disabled = true;
+  if (currentUpdateStatus.justUpdated) {
+    primary.textContent = "正在关闭…";
+    await chrome.runtime
+      .sendMessage({ action: "acknowledgeUpdate" })
+      .catch(() => null);
+    renderUpdateBanner({ showUpdate: false });
+    return;
+  }
+
+  primary.textContent = "正在检查…";
+  if (statusText) statusText.textContent = "正在请求浏览器获取最新版。";
+  try {
+    const result = await sendRuntimeMessageWithTimeout(
+      { action: "installUpdate" },
+      20_000,
+      "更新请求超时，请稍后重试。",
+    );
+    if (result?.error) throw new Error(result.error);
+    if (result?.mode === "manual") {
+      primary.disabled = false;
+      primary.textContent = "再次打开下载页";
+      if (statusText) {
+        statusText.textContent = result.opened
+          ? "已打开 GitHub 最新版。解压覆盖原文件后，在扩展管理页点击“重新加载”。"
+          : "请打开 GitHub 最新发行版并按安装说明更新。";
+      }
+      return;
+    }
+    if (result?.reloading) {
+      primary.textContent = "正在更新…";
+      if (statusText) statusText.textContent = "浏览器正在应用新版本。";
+      return;
+    }
+    if (result?.waiting) {
+      primary.disabled = false;
+      primary.textContent = "重新检查";
+      if (statusText) {
+        statusText.textContent = "浏览器正在下载更新，完成后会自动应用。";
+      }
+      return;
+    }
+    throw new Error("当前已经是最新版。");
+  } catch (error) {
+    primary.disabled = false;
+    primary.textContent = "重试更新";
+    if (statusText) statusText.textContent = error.message;
+  }
+}
+
+async function handleUpdateDismissClick() {
+  if (!currentUpdateStatus) return;
+  const action = currentUpdateStatus.justUpdated
+    ? "acknowledgeUpdate"
+    : "dismissUpdate";
+  const message = { action, version: currentUpdateStatus.latestVersion };
+  await chrome.runtime.sendMessage(message).catch(() => null);
+  renderUpdateBanner({ showUpdate: false });
 }
 
 // --- Transcript search state ---
@@ -266,6 +402,7 @@ function groupTranscriptEntries(entries, limits = TRANSCRIPT_SEGMENT_LIMITS) {
 document.addEventListener("DOMContentLoaded", async () => {
   setTranscriptModeButtons("zh");
   setupEventListeners();
+  void loadUpdateStatus();
   await evictOldCacheEntries(20);
 
   currentConfigStatus = await chrome.runtime.sendMessage({
@@ -418,6 +555,12 @@ function setupEventListeners() {
   document.getElementById("settingsBtn")?.addEventListener("click", () => {
     chrome.runtime.sendMessage({ action: "openOptions" });
   });
+  document
+    .getElementById("updatePrimaryBtn")
+    ?.addEventListener("click", handleUpdatePrimaryClick);
+  document
+    .getElementById("updateDismissBtn")
+    ?.addEventListener("click", handleUpdateDismissClick);
   // Transcript actions
   document
     .getElementById("copyTranscriptBtn")
@@ -487,7 +630,7 @@ async function checkCurrentTab() {
     });
     const tab = tabs[0] || null;
 
-    debugLog("[YouTube Digest Panel] Found tab:", tab?.id, tab?.url);
+    debugLog("[看完了 Panel] Found tab:", tab?.id, tab?.url);
 
     if (!tab?.url) {
       showState("welcome");
@@ -530,7 +673,7 @@ async function checkCurrentTab() {
           tabId: tab.id,
           payload: { action: "getVideoInfo" },
         });
-        debugLog("[YouTube Digest Panel] getVideoInfo result:", result);
+        debugLog("[看完了 Panel] getVideoInfo result:", result);
         if (result.success && result.response) {
           currentVideoTitle = result.response.title || "";
           currentChannelName = result.response.channelName || "";
@@ -538,7 +681,7 @@ async function checkCurrentTab() {
           currentVideoDuration = result.response.duration || 0;
         }
       } catch (e) {
-        console.error("[YouTube Digest Panel] getVideoInfo error:", e);
+        console.error("[看完了 Panel] getVideoInfo error:", e);
         currentVideoTitle = "";
         currentChannelName = "";
         currentVideoDescription = "";
@@ -711,7 +854,7 @@ async function startDigest(videoRef, videoUrl) {
     if (transcriptResult.error === "NO_SUPADATA_KEY") {
       showError(
         "缺少 API 密钥",
-        "请在 Video Digest 设置中添加 Supadata API 密钥。",
+        "请在“看完了”设置中添加 Supadata API 密钥。",
       );
       return;
     }
@@ -853,7 +996,7 @@ async function translateInterfaceSegments(surface, segments, rerender) {
           videoTitle: currentVideoTitle,
         });
       } catch (error) {
-        console.error("[YouTube Digest] Interface batch error:", error);
+        console.error("[看完了] Interface batch error:", error);
         result = { success: false, error: error.message };
       }
       if (
@@ -880,7 +1023,7 @@ async function translateInterfaceSegments(surface, segments, rerender) {
       await updateCache();
     }
   } catch (error) {
-    console.error("[YouTube Digest] Interface translation error:", error);
+    console.error("[看完了] Interface translation error:", error);
     missing.forEach((segment) =>
       interfaceTranslationFailures.add(segment.cacheKey),
     );
@@ -963,7 +1106,7 @@ function renderAnalysisResults(analysis) {
     `;
     li.addEventListener("click", () => {
       debugLog(
-        "[YouTube Digest Panel] Chapter clicked:",
+        "[看完了 Panel] Chapter clicked:",
         chapter.timestamp,
         chapter.timestampSeconds,
       );
@@ -994,7 +1137,7 @@ function renderAnalysisResults(analysis) {
     `;
     div.addEventListener("click", () => {
       debugLog(
-        "[YouTube Digest Panel] Quote clicked:",
+        "[看完了 Panel] Quote clicked:",
         quote.timestamp,
         quote.timestampSeconds,
       );
@@ -1063,7 +1206,7 @@ async function saveQuoteAsNote(quote, btn) {
       // Refresh notes list if on Notes tab
       loadNotes(currentVideoId);
     } else {
-      console.error("[YouTube Digest] Save quote as note failed:", result.error);
+      console.error("[看完了] Save quote as note failed:", result.error);
       btn.textContent = "失败";
       setTimeout(() => {
         btn.textContent = originalText;
@@ -1071,7 +1214,7 @@ async function saveQuoteAsNote(quote, btn) {
       }, 1500);
     }
   } catch (error) {
-    console.error("[YouTube Digest] Save quote as note error:", error);
+    console.error("[看完了] Save quote as note error:", error);
     btn.textContent = "失败";
     setTimeout(() => {
       btn.textContent = originalText;
@@ -1430,7 +1573,7 @@ function exportTranscript() {
 
   exportText += `字幕：\n\n${transcriptContent}\n`;
   exportText += `\n${"—".repeat(60)}\n`;
-  exportText += `由 Video Digest 导出\n`;
+  exportText += `由“看完了”导出\n`;
 
   const filename = `${sanitizeFilename(currentVideoTitle)}-transcript.txt`;
   downloadTextFile(exportText, filename);
@@ -1490,7 +1633,7 @@ function showConfigError(configStatus, platform = currentVideoRef?.platform) {
   showState("error");
   document.getElementById("errorTitle").textContent = "需要完成设置";
   document.getElementById("errorMessage").textContent =
-    `请在 Video Digest 设置中配置：${missingSettings.join("、")}。`;
+    `请在“看完了”设置中配置：${missingSettings.join("、")}。`;
   document.getElementById("errorBtn").textContent = "打开设置";
   errorAction = () => chrome.runtime.sendMessage({ action: "openOptions" });
 }
@@ -1616,7 +1759,7 @@ async function triggerAnalysis() {
     // Save to cache now that we have analysis
     await saveToCache(currentVideoId);
   } catch (error) {
-    console.error("[YouTube Digest Panel] Analysis error:", error);
+    console.error("[看完了 Panel] Analysis error:", error);
     if (chapterList)
       chapterList.innerHTML = `<li class="chapter-item" style="color: var(--accent); border: none;">错误：${escapeHtml(error.message)}</li>`;
     if (quotesList)
@@ -1631,9 +1774,9 @@ async function triggerAnalysis() {
 // ============================================================
 
 async function seekTo(seconds) {
-  debugLog("[YouTube Digest Panel] seekTo called with:", seconds);
+  debugLog("[看完了 Panel] seekTo called with:", seconds);
   if (seconds === undefined || seconds === null) {
-    debugLog("[YouTube Digest Panel] seekTo aborted - no seconds value");
+    debugLog("[看完了 Panel] seekTo aborted - no seconds value");
     return;
   }
 
@@ -1647,11 +1790,11 @@ async function seekTo(seconds) {
     if (activeVideoTabId) {
       try {
         await chrome.tabs.sendMessage(activeVideoTabId, payload);
-        debugLog("[YouTube Digest Panel] seekTo direct success");
+        debugLog("[看完了 Panel] seekTo direct success");
         return;
       } catch (directErr) {
         debugLog(
-          "[YouTube Digest Panel] Direct seekTo failed, falling back to relay:",
+          "[看完了 Panel] Direct seekTo failed, falling back to relay:",
           directErr.message,
         );
       }
@@ -1663,9 +1806,9 @@ async function seekTo(seconds) {
       tabId: activeVideoTabId,
       payload,
     });
-    debugLog("[YouTube Digest Panel] seekTo relay result:", result);
+    debugLog("[看完了 Panel] seekTo relay result:", result);
   } catch (error) {
-    console.error("[YouTube Digest Panel] seekTo error:", error);
+    console.error("[看完了 Panel] seekTo error:", error);
   }
 }
 
@@ -1930,7 +2073,7 @@ function setupExplainFeature() {
           button.disabled = false;
         }, 900);
       } catch (error) {
-        console.error("[YouTube Digest] Save selected note error:", error);
+        console.error("[看完了] Save selected note error:", error);
         button.textContent = "失败";
         setTimeout(() => {
           button.textContent = originalText;
@@ -2108,7 +2251,7 @@ async function evictOldCacheEntries(maxEntries) {
       .map((e) => e.key);
     if (toRemove.length > 0) {
       await chrome.storage.local.remove(toRemove);
-      debugLog(`[YouTube Digest] Evicted ${toRemove.length} old cache entries`);
+      debugLog(`[看完了] Evicted ${toRemove.length} old cache entries`);
     }
   } catch (error) {
     console.error("Cache eviction error:", error);
@@ -2172,7 +2315,7 @@ async function loadNotes(videoId) {
       renderNotes(result.notes, videoId);
     }
   } catch (error) {
-    console.error("[YouTube Digest Panel] Load notes error:", error);
+    console.error("[看完了 Panel] Load notes error:", error);
   }
 }
 
@@ -2294,7 +2437,7 @@ async function deleteNote(noteId) {
       noteId: noteId,
     });
   } catch (error) {
-    console.error("[YouTube Digest Panel] Delete note error:", error);
+    console.error("[看完了 Panel] Delete note error:", error);
   }
 }
 
@@ -2475,7 +2618,7 @@ async function loadTranscriptViewState(videoId) {
     if (!Number.isFinite(scrollTop) || scrollTop < 0) return null;
     return { videoId, scrollTop };
   } catch (error) {
-    console.error("[YouTube Digest] Reading position load error:", error);
+    console.error("[看完了] Reading position load error:", error);
     return null;
   }
 }
@@ -2499,7 +2642,7 @@ async function saveTranscriptViewState(videoId, scrollTop) {
     );
     await storage.set({ [TRANSCRIPT_VIEW_STATE_KEY]: recentStates });
   } catch (error) {
-    console.error("[YouTube Digest] Reading position save error:", error);
+    console.error("[看完了] Reading position save error:", error);
   }
 }
 
@@ -3015,6 +3158,7 @@ function setTranslatingSpinner(show) {
 // Pure helpers are exposed for the repository's Node tests. The extension does
 // not read this object at runtime.
 globalThis.__YTD_TRANSCRIPT_TESTING__ = {
+  renderUpdateBanner,
   sendTranslationMessage,
   groupTranscriptEntries,
   splitOversizedThought,

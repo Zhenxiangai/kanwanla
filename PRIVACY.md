@@ -1,8 +1,8 @@
 # Privacy
 
-Last updated: August 31, 2026
+Last updated: September 1, 2026
 
-Video Digest is a local, bring-your-own-key Chrome and Edge extension. It has no developer-operated backend, Video Digest account, analytics, advertising, telemetry, or data-broker integration.
+看完了 is a local, bring-your-own-key Chrome and Edge extension. It has no developer-operated backend, 看完了 account, analytics, advertising, telemetry, or data-broker integration.
 
 ## Data handled
 
@@ -19,13 +19,13 @@ Depending on the site and feature, the extension handles:
 
 ### Supadata
 
-For YouTube only, Video Digest sends the canonical YouTube watch URL to `https://api.supadata.ai` with the user-supplied Supadata API key. It requests native captions and receives subtitle text and timestamps.
+For YouTube only, 看完了 sends the canonical YouTube watch URL to `https://api.supadata.ai` with the user-supplied Supadata API key. It requests native captions and receives subtitle text and timestamps.
 
 No Supadata request is made for Bilibili videos.
 
 ### Bilibili
 
-For Bilibili videos, Video Digest requests video metadata and subtitle-track metadata from `https://api.bilibili.com`. These requests use `credentials: include`, so Chrome may attach Bilibili cookies already present in the same browser profile. This allows Bilibili to return subtitle tracks available to the signed-in user.
+For Bilibili videos, 看完了 requests video metadata and subtitle-track metadata from `https://api.bilibili.com`. These requests use `credentials: include`, so Chrome may attach Bilibili cookies already present in the same browser profile. This allows Bilibili to return subtitle tracks available to the signed-in user.
 
 The extension does not request Chrome's `cookies` permission. It does not enumerate, read, copy, log, or store cookie values itself.
 
@@ -33,7 +33,7 @@ The selected subtitle JSON is downloaded from a Bilibili-controlled `https://*.h
 
 ### SiliconFlow
 
-For AI features, Video Digest sends relevant subtitle text and video context directly to `https://api.siliconflow.cn/v1`, authenticated with the user's SiliconFlow API key. The selected model may receive:
+For AI features, 看完了 sends relevant subtitle text and video context directly to `https://api.siliconflow.cn/v1`, authenticated with the user's SiliconFlow API key. The selected model may receive:
 
 - video title, creator, description, and duration;
 - timestamped transcript sections;
@@ -45,7 +45,13 @@ For a long Bilibili overview, adjacent short caption cues are grouped before tra
 
 When the user clicks **Load models**, Settings sends the SiliconFlow API key to `GET /v1/models?type=text&sub_type=chat`. That request does not contain a video URL, subtitle, or note.
 
-The Video Digest developer does not proxy or receive Supadata, Bilibili, or SiliconFlow requests.
+The 看完了 developer does not proxy or receive Supadata, Bilibili, or SiliconFlow requests.
+
+### GitHub release checks
+
+When the side panel opens, 看完了 may request public release metadata from `https://api.github.com/repos/Zhenxiangai/kanwanle/releases/latest`. A successful result is cached for 24 hours; a failed check is not retried for at least one hour. The response is reduced to the public version number, release title, short release notes, publication time, and validated GitHub release URL.
+
+This request does not contain Supadata or SiliconFlow API keys, video URLs, video identifiers, subtitles, notes, Bilibili cookies, or browser-account identifiers. GitHub still receives the ordinary network metadata associated with an HTTPS request, such as the user's IP address and browser networking information, under GitHub's own privacy policy. Update-check failure does not block video features.
 
 ## Local storage
 
@@ -56,6 +62,7 @@ Chrome local extension storage contains:
 - cached transcripts, translations, overviews, and video metadata;
 - saved notes and timestamped links; and
 - UI and reading-position preferences.
+- public update metadata, the last check time, and a dismissed-version preference.
 
 YouTube keeps its historical raw video ID as the cache key. Bilibili uses a key containing the BV number and part number.
 
@@ -65,7 +72,7 @@ Content scripts cannot read local extension storage because the background servi
 
 Digest cache entries expire after 30 days, and the extension keeps at most 20 cached videos. Notes remain until individually deleted or until all local data is cleared.
 
-Settings provides controls to clear cached digests or reset all Video Digest data. Uninstalling the extension also removes its Chrome extension storage. Clearing local data does not delete information already processed or retained by Supadata, Bilibili, or SiliconFlow.
+Settings provides controls to clear cached digests or reset all 看完了 data. Uninstalling the extension also removes its Chrome extension storage. Clearing local data does not delete information already processed or retained by Supadata, Bilibili, or SiliconFlow.
 
 ## Permissions
 
@@ -78,8 +85,9 @@ Settings provides controls to clear cached digests or reset all Video Digest dat
 - SiliconFlow host access: list models and perform configured AI requests.
 - Bilibili host access: interact with Bilibili playback pages and retrieve metadata and subtitle tracks.
 - `*.hdslb.com` host access: download the selected Bilibili subtitle JSON.
+- GitHub API host access: check the current public release version and release notes.
 
-Video Digest does not use these permissions to monitor unrelated browsing.
+看完了 does not use these permissions to monitor unrelated browsing.
 
 ## Contact
 

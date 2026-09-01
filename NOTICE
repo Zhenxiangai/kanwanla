@@ -1,4 +1,4 @@
-Video Digest
+看完了 / KanWanLe
 Copyright (c) 2026 Zhenxiangai
 
 This project is a derivative work based on YouTube Digest:
@@ -13,6 +13,7 @@ Licensed under the MIT License.
 
 The main changes in this fork include Bilibili and multipart-video support,
 SiliconFlow provider and model selection, Chrome and Edge compatibility,
-platform-aware caching, and streaming reliability improvements.
+platform-aware caching, streaming reliability improvements, Chinese-first
+product documentation, and browser-aware release update guidance.
 
 See LICENSE for the complete license text.

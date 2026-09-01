@@ -153,6 +153,110 @@ body {
 }
 
 /* ============================================================
+   VERSION UPDATE BANNER
+   ============================================================ */
+.update-banner {
+  flex-shrink: 0;
+  margin: 12px 14px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(200, 103, 79, 0.24);
+  border-radius: var(--r-lg);
+  background: #fffaf4;
+  box-shadow: var(--shadow-sm);
+}
+
+.update-banner[hidden] {
+  display: none;
+}
+
+.update-kicker {
+  color: var(--accent);
+  font: 700 11px/1.4 var(--font-body);
+  letter-spacing: 0.08em;
+}
+
+.update-title {
+  margin-top: 3px;
+  color: var(--text);
+  font: 700 16px/1.4 var(--font-display);
+}
+
+.update-version {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.update-notes {
+  margin: 9px 0 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.update-notes:empty {
+  display: none;
+}
+
+.update-notes li + li {
+  margin-top: 3px;
+}
+
+.update-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.update-primary,
+.update-secondary {
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  font: 650 12px/1.4 var(--font-body);
+}
+
+.update-primary {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.update-primary:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+}
+
+.update-primary:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.update-secondary {
+  border: 1px solid var(--border-heavy);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.update-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.update-status {
+  min-height: 0;
+  margin-top: 7px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.update-status:empty {
+  display: none;
+}
+
+/* ============================================================
    TAB NAVIGATION — pill tabs on the white header.
    No background "track": the header is white and the content below is cream,
    so the only thing in this strip is the muted labels + one terracotta pill.

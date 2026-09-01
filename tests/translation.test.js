@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const platforms = require("../platforms.js");
 const biliApi = require("../lib/bili-api.js");
+const updates = require("../updates.js");
 
 function loadSidepanelHelpers({
   sendMessage = () => Promise.resolve({}),
@@ -149,6 +150,7 @@ function loadBackgroundHelpers({
         `https://www.youtube.com/watch?v=${videoId}`,
     },
     YTD_PLATFORMS: platforms,
+    KANWANLE_UPDATES: updates,
     BILI_API: biliApiImpl,
   };
   sandbox.globalThis = sandbox;
@@ -194,6 +196,56 @@ test("a global panel closes by window when the tab close is rejected", async () 
     ["close", { windowId: 4 }],
     ["setOptions", { tabId: 17, enabled: false }],
   ]);
+});
+
+test("the update banner renders version notes as text and can be hidden", () => {
+  const helpers = loadSidepanelHelpers();
+  const elements = {
+    updateBanner: { hidden: true },
+    updateKicker: {},
+    updateTitle: {},
+    updateVersion: {},
+    updatePrimaryBtn: {},
+    updateDismissBtn: {},
+    updateStatus: {},
+  };
+  const notes = {
+    children: [],
+    get firstChild() {
+      return this.children[0] || null;
+    },
+    appendChild(item) {
+      this.children.push(item);
+    },
+    removeChild(item) {
+      this.children.splice(this.children.indexOf(item), 1);
+    },
+  };
+  elements.updateNotes = notes;
+  const doc = {
+    getElementById: (id) => elements[id] || null,
+    createElement: () => ({ textContent: "" }),
+  };
+
+  helpers.renderUpdateBanner(
+    {
+      showUpdate: true,
+      updateAvailable: true,
+      justUpdated: false,
+      currentVersion: "2.0.0",
+      latestVersion: "2.1.0",
+      notes: ["新增 <安全> 更新入口"],
+    },
+    doc,
+  );
+
+  assert.equal(elements.updateBanner.hidden, false);
+  assert.equal(elements.updateTitle.textContent, "看完了 v2.1.0");
+  assert.equal(elements.updatePrimaryBtn.textContent, "立即更新");
+  assert.equal(notes.children[0].textContent, "新增 <安全> 更新入口");
+
+  helpers.renderUpdateBanner({ showUpdate: false }, doc);
+  assert.equal(elements.updateBanner.hidden, true);
 });
 
 function createFakeTimers() {

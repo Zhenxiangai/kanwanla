@@ -6,15 +6,15 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
-test("manifest grants only the hosts and permissions needed by YouTube and Bilibili", () => {
+test("manifest identifies 看完了 and grants only its runtime hosts", () => {
   const manifest = JSON.parse(read("manifest.json"));
   const packageJson = JSON.parse(read("package.json"));
 
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.minimum_chrome_version, "116");
-  assert.equal(manifest.name, "Video Digest");
-  assert.equal(manifest.version, "1.6.0");
-  assert.equal(packageJson.name, "video-digest");
+  assert.equal(manifest.name, "看完了");
+  assert.equal(manifest.version, "2.0.0");
+  assert.equal(packageJson.name, "kanwanle");
   assert.equal(packageJson.version, manifest.version);
   assert.equal(manifest.options_ui.page, "options.html");
   assert.equal(manifest.permissions.includes("activeTab"), false);
@@ -29,6 +29,7 @@ test("manifest grants only the hosts and permissions needed by YouTube and Bilib
     "https://www.bilibili.com/*",
     "https://api.bilibili.com/*",
     "https://*.hdslb.com/*",
+    "https://api.github.com/*",
   ]);
 
   const scripts = manifest.content_scripts.flatMap((entry) => entry.js || []);
@@ -45,16 +46,18 @@ test("manifest grants only the hosts and permissions needed by YouTube and Bilib
 });
 
 test("published copy explains all transcript paths and upstream attribution", () => {
-  const english = read("README.md");
-  const chinese = read("README.zh-CN.md");
+  const chinese = read("README.md");
+  const chineseCompatibility = read("README.zh-CN.md");
+  const english = read("README.en.md");
   const privacy = read("PRIVACY.md");
   const security = read("SECURITY.md");
   const license = read("LICENSE");
   const notice = read("NOTICE");
-  const published = [english, chinese, privacy, security].join("\n");
+  const published = [chinese, chineseCompatibility, english, privacy, security].join("\n");
 
-  assert.match(english, /^# Video Digest$/m);
-  assert.match(chinese, /^# Video Digest$/m);
+  assert.match(chinese, /^# 看完了$/m);
+  assert.match(english, /^# KanWanLe$/m);
+  assert.match(chinese, /中文.*English/);
   assert.match(published, /Bilibili/i);
   assert.match(published, /B 站/);
   assert.match(published, /Supadata/);
@@ -69,6 +72,7 @@ test("published copy explains all transcript paths and upstream attribution", ()
   assert.match(published, /no local server/i);
   assert.match(english, /zarazhangrui\/youtube-digest/);
   assert.match(chinese, /zarazhangrui\/youtube-digest/);
+  assert.match(chinese, /Zhenxiangai\/kanwanle/);
   assert.match(notice, /https:\/\/github\.com\/zarazhangrui\/youtube-digest/);
   assert.match(license, /Zara Zhang \(youtube-digest\)/);
   assert.match(license, /Zhenxiangai/);
@@ -77,7 +81,7 @@ test("published copy explains all transcript paths and upstream attribution", ()
   assert.doesNotMatch(published, /Xiaoetong|小鹅通|audio\/transcriptions|音频转写/i);
 });
 
-test("release tooling includes the YouTube and Bilibili adapters", () => {
+test("release tooling includes platform and update modules", () => {
   const check = read("scripts/check-release.sh");
   for (const file of [
     "platforms.js",
@@ -85,6 +89,8 @@ test("release tooling includes the YouTube and Bilibili adapters", () => {
     "lib/wbi.js",
     "lib/bili-api.js",
     "transcripts.js",
+    "updates.js",
+    "README.en.md",
   ]) {
     assert.match(check, new RegExp(file.replace(/[.*+?^$\{\}()|[\]\\]/g, "\\$&")));
   }
@@ -113,6 +119,7 @@ test("runtime has no source-file credential dependency or retired provider endpo
     "options.js",
     "settings.js",
     "platforms.js",
+    "updates.js",
     "lib/wbi.js",
     "lib/bili-api.js",
   ]
@@ -126,6 +133,27 @@ test("runtime has no source-file credential dependency or retired provider endpo
   assert.match(runtime, /credentials: "include"/);
   assert.match(runtime, /credentials: "omit"/);
   assert.doesNotMatch(runtime, /xiaoe|小鹅通/i);
+});
+
+test("update UI uses browser updates with a validated GitHub fallback", () => {
+  const manifest = JSON.parse(read("manifest.json"));
+  const background = read("background.js");
+  const updates = read("updates.js");
+  const updateRuntime = `${background}\n${updates}`;
+  const panelHtml = read("sidepanel.html");
+  const panelJs = read("sidepanel.js");
+  const privacy = read("PRIVACY.md");
+
+  assert.ok(manifest.host_permissions.includes("https://api.github.com/*"));
+  assert.match(updateRuntime, /runtime\.requestUpdateCheck/);
+  assert.match(updateRuntime, /runtime\.onUpdateAvailable/);
+  assert.match(background, /KANWANLE_UPDATES\.createManager/);
+  assert.match(updates, /RELEASES_URL/);
+  assert.match(panelHtml, /id="updateBanner"/);
+  assert.match(panelHtml, /<script src="updates\.js"><\/script>/);
+  assert.match(panelJs, /textContent/);
+  assert.match(privacy, /api\.github\.com/);
+  assert.doesNotMatch(panelJs, /updateNotes[\s\S]{0,200}innerHTML/);
 });
 
 test("background reconciles side-panel state after navigation commits", () => {

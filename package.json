@@ -1,16 +1,16 @@
 {
-  "name": "video-digest",
-  "version": "1.6.0",
+  "name": "kanwanle",
+  "version": "2.0.0",
   "private": true,
   "description": "将 YouTube 和 B 站视频转化为带字幕、翻译、AI 概览和笔记的学习资料。",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Zhenxiangai/video-digest.git"
+    "url": "git+https://github.com/Zhenxiangai/kanwanle.git"
   },
-  "homepage": "https://github.com/Zhenxiangai/video-digest#readme",
+  "homepage": "https://github.com/Zhenxiangai/kanwanle#readme",
   "bugs": {
-    "url": "https://github.com/Zhenxiangai/video-digest/issues"
+    "url": "https://github.com/Zhenxiangai/kanwanle/issues"
   },
   "keywords": [
     "youtube",

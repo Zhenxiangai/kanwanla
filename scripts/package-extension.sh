@@ -45,9 +45,9 @@ if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
 fi
 
 mkdir -p "$dist_dir"
-temporary_dir="$(mktemp -d "$dist_dir/.video-digest-package.XXXXXX")"
-temporary_zip="$temporary_dir/video-digest.zip"
-output_zip="$dist_dir/video-digest-v$version.zip"
+temporary_dir="$(mktemp -d "$dist_dir/.kanwanle-package.XXXXXX")"
+temporary_zip="$temporary_dir/kanwanle.zip"
+output_zip="$dist_dir/kanwanle-v$version.zip"
 
 cleanup() {
   if [[ -f "$temporary_zip" ]]; then

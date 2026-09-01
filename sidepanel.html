@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Digest</title>
+    <title>看完了</title>
     <link rel="stylesheet" href="sidepanel.css" />
   </head>
   <body>
     <!-- HEADER -->
-    <!-- Note: the panel's own "YouTube Digest" title is shown by Chrome's side-panel
+    <!-- Note: the panel's own "看完了" title is shown by Chrome's side-panel
          title bar, so we don't repeat a logo here. -->
     <div class="header">
       <div class="header-top">
@@ -22,8 +22,8 @@
             class="settings-btn"
             id="settingsBtn"
             type="button"
-            title="打开 Video Digest 设置"
-            aria-label="打开 Video Digest 设置"
+            title="打开看完了设置"
+            aria-label="打开看完了设置"
           >
             设置
           </button>
@@ -68,6 +68,28 @@
         <button class="tab" data-tab="notes">笔记</button>
       </div>
     </div>
+
+    <section
+      class="update-banner"
+      id="updateBanner"
+      aria-labelledby="updateTitle"
+      aria-live="polite"
+      hidden
+    >
+      <div class="update-kicker" id="updateKicker">版本更新</div>
+      <h2 class="update-title" id="updateTitle"></h2>
+      <div class="update-version" id="updateVersion"></div>
+      <ul class="update-notes" id="updateNotes"></ul>
+      <div class="update-actions">
+        <button class="update-primary" id="updatePrimaryBtn" type="button">
+          立即更新
+        </button>
+        <button class="update-secondary" id="updateDismissBtn" type="button">
+          稍后
+        </button>
+      </div>
+      <div class="update-status" id="updateStatus" role="status"></div>
+    </section>
 
     <!-- MAIN CONTENT -->
     <div class="content" id="contentArea">
@@ -262,6 +284,7 @@
 
     <script src="settings.js"></script>
     <script src="platforms.js"></script>
+    <script src="updates.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>
